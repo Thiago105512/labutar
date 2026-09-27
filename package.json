@@ -9,6 +9,7 @@
     "packages/ats",
     "packages/avaliacoes",
     "packages/comunica",
+    "packages/ia",
     "packages/admissao",
     "packages/esocial",
     "server"
