@@ -205,18 +205,18 @@ test("configuração expõe raiz, projeto e banco", () => {
   assert.equal(config.raizColecao, "labutar");
 });
 
-test("padrão: driver memória, projeto pedtudo-app, banco (default), raiz labutar", () => {
+test("padrão: driver memória, projeto o-seu-rh, banco (default), raiz labutar", () => {
   const config = carregarConfig({});
   assert.equal(config.driver, "memoria");
-  assert.equal(config.projetoFirebase, "pedtudo-app");
+  assert.equal(config.projetoFirebase, "o-seu-rh");
   assert.equal(config.databaseId, "(default)");
   assert.equal(config.raizColecao, "labutar");
 });
 
-test("aviso de risco dispara ao mirar o (default) de projeto compartilhado", () => {
+test("aviso de risco dispara ao mirar o (default), mesmo em projeto dedicado", () => {
   const avisos = avisosDeRisco(carregarConfig({ LABUTAR_DB_DRIVER: "firestore" }));
   assert.equal(avisos.length, 1);
-  assert.match(avisos[0], /pedtudo-app/);
+  assert.match(avisos[0], /o-seu-rh/);
   // as três consequências verificadas na documentação oficial têm de aparecer
   assert.match(avisos[0], /cota e nível gratuito são POR PROJETO/);
   assert.match(avisos[0], /UM banco sem custo por projeto/);
