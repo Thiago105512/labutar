@@ -1,0 +1,15 @@
+{
+  "name": "@labutar/server",
+  "version": "0.1.0",
+  "description": "API do Labutar. HTTP em node:http e armazenamento com driver trocável (memória por padrão, Firestore quando houver credencial). Zero dependência obrigatória.",
+  "type": "module",
+  "main": "./src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node src/dev.js",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

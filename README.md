@@ -13,13 +13,18 @@ Diferencial pretendido: **nenhum ATS nacional fecha o ciclo até o eSocial**. O 
 |---|---|---|
 | `@labutar/core` | validações fiscais, datas, IDs, dinheiro, texto/LGPD | ✅ 49 testes |
 | `@labutar/ats` | vagas, pipeline, triagem, candidatos, canais | ✅ 107 testes |
+| `@labutar/avaliacoes` | DISC, testes, cursos, laudos, benchmark com guardrails | ✅ 91 testes |
+| `@labutar/comunica` | templates, canais, avisos, lembretes (sem entrega) | ✅ 97 testes |
 | `@labutar/esocial` | S-2200 / S-2220 / S-2240 | ⏸ **adiado**, contrato reservado |
-| `@labutar/avaliacoes` | DISC, testes, cursos e trilhas | 🚧 |
-| `@labutar/comunica` | templates, canais, avisos, lembretes | 🚧 |
-| `server` | API Express + Firestore | ⬜ |
+| `server` | API + repositório multi-tenant com fronteira de escopo | 🚧 camada de dados, 24 testes |
 | `web` | site institucional + painel + portal de vagas (PWA) | ⬜ |
 
-Sem CI, sem Firebase provisionado, sem nada em produção. Ver [`docs/03-roadmap.md`](docs/03-roadmap.md).
+**368 testes passando.** Sem CI, sem Firebase ligado, nada em produção.
+Ver [`docs/03-roadmap.md`](docs/03-roadmap.md).
+
+O backend roda **sem `npm install` e sem Firebase**: o driver padrão é memória.
+Firestore é opt-in e o isolamento em projeto compartilhado está explicado em
+[`docs/06-firebase.md`](docs/06-firebase.md) — leia antes de configurar chave.
 
 ## Rodando
 
