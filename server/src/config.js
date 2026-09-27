@@ -10,43 +10,43 @@ export function carregarConfig(ambiente = {}) {
     driver,
 
     /**
-     * `databaseId` e `prefixoColecao` são as duas formas de isolar o Labutar
-     * dentro de um projeto que já hospeda outro produto:
-     *
-     *   - banco nomeado ("labutar")  → isolamento total, regras próprias,
-     *     não toca no (default) do PedTudo. Exige plano Blaze.
-     *   - prefixo de coleção          → funciona no Spark, mas compartilha
-     *     UM ruleset e UMA cota com o PedTudo.
-     *
-     * O código aceita os dois; a escolha é de configuração, não de código.
+     * Coleção raiz do Labutar dentro do banco. Tudo vive sob
+     * `<raiz>/tenants/{tenantId}/...`, o que dá um único bloco de regras
+     * (`match /<raiz>/{document=**}`) e nenhum caminho sem o tenant no meio.
      */
+    raizColecao: ambiente.LABUTAR_COLECAO_RAIZ ?? "labutar",
+
     projetoFirebase: ambiente.LABUTAR_FIREBASE_PROJECT ?? "pedtudo-app",
     databaseId: ambiente.LABUTAR_FIREBASE_DATABASE ?? "(default)",
-    prefixoColecao: ambiente.LABUTAR_COLECAO_PREFIXO ?? "labutar_",
     credenciais: ambiente.LABUTAR_SERVICE_ACCOUNT ?? null,
   };
 }
 
 /**
- * Rodar contra o (default) de um projeto que hospeda outro produto em
- * produção exige ruleset mesclado. Este aviso existe para aparecer no log de
- * subida, não para impedir — impedir quebraria o desenvolvimento local.
+ * Avisos de risco para o log de subida. Não bloqueiam — bloquear quebraria o
+ * desenvolvimento local — mas existem para que a decisão de compartilhar banco
+ * nunca seja tomada por omissão.
  */
 export function avisosDeRisco(config) {
   const avisos = [];
 
   if (config.driver !== "firestore") return avisos;
 
+  if (!config.raizColecao) {
+    avisos.push("LABUTAR_COLECAO_RAIZ vazia: as coleções do Labutar se misturariam às de outro produto no mesmo banco.");
+  }
+
   if (config.databaseId === "(default)") {
     avisos.push(
-      `LABUTAR está configurado para o banco (default) do projeto "${config.projetoFirebase}". ` +
-        "Se esse projeto hospeda outro produto em produção, o ruleset do Firestore é UM SÓ por banco: " +
-        "publicar regras do Labutar substitui as do outro produto. Use LABUTAR_FIREBASE_DATABASE=labutar " +
-        "(banco nomeado, exige Blaze) ou um projeto separado."
+      `LABUTAR vai escrever no banco (default) do projeto "${config.projetoFirebase}", sob "${config.raizColecao}/tenants/...". ` +
+        "Três consequências verificadas em firebase.google.com/pricing e /docs/firestore/quotas: " +
+        "(1) cota e nível gratuito são POR PROJETO — todos os bancos do projeto compartilham os mesmos " +
+        "50 mil leituras/dia, 20 mil gravações/dia e 1 GiB; " +
+        "(2) só existe UM banco sem custo por projeto, então um banco nomeado adicional é cobrado; " +
+        "(3) Admin SDK passa por fora das regras de segurança, logo a chave de service account deste " +
+        "projeto alcança TODO o banco, incluindo dado de outro produto que o compartilhe. " +
+        "Firestore não tem permissão por coleção — não há como escopar a chave."
     );
-  }
-  if (!config.prefixoColecao) {
-    avisos.push("LABUTAR_COLECAO_PREFIXO vazio: as coleções do Labutar colidiriam com as de outro produto no mesmo banco.");
   }
 
   return avisos;

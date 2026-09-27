@@ -1,11 +1,61 @@
-# Firebase — isolamento do Labutar dentro de `pedtudo-app`
+# Firebase — onde o Labutar guarda dado e quanto isso custa
 
 Decisão do produto em 2026-09-27: usar o projeto já existente **`pedtudo-app`**
-(nº 1006551778801), com os dados do Labutar separados por prefixo de coleção.
+(nº 1006551778801), que hoje hospeda o **PedTudo em produção** — app clínico
+pediátrico da Dra. Catarina (CRM/AM 10.677), com dado de saúde de crianças.
 
-O projeto já hospeda o **PedTudo em produção** — app clínico pediátrico da
-Dra. Catarina (CRM/AM 10.677), com dados de saúde de crianças. Isso muda o
-cálculo de risco de qualquer alteração.
+## A pergunta econômica, respondida com a documentação oficial
+
+A intenção era concentrar tudo num Firestore só **para economizar**. Verificado em
+`firebase.google.com/pricing` e `firebase.google.com/docs/firestore/quotas` em 2026-09-27:
+
+| Fato | Fonte |
+|---|---|
+| **Não existe tarifa por projeto nem por banco.** Cobra-se por leitura, gravação, exclusão, armazenamento e saída de rede. | /pricing |
+| **Criar um segundo projeto Firebase não custa nada.** | /pricing |
+| **Cota e nível gratuito são POR PROJETO.** Todos os bancos do mesmo projeto compartilham a cota do projeto. | /quotas |
+| **Só existe UM banco sem custo por projeto.** Banco adicional no mesmo projeto é cobrado. | /quotas |
+| Nível gratuito (Spark, por projeto, edição Standard): 1 GiB armazenado, 50 mil leituras/dia, 20 mil gravações/dia, 20 mil exclusões/dia, 10 GiB/mês de saída. | /quotas |
+
+### Conclusão — concentrar não economiza, custa
+
+- **Se ficar no Spark (gratuito):** dois projetos = **duas** cotas gratuitas.
+  Um projeto = **uma** cota dividida entre PedTudo e Labutar. Concentrar **corta
+  o espaço gratuito pela metade** e um pico de uso do Labutar estoura a cota do
+  PedTudo em produção.
+- **Se migrar para Blaze (pago):** a cobrança é por operação. Dois projetos custam
+  **exatamente o mesmo** que um. Concentrar economiza **R$ 0,00**.
+- **Banco nomeado `labutar` dentro de `pedtudo-app`:** é o pior dos três — o
+  segundo banco do projeto **não** é gratuito, e ainda assim compartilha a cota
+  do projeto e a mesma chave de service account.
+
+> **Recomendação: projeto Firebase separado para o Labutar.** É gratuito no
+> Spark, leva ~2 minutos, dá cota própria e — o que importa mais — isola o
+> alcance da credencial. O código não muda: é `LABUTAR_FIREBASE_PROJECT`.
+
+## O layout de "pastas e subpastas" (implementado nos dois drivers)
+
+Firestore não tem pasta: a hierarquia é **coleção → documento → subcoleção**.
+O que parece pasta é essa alternância. Tudo do Labutar vive sob uma raiz única:
+
+```
+labutar/tenants/{tenantId}/vagas/{vagaId}
+labutar/tenants/{tenantId}/vagas/{vagaId}/candidaturas/{candidaturaId}
+labutar/tenants/{tenantId}/candidatos/{candidatoId}
+labutar/tenants/{tenantId}/candidatos/{candidatoId}/curriculos/{curriculoId}
+labutar/tenants/{tenantId}/admissoes/{admissaoId}/documentos/{documentoId}
+```
+
+Duas propriedades que vêm de graça:
+
+1. **Um só bloco de regras cobre o produto inteiro** (`match /labutar/{document=**}`),
+   sem esbarrar no ruleset de outro produto que divida o banco.
+2. **Nenhum caminho existe sem o tenant no meio.** Vazar dado de uma empresa
+   para outra exige construir o caminho errado — não basta esquecer um filtro.
+
+Implementação em `server/src/db/caminho.js`, usada pelos dois drivers. Caminho de
+coleção tem número **ímpar** de segmentos; `segmentosDeColecao` recusa
+`"vagas/VAGA_1"` (isso é caminho de documento, erro comum e silencioso).
 
 ## Por que NÃO é preciso publicar regras
 
@@ -17,75 +67,51 @@ match /{document=**} {
 }
 ```
 
-Negação genérica. **Toda coleção que não tenha um `match` explícito é negada a
-qualquer cliente Firebase.** As coleções `labutar_*` não têm `match` — logo:
+Negação genérica. **Toda coleção sem `match` explícito é negada a qualquer
+cliente Firebase.** `labutar/**` não tem `match` — logo nenhum cliente lê ou
+escreve dado do Labutar, e o servidor usa o **Admin SDK, que passa por fora das
+regras**. Nenhum deploy de regras é necessário e o ruleset do PedTudo não é tocado.
 
-- nenhum cliente (web, Android, iOS) consegue ler ou escrever dado do Labutar;
-- o servidor do Labutar usa o **Admin SDK, que passa por fora das regras**;
-- **nenhum deploy de regras é necessário**, e o ruleset do PedTudo não é tocado.
+> ⚠ **Não "corrigir" isso adicionando um `match /labutar/{document=**}` permissivo.**
+> Publicar regras substitui o arquivo inteiro do banco. Enquanto o Labutar só for
+> acessado pelo servidor, a negação genérica é a postura correta.
 
-> ⚠ **Não "corrigir" isso adicionando um `match /labutar_{...}` permissivo.**
-> Publicar regras substitui o arquivo inteiro do banco. Um erro ali derruba ou
-> expõe o PedTudo em produção. Enquanto o Labutar só for acessado pelo servidor,
-> a negação genérica é a postura correta e não deve ser alterada.
+## ⚠ O risco que o layout de pastas NÃO resolve
 
-Se um dia o front-end do Labutar precisar de acesso direto (tempo real do
-kanban, por exemplo), aí sim haverá regras — e elas deverão ser **mescladas**
-às 527 linhas existentes, nunca substituí-las.
+Separação por caminho é separação **de organização**, não **de permissão**.
 
-## Configuração
+O Admin SDK ignora regras de segurança, e **Firestore não tem IAM por coleção**.
+Uma chave de service account de `pedtudo-app` alcança o banco inteiro — incluindo
+`noteped_children`, `noteped_symptoms` e `conversas/*/mensagens`.
 
-```bash
-LABUTAR_DB_DRIVER=memoria          # padrão: roda sem Firebase, sem npm install
-LABUTAR_DB_DRIVER=firestore        # opt-in
-LABUTAR_FIREBASE_PROJECT=pedtudo-app
-LABUTAR_FIREBASE_DATABASE=(default)
-LABUTAR_COLECAO_PREFIXO=labutar_
-LABUTAR_SERVICE_ACCOUNT=<JSON da chave>
-```
+Consequência: o servidor do Labutar, e qualquer vulnerabilidade nele, passa a ter
+alcance sobre prontuário pediátrico. Sob a LGPD isso é tratamento de dado sensível
+(art. 5º, II e art. 11) por sistema cuja finalidade declarada é recrutamento — sem
+base legal que ampare e sem ciência do responsável legal pela criança.
 
-`server/src/config.js` emite um aviso no log se o driver for `firestore` mirando
-`(default)` de projeto compartilhado. O aviso não bloqueia — bloquear quebraria
-o desenvolvimento local.
+Não há como escopar a chave por coleção. As saídas reais:
 
-As duas formas de isolamento continuam disponíveis no código:
+1. **Projeto separado** — recomendado. Gratuito, isola cota e credencial.
+2. **Banco nomeado** — isola regras, cota e backup, mas a chave ainda alcança o
+   projeto inteiro, e o segundo banco é cobrado.
+3. **Aceitar e documentar** como decisão do controlador.
 
-| Estratégia | Isolamento | Exige |
-|---|---|---|
-| Prefixo `labutar_` em `(default)` | regras: total (negação genérica). Cota e faturamento: **compartilhados** | nada |
-| Banco nomeado `labutar` | regras, cota e backup separados | plano **Blaze** |
+`server/src/config.js` emite as três consequências no log de subida quando o
+driver é `firestore` mirando `(default)`. Não bloqueia — bloquear quebraria o
+desenvolvimento local.
 
-## ⚠ Risco que esta decisão não elimina
+## Para ligar de verdade
 
-**Firestore não tem permissão por coleção.** Uma chave de service account de
-`pedtudo-app` tem acesso a **todo** o banco — incluindo `noteped_children`,
-`noteped_symptoms` e `conversas/*/mensagens`, que são dados de saúde de crianças.
-
-Consequência prática: o servidor do Labutar, e qualquer vulnerabilidade nele,
-passa a ter alcance sobre prontuário pediátrico. Sob a LGPD isso é tratamento de
-dado sensível (art. 5º, II e art. 11) por um sistema cuja finalidade declarada é
-recrutamento — sem base legal que o ampare e sem que o titular (ou o responsável
-legal da criança) saiba.
-
-Não há como escopar a chave por coleção no Firestore. As saídas reais são:
-
-1. **Projeto Firebase separado** para o Labutar (plano Spark, gratuito, ~2 min).
-   Mantém o isolamento que o prefixo dá, sem o alcance sobre dado clínico.
-2. **Banco nomeado `labutar`** em `pedtudo-app` (Blaze). Isola regras, cota e
-   backup, mas a chave do service account ainda alcança o projeto inteiro.
-3. Aceitar o risco e documentá-lo como decisão do controlador.
-
-O código já aceita as três — é configuração, não refactor. A escolha é do
-controlador dos dados, não minha. **Enquanto não houver chave configurada, nada
-disso importa: o driver padrão é memória.**
-
-## O que falta para ligar de verdade
-
-- [ ] Chave de service account (Console → Configurações do projeto →
-      Contas de serviço → Gerar nova chave privada). Arquivo vai para
-      `LABUTAR_SERVICE_ACCOUNT` ou caminho em `.env` — **nunca** no git
-      (`.gitignore` já cobre `serviceAccount*.json` e `*credentials*.json`)
+- [ ] Decidir entre projeto separado ou `pedtudo-app` (item acima)
+- [ ] Chave de service account (Console → Configurações do projeto → Contas de
+      serviço → Gerar nova chave privada) em `LABUTAR_SERVICE_ACCOUNT`.
+      **Nunca** no git — `.gitignore` já cobre `serviceAccount*.json` e
+      `*credentials*.json`
 - [ ] `npm install firebase-admin` em `server/`
-- [ ] Validar o driver Firestore contra o projeto real — ele está **escrito mas
-      não exercitado por teste**, porque `firebase-admin` não está instalado
-- [ ] Decidir entre as três opções acima antes de gravar o primeiro currículo
+- [ ] Validar o driver Firestore contra projeto real — está **escrito mas não
+      exercitado por teste**, porque `firebase-admin` não está instalado
+- [ ] Se um dia o front-end acessar o Firestore direto (kanban em tempo real),
+      aí sim escrever regras — **mescladas** às 527 linhas, nunca substituindo
+
+Enquanto não houver chave, nada disso importa: o driver padrão é memória e o
+servidor sobe sem dependência nenhuma.

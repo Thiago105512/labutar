@@ -1,4 +1,5 @@
-import { aplicarFiltro, exigirColecao, exigirId, exigirTenant } from "./guard.js";
+import { aplicarFiltro, exigirId, exigirTenant } from "./guard.js";
+import { caminhoColecao, caminhoDocumento, juntarCaminho, RAIZ_PADRAO } from "./caminho.js";
 
 /**
  * Driver Firestore. `firebase-admin` é importado de forma preguiçosa: o
@@ -6,11 +7,16 @@ import { aplicarFiltro, exigirColecao, exigirId, exigirTenant } from "./guard.js
  * aqui se alguém realmente pedir Firestore.
  *
  * ⚠ NÃO EXERCITADO POR TESTES — `firebase-admin` não está instalado nesta
- * máquina. O que está testado é a composição do nome de coleção e a recusa
- * sem tenant; o caminho de rede precisa ser validado contra um projeto real
+ * máquina. O que está testado é a composição dos caminhos e a recusa sem
+ * tenant; o caminho de rede precisa ser validado contra um projeto real
  * antes de qualquer uso.
  */
-export async function criarRepositorioFirestore({ projeto, databaseId = "(default)", prefixo = "labutar_", credenciais = null } = {}) {
+export async function criarRepositorioFirestore({
+  projeto,
+  databaseId = "(default)",
+  raiz = RAIZ_PADRAO,
+  credenciais = null,
+} = {}) {
   let admin;
   try {
     admin = await import("firebase-admin/app");
@@ -33,37 +39,40 @@ export async function criarRepositorioFirestore({ projeto, databaseId = "(defaul
     );
   }
 
-  const firestore =
-    databaseId === "(default)" ? getFirestore() : getFirestore(admin.getApp(), databaseId);
+  const firestore = databaseId === "(default)" ? getFirestore() : getFirestore(admin.getApp(), databaseId);
 
-  /** O isolamento físico: nenhuma coleção do Labutar existe sem o prefixo. */
-  const nomear = (colecao) => `${prefixo}${exigirColecao(colecao)}`;
+  const colecao = (tenantId, nome) => firestore.collection(juntarCaminho(caminhoColecao(tenantId, nome, raiz)));
+  const documento = (tenantId, nome, id) =>
+    firestore.doc(juntarCaminho(caminhoDocumento(tenantId, nome, id, raiz)));
 
   return {
     nome: "firestore",
     persistente: true,
     projeto,
     databaseId,
-    prefixoColecao: prefixo,
+    raiz,
 
-    async inserir(tenantId, colecao, documento) {
+    async inserir(tenantId, nome, doc) {
       exigirTenant(tenantId);
-      const id = exigirId(documento?.id);
-      const ref = firestore.collection(nomear(colecao)).doc(`${tenantId}_${id}`);
-      await ref.create({ ...documento, tenantId });
-      return { ...documento, tenantId };
+      const id = exigirId(doc?.id);
+      await documento(tenantId, nome, id).create({ ...doc, tenantId });
+      return { ...doc, tenantId };
     },
 
-    async obter(tenantId, colecao, id) {
+    async obter(tenantId, nome, id) {
       exigirTenant(tenantId);
       exigirId(id);
-      const snap = await firestore.collection(nomear(colecao)).doc(`${tenantId}_${id}`).get();
+      const snap = await documento(tenantId, nome, id).get();
       return snap.exists ? snap.data() : null;
     },
 
-    async listar(tenantId, colecao, filtro = {}, { ordenarPor, limite, iniciarEm = 0 } = {}) {
+    /**
+     * Consulta sempre ancorada no tenant: o caminho já contém o escopo, então
+     * não existe lista sem filtro de tenant nem por acidente.
+     */
+    async listar(tenantId, nome, filtro = {}, { ordenarPor, limite, iniciarEm = 0 } = {}) {
       exigirTenant(tenantId);
-      let query = firestore.collection(nomear(colecao)).where("tenantId", "==", tenantId);
+      let query = colecao(tenantId, nome);
       if (limite) query = query.limit(iniciarEm + limite);
 
       const snap = await query.get();
@@ -80,32 +89,30 @@ export async function criarRepositorioFirestore({ projeto, databaseId = "(defaul
       return { itens, total, retornados: itens.length };
     },
 
-    async atualizar(tenantId, colecao, id, patch) {
+    async atualizar(tenantId, nome, id, patch) {
       exigirTenant(tenantId);
       exigirId(id);
-      const ref = firestore.collection(nomear(colecao)).doc(`${tenantId}_${id}`);
+      const ref = documento(tenantId, nome, id);
       await ref.update(patch);
-      const snap = await ref.get();
-      return snap.data();
+      return (await ref.get()).data();
     },
 
-    async remover(tenantId, colecao, id) {
+    async remover(tenantId, nome, id) {
       exigirTenant(tenantId);
       exigirId(id);
-      await firestore.collection(nomear(colecao)).doc(`${tenantId}_${id}`).delete();
+      await documento(tenantId, nome, id).delete();
       return true;
     },
 
-    async contar(tenantId, colecao, filtro = {}) {
-      const { total } = await this.listar(tenantId, colecao, filtro);
-      return total;
+    async contar(tenantId, nome, filtro = {}) {
+      return (await this.listar(tenantId, nome, filtro)).total;
     },
 
     async removerTenant(tenantId) {
       exigirTenant(tenantId);
       throw new Error(
-        "removerTenant não está implementado no driver Firestore: apagar em lote num projeto " +
-          "compartilhado exige dry-run e confirmação explícita. Use a exportação/anonimização por documento."
+        "removerTenant não está implementado no driver Firestore: apagar subcoleções em lote exige " +
+          "travessia recursiva, dry-run e confirmação explícita. Use a anonimização por documento."
       );
     },
   };

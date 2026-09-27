@@ -3,6 +3,7 @@ import { criarRepositorioMemoria } from "./memoria.js";
 export { criarRepositorioMemoria } from "./memoria.js";
 export { criarRepositorioFirestore } from "./firestore.js";
 export * from "./guard.js";
+export * from "./caminho.js";
 
 /**
  * Memória é o padrão deliberado: o produto sobe e é testável sem Firebase
@@ -14,9 +15,9 @@ export async function criarRepositorio(config) {
     return criarRepositorioFirestore({
       projeto: config.projetoFirebase,
       databaseId: config.databaseId,
-      prefixo: config.prefixoColecao,
+      raiz: config.raizColecao,
       credenciais: config.credenciais,
     });
   }
-  return criarRepositorioMemoria();
+  return criarRepositorioMemoria({ raiz: config.raizColecao });
 }

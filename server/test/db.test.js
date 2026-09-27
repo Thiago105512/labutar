@@ -2,6 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { criarRepositorio, criarRepositorioMemoria } from "../src/db/index.js";
+import {
+  caminhoColecao,
+  caminhoDocumento,
+  juntarCaminho,
+  prefixoDoTenant,
+  tenantDoCaminho,
+  segmentosDeColecao,
+} from "../src/db/caminho.js";
 import { ErroEscopo, ErroNaoEncontrado, ErroValidacao, aplicarFiltro, exigirTenant } from "../src/db/guard.js";
 import { carregarConfig, avisosDeRisco } from "../src/config.js";
 
@@ -183,36 +191,39 @@ test("removerTenant é verificável: a conferência posterior não ressuscita o 
   assert.deepEqual(repo.tenants(), ["globex"]);
 });
 
-test("configuração expõe os dois mecanismos de isolamento", () => {
+test("configuração expõe raiz, projeto e banco", () => {
   const config = carregarConfig({
     LABUTAR_DB_DRIVER: "firestore",
     LABUTAR_FIREBASE_PROJECT: "pedtudo-app",
     LABUTAR_FIREBASE_DATABASE: "labutar",
-    LABUTAR_COLECAO_PREFIXO: "labutar_",
+    LABUTAR_COLECAO_RAIZ: "labutar",
   });
 
   assert.equal(config.driver, "firestore");
   assert.equal(config.projetoFirebase, "pedtudo-app");
   assert.equal(config.databaseId, "labutar");
-  assert.equal(config.prefixoColecao, "labutar_");
+  assert.equal(config.raizColecao, "labutar");
 });
 
-test("padrão de configuração aponta para pedtudo-app com prefixo labutar_", () => {
+test("padrão: driver memória, projeto pedtudo-app, banco (default), raiz labutar", () => {
   const config = carregarConfig({});
+  assert.equal(config.driver, "memoria");
   assert.equal(config.projetoFirebase, "pedtudo-app");
   assert.equal(config.databaseId, "(default)");
-  assert.equal(config.prefixoColecao, "labutar_");
+  assert.equal(config.raizColecao, "labutar");
 });
 
 test("aviso de risco dispara ao mirar o (default) de projeto compartilhado", () => {
-  const arriscado = carregarConfig({ LABUTAR_DB_DRIVER: "firestore" });
-  const avisos = avisosDeRisco(arriscado);
+  const avisos = avisosDeRisco(carregarConfig({ LABUTAR_DB_DRIVER: "firestore" }));
   assert.equal(avisos.length, 1);
-  assert.match(avisos[0], /ruleset do Firestore é UM SÓ por banco/);
   assert.match(avisos[0], /pedtudo-app/);
+  // as três consequências verificadas na documentação oficial têm de aparecer
+  assert.match(avisos[0], /cota e nível gratuito são POR PROJETO/);
+  assert.match(avisos[0], /UM banco sem custo por projeto/);
+  assert.match(avisos[0], /não há como escopar a chave/);
 });
 
-test("banco nomeado não dispara o aviso de ruleset compartilhado", () => {
+test("banco nomeado não dispara o aviso de banco compartilhado", () => {
   const isolado = carregarConfig({ LABUTAR_DB_DRIVER: "firestore", LABUTAR_FIREBASE_DATABASE: "labutar" });
   assert.deepEqual(avisosDeRisco(isolado), []);
 });
@@ -221,10 +232,14 @@ test("driver de memória nunca dispara aviso de risco", () => {
   assert.deepEqual(avisosDeRisco(carregarConfig({})), []);
 });
 
-test("prefixo vazio é sinalizado", () => {
-  const config = carregarConfig({ LABUTAR_DB_DRIVER: "firestore", LABUTAR_FIREBASE_DATABASE: "labutar", LABUTAR_COLECAO_PREFIXO: "" });
+test("raiz vazia é sinalizada", () => {
+  const config = carregarConfig({
+    LABUTAR_DB_DRIVER: "firestore",
+    LABUTAR_FIREBASE_DATABASE: "labutar",
+    LABUTAR_COLECAO_RAIZ: "",
+  });
   assert.equal(avisosDeRisco(config).length, 1);
-  assert.match(avisosDeRisco(config)[0], /prefixo/i);
+  assert.match(avisosDeRisco(config)[0], /LABUTAR_COLECAO_RAIZ vazia/);
 });
 
 test("driver Firestore falha com instrução clara quando firebase-admin falta", async () => {
@@ -238,4 +253,93 @@ test("driver Firestore falha com instrução clara quando firebase-admin falta",
       return true;
     }
   );
+});
+
+// ============================================================
+// Layout de caminhos — "pastas e subpastas" do Firestore
+// ============================================================
+
+test("todo caminho carrega a raiz e o tenant antes de qualquer coleção", () => {
+  assert.equal(
+    juntarCaminho(caminhoColecao("acme", "vagas")),
+    "labutar/tenants/acme/vagas"
+  );
+  assert.equal(
+    juntarCaminho(caminhoDocumento("acme", "vagas", "VAGA_1")),
+    "labutar/tenants/acme/vagas/VAGA_1"
+  );
+});
+
+test("subcoleção aninhada segue a alternância coleção/documento/coleção", () => {
+  assert.deepEqual(segmentosDeColecao("vagas/VAGA_1/candidaturas"), ["vagas", "VAGA_1", "candidaturas"]);
+  assert.equal(
+    juntarCaminho(caminhoColecao("acme", "vagas/VAGA_1/candidaturas")),
+    "labutar/tenants/acme/vagas/VAGA_1/candidaturas"
+  );
+  assert.equal(
+    juntarCaminho(caminhoDocumento("acme", "vagas/VAGA_1/candidaturas", "CTDA_9")),
+    "labutar/tenants/acme/vagas/VAGA_1/candidaturas/CTDA_9"
+  );
+});
+
+test("caminho de coleção com número par de segmentos é recusado", () => {
+  // "vagas/VAGA_1" é caminho de DOCUMENTO, não de coleção — erro comum e silencioso
+  assert.throws(() => segmentosDeColecao("vagas/VAGA_1"), /ímpar/);
+  assert.throws(() => segmentosDeColecao("a/b/c/d"), /ímpar/);
+  assert.throws(() => segmentosDeColecao(""), /vazio/);
+  assert.throws(() => segmentosDeColecao("tem espaço"), /segmento de caminho inválido/);
+  assert.throws(() => segmentosDeColecao("1invalida"), /segmento de caminho inválido/);
+});
+
+test("a raiz é configurável e vale para os dois drivers", () => {
+  assert.equal(juntarCaminho(caminhoColecao("acme", "vagas", "rh360")), "rh360/tenants/acme/vagas");
+  assert.throws(() => caminhoColecao("acme", "vagas", "raiz inválida"), /raiz inválida/);
+
+  const repo = criarRepositorioMemoria({ raiz: "rh360" });
+  assert.equal(repo.raiz, "rh360");
+});
+
+test("prefixoDoTenant e tenantDoCaminho são inversos", () => {
+  assert.equal(prefixoDoTenant("acme"), "labutar/tenants/acme/");
+  assert.equal(tenantDoCaminho("labutar/tenants/acme/vagas"), "acme");
+  assert.equal(tenantDoCaminho("noteped_children"), null);
+  assert.equal(tenantDoCaminho("labutar/outracoisa/acme/vagas"), null);
+});
+
+test("subcoleção isola por documento pai: candidatura não aparece em outra vaga", async () => {
+  const repo = criarRepositorioMemoria();
+  await repo.inserir("acme", "vagas", { id: "VAGA_1", titulo: "Operador" });
+  await repo.inserir("acme", "vagas", { id: "VAGA_2", titulo: "Inspetor" });
+  await repo.inserir("acme", "vagas/VAGA_1/candidaturas", { id: "CTDA_1", score: 90 });
+  await repo.inserir("acme", "vagas/VAGA_2/candidaturas", { id: "CTDA_1", score: 40 });
+
+  const daVaga1 = await repo.listar("acme", "vagas/VAGA_1/candidaturas");
+  assert.equal(daVaga1.total, 1);
+  assert.equal(daVaga1.itens[0].score, 90);
+
+  const daVaga2 = await repo.listar("acme", "vagas/VAGA_2/candidaturas");
+  assert.equal(daVaga2.itens[0].score, 40);
+
+  assert.equal((await repo.obter("acme", "vagas/VAGA_1/candidaturas", "CTDA_1")).score, 90);
+  assert.equal((await repo.obter("acme", "vagas/VAGA_2/candidaturas", "CTDA_1")).score, 40);
+  assert.equal(await repo.obter("acme", "vagas/VAGA_1/candidaturas", "CTDA_2"), null);
+});
+
+test("removerTenant apaga também as subcoleções", async () => {
+  const repo = criarRepositorioMemoria();
+  await repo.inserir("acme", "vagas", { id: "VAGA_1" });
+  await repo.inserir("acme", "vagas/VAGA_1/candidaturas", { id: "CTDA_1" });
+  await repo.inserir("acme", "candidatos", { id: "CAND_1" });
+  await repo.inserir("globex", "vagas", { id: "VAGA_1" });
+
+  const resultado = await repo.removerTenant("acme");
+  assert.equal(resultado.colecoesRemovidas, 3);
+  assert.equal(await repo.contar("acme", "vagas/VAGA_1/candidaturas"), 0);
+  assert.deepEqual(repo.tenants(), ["globex"]);
+});
+
+test("tenant continua sendo exigido no caminho aninhado", async () => {
+  const repo = criarRepositorioMemoria();
+  await assert.rejects(() => repo.listar("", "vagas/VAGA_1/candidaturas"), ErroEscopo);
+  await assert.rejects(() => repo.inserir(null, "vagas/VAGA_1/candidaturas", { id: "X" }), ErroEscopo);
 });

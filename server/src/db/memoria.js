@@ -1,14 +1,23 @@
-import { aplicarFiltro, exigirColecao, exigirId, exigirTenant, ErroNaoEncontrado } from "./guard.js";
+import { aplicarFiltro, exigirId, exigirTenant, ErroNaoEncontrado } from "./guard.js";
+import {
+  caminhoColecao,
+  juntarCaminho,
+  prefixoDoTenant,
+  tenantDoCaminho,
+} from "./caminho.js";
 
 /**
  * Driver padrão. Existe para o produto rodar sem nada provisionado: sem
  * Firebase, sem npm install, sem rede. Não sobrevive a restart e não é
  * seguro para produção — o driver Firestore assume assim que houver credencial.
+ *
+ * Espelha exatamente o layout de caminhos do Firestore, para que trocar de
+ * driver não mude o formato de nada.
  */
-export function criarRepositorioMemoria() {
+export function criarRepositorioMemoria({ raiz = "labutar" } = {}) {
   const armazenamento = new Map();
 
-  const chave = (tenantId, colecao) => `${tenantId}::${colecao}`;
+  const chave = (tenantId, colecao) => juntarCaminho(caminhoColecao(tenantId, colecao, raiz));
 
   function mapaGravacao(tenantId, colecao) {
     const k = chave(tenantId, colecao);
@@ -34,10 +43,10 @@ export function criarRepositorioMemoria() {
   return {
     nome: "memoria",
     persistente: false,
+    raiz,
 
     async inserir(tenantId, colecao, documento) {
       exigirTenant(tenantId);
-      exigirColecao(colecao);
       const id = exigirId(documento?.id);
       const mapa = mapaGravacao(tenantId, colecao);
       if (mapa.has(id)) {
@@ -51,7 +60,6 @@ export function criarRepositorioMemoria() {
 
     async obter(tenantId, colecao, id) {
       exigirTenant(tenantId);
-      exigirColecao(colecao);
       exigirId(id);
       const documento = mapaLeitura(tenantId, colecao).get(id);
       return documento ? structuredClone(documento) : null;
@@ -59,7 +67,6 @@ export function criarRepositorioMemoria() {
 
     async listar(tenantId, colecao, filtro = {}, { ordenarPor, limite, iniciarEm = 0 } = {}) {
       exigirTenant(tenantId);
-      exigirColecao(colecao);
       let itens = [...mapaLeitura(tenantId, colecao).values()].filter((d) => aplicarFiltro(d, filtro));
 
       if (ordenarPor) {
@@ -82,7 +89,6 @@ export function criarRepositorioMemoria() {
 
     async atualizar(tenantId, colecao, id, patch) {
       exigirTenant(tenantId);
-      exigirColecao(colecao);
       exigirId(id);
       const atual = mapaLeitura(tenantId, colecao).get(id);
       if (!atual) throw new ErroNaoEncontrado(`${colecao}/${id} não encontrado`);
@@ -94,23 +100,22 @@ export function criarRepositorioMemoria() {
 
     async remover(tenantId, colecao, id) {
       exigirTenant(tenantId);
-      exigirColecao(colecao);
       exigirId(id);
       return mapaLeitura(tenantId, colecao).delete(id);
     },
 
     async contar(tenantId, colecao, filtro = {}) {
       exigirTenant(tenantId);
-      exigirColecao(colecao);
       return [...mapaLeitura(tenantId, colecao).values()].filter((d) => aplicarFiltro(d, filtro)).length;
     },
 
     /** LGPD art. 18, VI — eliminação de todos os dados de um titular no tenant. */
     async removerTenant(tenantId) {
       exigirTenant(tenantId);
+      const prefixo = prefixoDoTenant(tenantId, raiz);
       let removidas = 0;
       for (const k of [...armazenamento.keys()]) {
-        if (k.startsWith(`${tenantId}::`)) {
+        if (k.startsWith(prefixo)) {
           armazenamento.delete(k);
           removidas += 1;
         }
@@ -120,7 +125,12 @@ export function criarRepositorioMemoria() {
 
     /** Só para teste e seed: enumera tenants com dado gravado, sem expor conteúdo. */
     tenants() {
-      return [...new Set([...armazenamento.keys()].map((k) => k.split("::")[0]))].sort();
+      const encontrados = new Set();
+      for (const k of armazenamento.keys()) {
+        const tenant = tenantDoCaminho(k, raiz);
+        if (tenant) encontrados.add(tenant);
+      }
+      return [...encontrados].sort();
     },
   };
 }
