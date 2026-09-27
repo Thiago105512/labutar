@@ -10,7 +10,11 @@ import { cabecalhosCors, lerCorpo } from "./http/corpo.js";
 import { responderErro, falha, CODIGOS } from "./http/resposta.js";
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
-const RAIZ_REPO = path.resolve(AQUI, "../../..");
+// server/src → server → raiz do repositório. Um nível a mais aqui resolve para
+// o diretório do usuário, o que além de quebrar o import map do front-end
+// (que pede /packages/...) deixaria a guarda anti-travessia comparando com
+// raízes que não são as do projeto.
+const RAIZ_REPO = path.resolve(AQUI, "../..");
 
 const MIME = {
   ".html": "text/html; charset=utf-8",

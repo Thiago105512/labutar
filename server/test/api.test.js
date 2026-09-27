@@ -693,3 +693,34 @@ test("recurso estático fora das árvores permitidas é 404", async () => {
   const travessia = await fetch(`${base}/../../package.json`);
   assert.ok([400, 404].includes(travessia.status));
 });
+
+test("import map do front-end resolve: /packages/... é servido", async () => {
+  // sem isto o painel não carrega — o import map aponta para /packages/core/src/index.js
+  const r = await fetch(`${base}/packages/core/src/index.js`);
+  assert.equal(r.status, 200);
+  assert.match(r.headers.get("content-type"), /javascript/);
+  const corpo = await r.text();
+  assert.match(corpo, /export \* from "\.\/validacao\.js"/);
+});
+
+test("travessia de caminho não alcança arquivo fora de web/ e packages/", async () => {
+  for (const tentativa of [
+    "/packages/../../package.json",
+    "/packages/../docs/01-arquitetura.md",
+    "/packages/core/../../../.ssh/id_ed25519",
+    "/%2e%2e/%2e%2e/package.json",
+    "/web/../../package.json",
+  ]) {
+    const r = await fetch(`${base}${tentativa}`);
+    assert.ok([400, 404].includes(r.status), `${tentativa} devolveu ${r.status}`);
+    if (r.status === 200) {
+      const corpo = await r.text();
+      assert.doesNotMatch(corpo, /"name":\s*"labutar"/, `${tentativa} vazou o package.json`);
+    }
+  }
+});
+
+test("extensão não listada não é servida mesmo dentro das árvores", async () => {
+  const r = await fetch(`${base}/packages/core/package.json.orig`);
+  assert.equal(r.status, 404);
+});
