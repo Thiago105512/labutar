@@ -1,0 +1,11 @@
+{
+  "name": "@labutar/esocial",
+  "version": "0.0.0",
+  "description": "Transmissão de eventos ao eSocial (S-2200, S-2220, S-2240). ADIADO — apenas contrato reservado; toda função lança PendenciaError.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "private": true
+}

@@ -1,0 +1,18 @@
+# Normaliza para LF no repositório; o checkout respeita o sistema de cada dev.
+* text=auto
+
+*.js   text eol=lf
+*.mjs  text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.html text eol=lf
+*.css  text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.woff2 binary
+*.pfx  binary
+*.p12  binary

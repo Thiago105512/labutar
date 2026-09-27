@@ -1,0 +1,11 @@
+{
+  "name": "@labutar/ats",
+  "version": "0.1.0",
+  "description": "Motor do ATS: vagas, pipeline, triagem automatizada, score de aderência, banco de talentos e publicação multicanal. JS puro, roda no Node e no navegador.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "sideEffects": false
+}

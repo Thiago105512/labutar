@@ -1,0 +1,26 @@
+{
+  "name": "labutar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Labutar — ATS completo: publicação multicanal de vagas, triagem automatizada, pipeline, entrevistas, avaliações e admissão integrada ao eSocial.",
+  "type": "module",
+  "workspaces": [
+    "packages/core",
+    "packages/ats",
+    "packages/avaliacoes",
+    "packages/comunica",
+    "packages/admissao",
+    "packages/esocial",
+    "server"
+  ],
+  "scripts": {
+    "test": "node --test --test-reporter=spec \"packages/*/test/*.test.js\" \"server/test/*.test.js\"",
+    "test:core": "node --test \"packages/core/test/*.test.js\"",
+    "test:unit": "node --test \"packages/*/test/*.test.js\"",
+    "dev": "node server/src/dev.js",
+    "start": "node server/src/index.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -1,0 +1,29 @@
+node_modules/
+npm-debug.log*
+.env
+.env.*
+!.env.example
+
+# certificados digitais e credenciais — NUNCA versionar
+*.pfx
+*.p12
+*.pem
+*.key
+*.crt
+serviceAccount*.json
+*credentials*.json
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# build / editor
+dist/
+coverage/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log

@@ -1,0 +1,92 @@
+# Labutar
+
+ATS B2B brasileiro — do anúncio da vaga à admissão. Publicação multicanal, triagem
+automatizada com score de aderência, pipeline configurável, entrevistas, avaliações,
+cursos, avisos e (na Fase 4) integração com o eSocial.
+
+Inspiração: [Selecty](https://selecty.com.br) 4.0, Gupy, Recrutei, Bizneo HR.
+Diferencial pretendido: **nenhum ATS nacional fecha o ciclo até o eSocial**. O Labutar fecha.
+
+## Estado atual
+
+| Pacote | O que é | Estado |
+|---|---|---|
+| `@labutar/core` | validações fiscais, datas, IDs, dinheiro, texto/LGPD | ✅ 49 testes |
+| `@labutar/ats` | vagas, pipeline, triagem, candidatos, canais | ✅ 107 testes |
+| `@labutar/esocial` | S-2200 / S-2220 / S-2240 | ⏸ **adiado**, contrato reservado |
+| `@labutar/avaliacoes` | DISC, testes, cursos e trilhas | 🚧 |
+| `@labutar/comunica` | templates, canais, avisos, lembretes | 🚧 |
+| `server` | API Express + Firestore | ⬜ |
+| `web` | site institucional + painel + portal de vagas (PWA) | ⬜ |
+
+Sem CI, sem Firebase provisionado, sem nada em produção. Ver [`docs/03-roadmap.md`](docs/03-roadmap.md).
+
+## Rodando
+
+```bash
+node --test "packages/*/test/*.test.js"    # todos os testes
+npm run test:core                          # só o núcleo
+```
+
+Não há `npm install` obrigatório: os pacotes de domínio não têm dependência externa
+e se importam por caminho relativo. Node >= 22.
+
+> Em Windows/cmd.exe o padrão precisa ir entre aspas — o shell não expande glob,
+> quem expande é o Node. E `node --test <diretorio>` falha neste ambiente; use o glob.
+
+## Arquitetura
+
+Regra que segura o projeto: **domínio é JavaScript puro**. `core`, `ats`, `avaliacoes`,
+`comunica` e `admissao` não importam nada do Node — rodam iguais no servidor e no
+navegador, então a triagem é calculada e testada sem mock de framework, e o front-end
+não precisa de bundler (usa import maps).
+
+`@labutar/esocial` é a exceção deliberada: é o único pacote com `node-forge`,
+`xml-crypto` e `soap`, e nunca é importado pelo front-end.
+
+Detalhes em [`docs/01-arquitetura.md`](docs/01-arquitetura.md) ·
+modelo de dados em [`docs/02-modelo-de-dados.md`](docs/02-modelo-de-dados.md).
+
+## O motor de triagem
+
+`triagemAutomatica({ vaga, candidato, respostas })` combina:
+
+1. **Knockout** — perguntas eliminatórias (SIM_NAO, MULTIPLA, NUMERICA, TEXTO, DATA).
+   Ausência de resposta **não** reprova: vira pendência e vai para análise manual.
+2. **Score de aderência** (0–100) — média ponderada de competências (40), experiência (25),
+   formação (15), idiomas (10) e localização (10). Pesos e corte são configuráveis por vaga.
+
+Decisões possíveis: `APROVADO_AUTOMATICO`, `ANALISE_MANUAL`, `REPROVADO_AUTOMATICO`,
+`REPROVADO_KNOCKOUT`. Por padrão `reprovacaoAutomatica` é **false**: o sistema nunca
+descarta candidato sozinho. Descarte automático é decisão do cliente, configurada por vaga.
+
+Três escolhas que valem revisão:
+
+- Currículo sem nível declarado na competência **presume que atende** o mínimo exigido.
+  Presumir zero reprovaria em massa quem não preencheu o campo.
+- Curso em andamento vale **um degrau abaixo** (superior incompleto não é superior).
+- `experienciaRegra` padrão é `"todas"`. `"relacionadas"` só conta experiência com
+  competência tageada em comum — subestima currículo não tageado, por isso não é padrão.
+
+## Compliance
+
+- [`docs/05-compliance.md`](docs/05-compliance.md) — inventário de **14 defeitos** nos
+  scripts herdados (`aso.js`, `esocial.js`, `certificado-digital.js`, `agendamento.js`),
+  3 deles confirmados lendo o fonte instalado de `xml-crypto@6.3.2` e `node-forge@1.4.0`.
+- `auditarAnuncio(vaga)` sinaliza termo potencialmente discriminatório antes de publicar
+  (art. 373-A da CLT, Lei 9.029/1995).
+- LGPD: máscaras de dado pessoal no core, consentimento com validade verificável,
+  fusão de duplicados em que **revogação nunca é ressuscitada**, e anonimização em vez
+  de exclusão para preservar trilha de auditoria.
+- `packages/comunica` não divulga vaga por WhatsApp: exige opt-in e template aprovado.
+
+## O que não está pronto
+
+- Nada persiste ainda: não há banco conectado.
+- Não há UI. O motor existe e é testado; ninguém clica nele.
+- Publicação em job board é **manual** na maioria dos canais — ver
+  `planoDePublicacao()` em `packages/ats/src/canais.js`, que diz a verdade sobre cada um
+  (a Catho, por exemplo, não tem API pública; verificado em 2026-09-27).
+- O leiaute do eSocial no código herdado **diverge do oficial** e não foi validado contra XSD.
+- DISC e demais avaliações psicológicas têm validade jurídica limitada e não podem ser
+  usadas como filtro eliminatório.

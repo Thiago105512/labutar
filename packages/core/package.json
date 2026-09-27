@@ -1,0 +1,16 @@
+{
+  "name": "@labutar/core",
+  "version": "0.1.0",
+  "description": "Núcleo puro do Labutar: validações fiscais, datas, IDs, dinheiro e texto. Zero dependências, roda no Node e no navegador.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./validacao": "./src/validacao.js",
+    "./datas": "./src/datas.js",
+    "./ids": "./src/ids.js",
+    "./dinheiro": "./src/dinheiro.js",
+    "./texto": "./src/texto.js"
+  },
+  "sideEffects": false
+}
