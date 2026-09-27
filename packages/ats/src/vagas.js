@@ -168,9 +168,13 @@ export function validarVaga(vaga = {}) {
   const corte = regras.corteMinimo ?? REGRAS_TRIAGEM_PADRAO.corteMinimo;
   if (corte < 0 || corte > 100) erros.push("corteMinimo deve estar entre 0 e 100");
 
+  // `mudarStatus` grava timestamp completo (ISO-8601) em abertaEm/encerradaEm,
+  // enquanto previsaoContratacao costuma vir como data civil. Aceitar os dois
+  // é necessário: sem isso, toda vaga aberta pelo fluxo normal passava a ser
+  // reportada como inválida na primeira revalidação.
   for (const campo of ["abertaEm", "encerradaEm", "previsaoContratacao"]) {
     const valor = vaga.datas?.[campo];
-    if (valor && !validarDataISO(valor).valido) erros.push(`datas.${campo} inválida`);
+    if (valor && !validarDataISO(String(valor).slice(0, 10)).valido) erros.push(`datas.${campo} inválida`);
   }
   if (vaga.datas?.abertaEm && vaga.datas?.encerradaEm) {
     if (diferencaDias(vaga.datas.abertaEm, vaga.datas.encerradaEm) <= 0) {

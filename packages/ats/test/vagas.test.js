@@ -159,6 +159,21 @@ test("validarVaga emite avisos sem invalidar", () => {
   assert.ok(resultado.avisos.some((a) => /faixa salarial/.test(a)));
 });
 
+test("validarVaga aceita timestamp completo em abertaEm/encerradaEm", () => {
+  // mudarStatus grava ISO-8601 com hora; validarVaga não pode exigir data civil
+  const aberta = abrirVaga(criarVaga(vagaValida()), { agora: "2026-09-27T14:03:22.512Z" }).vaga;
+  assert.equal(aberta.datas.abertaEm, "2026-09-27T14:03:22.512Z");
+  assert.equal(validarVaga(aberta).valido, true);
+
+  const encerrada = encerrarVaga(aberta, { agora: "2026-10-30T09:00:00.000Z" }).vaga;
+  assert.equal(validarVaga(encerrada).valido, true);
+});
+
+test("validarVaga continua recusando data em formato errado", () => {
+  assert.ok(validarVaga(criarVaga(vagaValida({ datas: { abertaEm: "27/09/2026" } }))).erros.some((e) => /abertaEm/.test(e)));
+  assert.ok(validarVaga(criarVaga(vagaValida({ datas: { abertaEm: "2026-99-99" } }))).erros.some((e) => /abertaEm/.test(e)));
+});
+
 test("validarVaga rejeita corteMinimo fora de 0 a 100", () => {
   const vaga = criarVaga(vagaValida({ regrasTriagem: { corteMinimo: 150 } }));
   assert.ok(validarVaga(vaga).erros.some((e) => /corteMinimo/.test(e)));
