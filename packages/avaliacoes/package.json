@@ -1,0 +1,11 @@
+{
+  "name": "@labutar/avaliacoes",
+  "version": "0.1.0",
+  "description": "Avaliações do Labutar: DISC (mais/menos), testes técnicos e dissertativos com rubrica, trilhas de cursos, progresso e certificados. JS puro, roda no Node e no navegador.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "sideEffects": false
+}

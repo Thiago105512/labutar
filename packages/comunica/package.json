@@ -1,0 +1,11 @@
+{
+  "name": "@labutar/comunica",
+  "version": "0.1.0",
+  "description": "Camada de mensagens pura do Labutar: templates com variáveis e filtros, mural de avisos com confirmação de leitura, lembretes e roteamento de canais. Não envia nada — devolve o descritor da mensagem para o servidor entregar. JS puro, roda no Node e no navegador.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "sideEffects": false
+}
