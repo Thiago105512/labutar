@@ -16,7 +16,7 @@ export function carregarConfig(ambiente = {}) {
      */
     raizColecao: ambiente.LABUTAR_COLECAO_RAIZ ?? "labutar",
 
-    projetoFirebase: ambiente.LABUTAR_FIREBASE_PROJECT ?? "o-seu-rh",
+    projetoFirebase: ambiente.LABUTAR_FIREBASE_PROJECT ?? "labutar",
     databaseId: ambiente.LABUTAR_FIREBASE_DATABASE ?? "(default)",
     credenciais: ambiente.LABUTAR_SERVICE_ACCOUNT ?? null,
   };

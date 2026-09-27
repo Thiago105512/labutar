@@ -205,10 +205,10 @@ test("configuração expõe raiz, projeto e banco", () => {
   assert.equal(config.raizColecao, "labutar");
 });
 
-test("padrão: driver memória, projeto o-seu-rh, banco (default), raiz labutar", () => {
+test("padrão: driver memória, projeto labutar, banco (default), raiz labutar", () => {
   const config = carregarConfig({});
   assert.equal(config.driver, "memoria");
-  assert.equal(config.projetoFirebase, "o-seu-rh");
+  assert.equal(config.projetoFirebase, "labutar");
   assert.equal(config.databaseId, "(default)");
   assert.equal(config.raizColecao, "labutar");
 });
@@ -216,7 +216,7 @@ test("padrão: driver memória, projeto o-seu-rh, banco (default), raiz labutar"
 test("aviso de risco dispara ao mirar o (default), mesmo em projeto dedicado", () => {
   const avisos = avisosDeRisco(carregarConfig({ LABUTAR_DB_DRIVER: "firestore" }));
   assert.equal(avisos.length, 1);
-  assert.match(avisos[0], /o-seu-rh/);
+  assert.match(avisos[0], /labutar/);
   // as três consequências verificadas na documentação oficial têm de aparecer
   assert.match(avisos[0], /cota e nível gratuito são POR PROJETO/);
   assert.match(avisos[0], /UM banco sem custo por projeto/);
@@ -242,10 +242,27 @@ test("raiz vazia é sinalizada", () => {
   assert.match(avisosDeRisco(config)[0], /LABUTAR_COLECAO_RAIZ vazia/);
 });
 
-test("driver Firestore falha com instrução clara quando firebase-admin falta", async () => {
+/**
+ * O caminho "dependência ausente" só é alcançável quando firebase-admin NÃO
+ * está instalado. Como o estado do node_modules muda (outra sessão instalou a
+ * 14.5.0 em 2026-09-27 e quebrou esta suíte), os dois cenários são testados com
+ * skip condicional em vez de assumir o ambiente.
+ */
+const TEM_FIREBASE_ADMIN = await (async () => {
+  try {
+    await import("firebase-admin/app");
+    return true;
+  } catch {
+    return false;
+  }
+})();
+
+test("driver Firestore falha com instrução clara quando firebase-admin falta", {
+  skip: TEM_FIREBASE_ADMIN && "firebase-admin instalado: caminho de dependência ausente inalcançável",
+}, async () => {
   const { criarRepositorioFirestore } = await import("../src/db/firestore.js");
   await assert.rejects(
-    () => criarRepositorioFirestore({ projeto: "pedtudo-app" }),
+    () => criarRepositorioFirestore({ projeto: "labutar" }),
     (erro) => {
       assert.equal(erro.code, "DEPENDENCIA_AUSENTE");
       assert.match(erro.message, /npm install firebase-admin/);
@@ -253,6 +270,34 @@ test("driver Firestore falha com instrução clara quando firebase-admin falta",
       return true;
     }
   );
+});
+
+/**
+ * Construir o driver não abre conexão: `initializeApp` e `getFirestore` são
+ * preguiçosos. Se este teste travar a suíte, é porque alguma versão do
+ * firebase-admin passou a abrir canal na construção — e aí ele deve voltar a
+ * ser skipado, não "corrigido" com timeout.
+ */
+test("driver Firestore expõe a mesma interface do driver de memória", {
+  skip: !TEM_FIREBASE_ADMIN && "firebase-admin não instalado",
+}, async () => {
+  const { criarRepositorioFirestore } = await import("../src/db/firestore.js");
+  const repo = await criarRepositorioFirestore({ projeto: "labutar", raiz: "labutar" });
+
+  assert.equal(repo.nome, "firestore");
+  assert.equal(repo.persistente, true);
+  assert.equal(repo.projeto, "labutar");
+  assert.equal(repo.databaseId, "(default)");
+  assert.equal(repo.raiz, "labutar");
+
+  const memoria = criarRepositorioMemoria({ raiz: "labutar" });
+  for (const metodo of ["inserir", "obter", "listar", "atualizar", "remover", "contar", "removerTenant"]) {
+    assert.equal(typeof repo[metodo], "function", `driver Firestore sem ${metodo}`);
+    assert.equal(typeof memoria[metodo], "function", `driver memória sem ${metodo}`);
+  }
+
+  // removerTenant não pode apagar em lote sem travas: subcoleção exige travessia recursiva
+  await assert.rejects(() => repo.removerTenant("acme"), /travessia recursiva/);
 });
 
 // ============================================================

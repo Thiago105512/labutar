@@ -1,8 +1,18 @@
-# Firebase — projeto `o-seu-rh`
+# Firebase — projeto `labutar`
 
-**Projeto dedicado ao Labutar:** `o-seu-rh` (nº 402003073002), criado em 2026-09-27.
+**Projeto dedicado ao Labutar:** `labutar` (nº 209214532041), com banco
+`projects/labutar/databases/(default)` confirmado em 2026-09-27 (STANDARD, FIRESTORE_NATIVE).
+
 Não compartilha banco, cota nem credencial com o `pedtudo-app`, que hospeda o
 PedTudo em produção (app clínico pediátrico com dado de saúde de crianças).
+
+> ⚠ Existe também um projeto `o-seu-rh` (nº 402003073002) na mesma conta, criado
+> no mesmo dia. **Não é o do Labutar.** Uma versão anterior deste documento e do
+> `config.js` apontava para ele por engano — corrigido.
+>
+> Localização: o usuário informou São Paulo (`southamerica-east1`), mas **não foi
+> possível confirmar por CLI** — `firebase firestore:databases:describe` não existe
+> nesta versão. Conferir no console: a localização é permanente.
 
 ## Por que projeto separado, e não tudo no mesmo banco
 
@@ -34,8 +44,8 @@ tratado por sistema cuja finalidade é recrutamento, sem base legal e sem ciênc
 do responsável.
 
 **Separação por caminho é separação de organização, não de permissão.** Só projeto
-separado resolve. Com `o-seu-rh`, uma eventual chave do Labutar não alcança nada
-do PedTudo.
+separado resolve. Com o projeto `labutar`, uma eventual chave não alcança nada do
+PedTudo.
 
 ## Layout de "pastas e subpastas"
 
@@ -66,7 +76,7 @@ Caminho de coleção tem número **ímpar** de segmentos. `segmentosDeColecao` r
 ```bash
 LABUTAR_DB_DRIVER=memoria        # padrão: roda sem Firebase e sem npm install
 LABUTAR_DB_DRIVER=firestore      # opt-in
-LABUTAR_FIREBASE_PROJECT=o-seu-rh
+LABUTAR_FIREBASE_PROJECT=labutar
 LABUTAR_FIREBASE_DATABASE=(default)
 LABUTAR_COLECAO_RAIZ=labutar
 LABUTAR_SERVICE_ACCOUNT=<JSON da chave>
@@ -74,12 +84,13 @@ LABUTAR_SERVICE_ACCOUNT=<JSON da chave>
 
 ## Pendências para ligar de verdade
 
-- [ ] **Provisionar o Firestore em `o-seu-rh`.** Em 2026-09-27 a API ainda não
-      estava habilitada (`HTTP 403 — Cloud Firestore API has not been used in
-      project o-seu-rh before or it is disabled`).
-- [ ] **Escolher a localização — é permanente.** Para produto brasileiro sob LGPD,
-      `southamerica-east1` (São Paulo) mantém os dados no país; `nam5` é
-      multirregião e mais caro. Não dá para mudar depois de criado.
+- [x] **Projeto criado:** `labutar` (nº 209214532041).
+- [x] **Firestore provisionado:** `projects/labutar/databases/(default)`,
+      STANDARD, FIRESTORE_NATIVE — confirmado por CLI em 2026-09-27.
+- [ ] **Conferir a localização no console.** Informada como São Paulo, não
+      confirmada por CLI (`firebase firestore:databases:describe` não existe nesta
+      versão). É **permanente**: se estiver em `nam5`, os currículos ficam fora do
+      Brasil e entra em jogo o art. 33 da LGPD (transferência internacional).
 - [ ] Chave de service account (Console → Configurações do projeto → Contas de
       serviço → Gerar nova chave privada) em `LABUTAR_SERVICE_ACCOUNT`.
       **Nunca** no git — `.gitignore` cobre `serviceAccount*.json` e
