@@ -1,0 +1,291 @@
+/**
+ * Painel de Recrutador do Labutar
+ */
+const API_BASE = 'http://localhost:8080/api';
+const TENANT_ID = 'demo-industrial';
+
+class LabutarApp {
+  constructor() {
+    this.currentSection = 'vagas';
+    this.currentVagaFilter = null;
+    this.vagas = [];
+    this.candidaturas = [];
+    this.candidatos = [];
+    this.init();
+  }
+
+  async init() {
+    this.setupEventListeners();
+    await this.loadData();
+    this.render();
+  }
+
+  setupEventListeners() {
+    document.querySelectorAll('.nav-item').forEach((item) => {
+      item.addEventListener('click', (event) => {
+        event.preventDefault();
+        this.navigateTo(event.currentTarget.dataset.route);
+      });
+    });
+
+    document.getElementById('btn-nova-vaga').addEventListener('click', () => {
+      document.getElementById('modal-nova-vaga').classList.add('active');
+    });
+
+    document.getElementById('form-nova-vaga').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      await this.criarVaga();
+    });
+
+    document.querySelectorAll('.btn-close, .btn-close-form').forEach((btn) => {
+      btn.addEventListener('click', (event) => {
+        const modal = event.target.closest('.modal');
+        if (modal) modal.classList.remove('active');
+      });
+    });
+
+    document.getElementById('filter-vaga').addEventListener('change', (event) => {
+      this.currentVagaFilter = event.target.value || null;
+      this.renderPipeline();
+    });
+  }
+
+  navigateTo(route) {
+    document.querySelectorAll('.nav-item').forEach((item) => item.classList.remove('active'));
+    document.querySelector(`[data-route="${route}"]`).classList.add('active');
+
+    document.querySelectorAll('.content-section').forEach((section) => section.classList.remove('active'));
+    document.getElementById(`${route}-section`).classList.add('active');
+
+    const titles = { vagas: 'Vagas', candidatos: 'Candidatos', pipeline: 'Pipeline' };
+    document.getElementById('page-title').textContent = titles[route];
+    this.currentSection = route;
+
+    if (route === 'vagas') this.renderVagas();
+    if (route === 'pipeline') this.renderPipeline();
+    if (route === 'candidatos') this.renderCandidatos();
+  }
+
+  async loadData() {
+    try {
+      const [vagasRes, candidaturasRes, candidatosRes] = await Promise.all([
+        fetch(`${API_BASE}/vagas`, { headers: { 'X-Labutar-Tenant': TENANT_ID } }),
+        fetch(`${API_BASE}/candidaturas`, { headers: { 'X-Labutar-Tenant': TENANT_ID } }),
+        fetch(`${API_BASE}/candidatos`, { headers: { 'X-Labutar-Tenant': TENANT_ID } })
+      ]);
+
+      const vagasData = await vagasRes.json();
+      const candidaturasData = await candidaturasRes.json();
+      const candidatosData = await candidatosRes.json();
+
+      this.vagas = vagasData?.dados?.itens || [];
+      this.candidaturas = candidaturasData?.dados?.itens || [];
+      this.candidatos = candidatosData?.dados?.itens || [];
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+      this.showError('Erro ao carregar dados do servidor');
+    }
+  }
+
+  render() {
+    if (this.currentSection === 'vagas') this.renderVagas();
+    if (this.currentSection === 'pipeline') this.renderPipeline();
+    if (this.currentSection === 'candidatos') this.renderCandidatos();
+  }
+
+  renderVagas() {
+    const container = document.getElementById('vagas-grid');
+
+    if (!this.vagas.length) {
+      container.innerHTML = '<div class="loading">Nenhuma vaga criada.</div>';
+      return;
+    }
+
+    container.innerHTML = this.vagas.map((vaga) => `
+      <div class="vaga-card">
+        <div class="vaga-card-header">
+          <div>
+            <div class="vaga-card-title">${vaga.titulo}</div>
+            <span class="vaga-status ${vaga.status}">${vaga.status}</span>
+          </div>
+        </div>
+        <div class="vaga-card-meta">
+          <div>📍 ${vaga.local?.cidade || 'Remoto'}, ${vaga.local?.uf || ''}</div>
+          <div>💼 ${vaga.area || 'N/A'}</div>
+          <div>🎯 ${vaga.quantidadeVagas || 1} vaga(s)</div>
+          ${vaga.salario?.min ? `<div>💰 R$ ${(vaga.salario.min / 100).toLocaleString('pt-BR')} - R$ ${(vaga.salario.max / 100).toLocaleString('pt-BR')}</div>` : ''}
+        </div>
+        <div class="vaga-card-actions">
+          <button class="btn btn-primary" type="button" onclick="app.abrirVaga('${vaga.id}')">${vaga.status === 'ABERTA' ? '✓ Aberta' : 'Abrir'}</button>
+          <button class="btn btn-secondary" type="button" onclick="app.visualizarPipeline('${vaga.id}')">Pipeline →</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  renderPipeline() {
+    const container = document.getElementById('pipeline-container');
+    const filterSelect = document.getElementById('filter-vaga');
+
+    filterSelect.innerHTML = '<option value="">Todas as vagas</option>' +
+      this.vagas.map((vaga) => `<option value="${vaga.id}">${vaga.titulo}</option>`).join('');
+
+    const vagaIdFilter = this.currentVagaFilter || (this.vagas.find((vaga) => vaga.status === 'ABERTA')?.id ?? '');
+    if (vagaIdFilter) filterSelect.value = vagaIdFilter;
+
+    const vagasDisponiveis = this.vagas.filter((vaga) => vaga.status === 'ABERTA');
+    const vagaBase = vagasDisponiveis.find((vaga) => vaga.id === vagaIdFilter) || vagasDisponiveis[0];
+
+    if (!vagaBase || !vagaBase.etapas) {
+      container.innerHTML = '<div class="loading">Nenhuma vaga aberta.</div>';
+      return;
+    }
+
+    const etapas = vagaBase.etapas || [];
+    const pipeline = etapas.map((etapa) => {
+      const candidaturas = this.candidaturas.filter((c) => c.vagaId === vagaBase.id && c.etapaAtualId === etapa.id);
+      return { ...etapa, candidaturas };
+    });
+
+    container.innerHTML = pipeline.map((etapa) => `
+      <div class="pipeline-column">
+        <div class="pipeline-column-header">
+          ${etapa.nome}
+          <span class="pipeline-column-count">${etapa.candidaturas.length}</span>
+        </div>
+        <div class="pipeline-cards">
+          ${etapa.candidaturas.length === 0 ? '<div class="loading">Vazio</div>' : etapa.candidaturas.map((candidatura) => {
+            const candidato = this.candidatos.find((item) => item.id === candidatura.candidatoId);
+            const nome = candidato?.dados?.nome || 'Candidato';
+            const score = candidatura.score?.total ?? 0;
+            const slaClass = candidatura.score?.destaque ? 'atrasada' : '';
+            return `
+              <div class="candidatura-card">
+                <div class="candidatura-card-name">${nome}</div>
+                <div class="candidatura-card-score">Score: ${score}%</div>
+                ${candidatura.score?.destaque ? '<div style="font-size: .75rem; color: #ffc107; margin-top: .25rem;">⭐ Destaque</div>' : ''}
+                <div class="candidatura-card-sla ${slaClass}">SLA: ${candidatura.status || 'EM_ANDAMENTO'}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  renderCandidatos() {
+    const container = document.getElementById('candidatos-list');
+    if (!this.candidatos.length) {
+      container.innerHTML = '<div class="loading">Nenhum candidato no banco.</div>';
+      return;
+    }
+
+    container.innerHTML = this.candidatos.map((candidato) => `
+      <div style="border: 1px solid #dee2e6; border-radius: .5rem; padding: 1rem; margin-bottom: 1rem;">
+        <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: .35rem;">${candidato.dados?.nome || 'Nome não informado'}</div>
+        <div style="color: #6c757d; font-size: .9rem; line-height: 1.7;">
+          📧 ${candidato.contato?.email || 'N/A'}<br>
+          📱 ${candidato.contato?.telefone || 'N/A'}<br>
+          📍 ${candidato.contato?.cidade || 'N/A'} / ${candidato.contato?.uf || 'N/A'}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async criarVaga() {
+    const titulo = document.getElementById('vaga-titulo').value.trim();
+    const descricao = document.getElementById('vaga-descricao').value.trim();
+    const area = document.getElementById('vaga-area').value.trim();
+    const nivel = document.getElementById('vaga-nivel').value;
+    const cidade = document.getElementById('vaga-cidade').value.trim();
+    const uf = document.getElementById('vaga-uf').value.trim();
+    const salarioMin = Number(document.getElementById('vaga-salario-min').value || 0);
+    const salarioMax = Number(document.getElementById('vaga-salario-max').value || 0);
+    const quantidade = Number(document.getElementById('vaga-quantidade').value || 1);
+
+    if (!titulo || !descricao) {
+      this.showError('Título e descrição são obrigatórios');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/vagas`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Labutar-Tenant': TENANT_ID,
+          'X-Labutar-User': 'recrutador-teste'
+        },
+        body: JSON.stringify({
+          titulo,
+          descricao,
+          area,
+          nivel,
+          local: { modelo: cidade ? 'PRESENCIAL' : 'REMOTO', cidade, uf },
+          salario: { min: salarioMin, max: salarioMax, exibir: salarioMin > 0 || salarioMax > 0 },
+          quantidadeVagas: quantidade,
+          regrasTriagem: { corteMinimo: 60 }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao criar vaga');
+      }
+
+      const data = await response.json();
+      this.vagas.push(data.dados.vaga);
+      document.getElementById('modal-nova-vaga').classList.remove('active');
+      document.getElementById('form-nova-vaga').reset();
+      this.renderVagas();
+      this.showSuccess('Vaga criada com sucesso');
+    } catch (error) {
+      console.error(error);
+      this.showError('Erro ao criar vaga');
+    }
+  }
+
+  async abrirVaga(vagaId) {
+    const vaga = this.vagas.find((item) => item.id === vagaId);
+    if (!vaga || vaga.status === 'ABERTA') return;
+
+    try {
+      const response = await fetch(`${API_BASE}/vagas/${vagaId}/status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Labutar-Tenant': TENANT_ID,
+          'X-Labutar-User': 'recrutador-teste'
+        },
+        body: JSON.stringify({ para: 'ABERTA' })
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao abrir vaga');
+      }
+
+      const data = await response.json();
+      const index = this.vagas.findIndex((item) => item.id === vagaId);
+      this.vagas[index] = data.dados.vaga;
+      this.renderVagas();
+      this.showSuccess('Vaga aberta com sucesso');
+    } catch (error) {
+      console.error(error);
+      this.showError('Erro ao abrir vaga');
+    }
+  }
+
+  visualizarPipeline(vagaId) {
+    this.currentVagaFilter = vagaId;
+    this.navigateTo('pipeline');
+  }
+
+  showSuccess(message) {
+    console.log(`✓ ${message}`);
+  }
+
+  showError(message) {
+    console.error(`✗ ${message}`);
+  }
+}
+
+window.app = new LabutarApp();

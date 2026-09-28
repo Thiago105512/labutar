@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Labutar — Painel de Recrutador</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="app" class="app">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1>Labutar</h1>
+        <p>ATS Brasil</p>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#/vagas" class="nav-item active" data-route="vagas">
+          <span class="icon">📋</span>
+          <span>Vagas</span>
+        </a>
+        <a href="#/candidatos" class="nav-item" data-route="candidatos">
+          <span class="icon">👥</span>
+          <span>Candidatos</span>
+        </a>
+        <a href="#/pipeline" class="nav-item" data-route="pipeline">
+          <span class="icon">🔄</span>
+          <span>Pipeline</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="tenant-info">
+          <span id="tenant-name">demo-industrial</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="app-header">
+        <h2 id="page-title">Vagas</h2>
+        <div class="header-actions">
+          <button id="btn-nova-vaga" class="btn btn-primary">+ Nova Vaga</button>
+        </div>
+      </header>
+
+      <section id="vagas-section" class="content-section active">
+        <div class="vagas-grid" id="vagas-grid">
+          <div class="loading">Carregando vagas...</div>
+        </div>
+      </section>
+
+      <section id="pipeline-section" class="content-section">
+        <div class="pipeline-filters">
+          <select id="filter-vaga" class="filter-select">
+            <option value="">Todas as vagas</option>
+          </select>
+        </div>
+        <div class="pipeline-container" id="pipeline-container">
+          <div class="loading">Carregando pipeline...</div>
+        </div>
+      </section>
+
+      <section id="candidatos-section" class="content-section">
+        <div class="candidatos-list" id="candidatos-list">
+          <div class="loading">Carregando candidatos...</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal-nova-vaga" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Nova Vaga</h3>
+        <button class="btn-close" type="button">&times;</button>
+      </div>
+      <form id="form-nova-vaga" class="form-vaga">
+        <div class="form-group">
+          <label for="vaga-titulo">Título *</label>
+          <input type="text" id="vaga-titulo" placeholder="ex: Desenvolvedor Node.js" required>
+        </div>
+        <div class="form-group">
+          <label for="vaga-descricao">Descrição *</label>
+          <textarea id="vaga-descricao" placeholder="Descrição da vaga" rows="4" required></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="vaga-area">Área</label>
+            <input type="text" id="vaga-area" placeholder="ex: Tecnologia">
+          </div>
+          <div class="form-group">
+            <label for="vaga-nivel">Nível</label>
+            <select id="vaga-nivel">
+              <option value="">Selecionar</option>
+              <option value="Júnior">Júnior</option>
+              <option value="Pleno">Pleno</option>
+              <option value="Sênior">Sênior</option>
+              <option value="Especialista">Especialista</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="vaga-cidade">Cidade</label>
+            <input type="text" id="vaga-cidade" placeholder="ex: São Paulo">
+          </div>
+          <div class="form-group">
+            <label for="vaga-uf">UF</label>
+            <input type="text" id="vaga-uf" placeholder="SP" maxlength="2">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="vaga-salario-min">Salário Mín (R$)</label>
+            <input type="number" id="vaga-salario-min" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label for="vaga-salario-max">Salário Máx (R$)</label>
+            <input type="number" id="vaga-salario-max" placeholder="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="vaga-quantidade">Quantidade de Vagas</label>
+          <input type="number" id="vaga-quantidade" value="1" min="1">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-close-form">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Criar Vaga</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
