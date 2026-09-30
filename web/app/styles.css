@@ -691,3 +691,7 @@ a.modulo-cartao:hover { transform: translateY(-3px); box-shadow: var(--sombra-2)
 .origem-escolhida { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--marca-100); background: var(--marca-50, var(--marca-100)); border-radius: 12px; }
 .origem-escolhida .texto { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .origem-escolhida small { color: var(--texto-3); font-size: 12px; }
+
+/* Resultado: valor negativo em vermelho, positivo em verde. */
+.valor-negativo { color: var(--vermelho); }
+.valor-positivo { color: var(--verde); }

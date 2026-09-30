@@ -136,7 +136,7 @@ colaborador, por dia e por assunto.
 | Item | Prio | Compl. | Status | Onde / observação |
 |---|---|---|---|---|
 | Lançamentos contábeis e provisões (férias, 13º, encargos) | E | M | 📋 | |
-| Rateio por centro de custo e projeto | E | M | 🟡 | Rateio por tomador/contrato/posto e setor **pronto** (`mao-de-obra/rateio`); projeto ⬜ |
+| Rateio por centro de custo e projeto | E | M | 🟡 | Centro de custo por contrato com resultado, margem e ponto de equilíbrio (`custos`, docs/19); rateio de próprios e da estrutura ✅; projeto ⬜ |
 | CNAB e pagamentos bancários | E | M | ⬜ | Pagamento em lote previsto; CNAB entra aqui |
 | Exportação para contabilidade e ERP | E | M | 📋 | |
 | Contas a pagar (guias, rescisões) | D | M | 📋 | |

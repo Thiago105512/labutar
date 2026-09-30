@@ -13,6 +13,7 @@ import { paginaColaboradores, paginaImportacao, paginaTomadores, ligarEventosCad
 import { paginaFolhaResumo, paginaHolerites, paginaFolhaTomadores, paginaVerbas, ligarEventosFolha, limparFolha } from "./folha-telas.js";
 import { paginaDecimoTerceiro, paginaRescisaoFerias, ligarEventosRescisao, limparRescisao } from "./rescisao-telas.js";
 import { paginaConvencoes, ligarEventosConvencoes, limparConvencoes } from "./convencoes-telas.js";
+import { paginaResultado, paginaLancamentos, paginaItens, paginaRateio, ligarEventosCustos, limparCustos } from "./custos-telas.js";
 import { esc, moeda, dataHora, avatar, etiqueta, diasDesde, quando, aviso, abrirPainel, fecharPainel, matiz, matricula } from "./ui.js";
 import {
   ICONE_MODULO,
@@ -52,6 +53,16 @@ const PAGINAS = {
     { id: "rescisao", nome: "Rescisão e férias", icone: "relogio" },
     { id: "convencoes", nome: "Convenções e acordos", icone: "juridico" },
     { id: "verbas", nome: "Catálogo de verbas", icone: "dinheiro" },
+  ],
+  financeiro: [
+    { id: "resultado", nome: "Resultado por contrato", icone: "alvo" },
+    { id: "custos", nome: "Lançamentos de custo", icone: "dinheiro" },
+    { id: "itens", nome: "Itens de custo", icone: "estoque" },
+    { id: "rateio", nome: "Rateio de próprios", icone: "pessoas" },
+  ],
+  estoque: [
+    { id: "custos", nome: "Entregas e custos", icone: "estoque" },
+    { id: "itens", nome: "Itens de custo", icone: "dinheiro" },
   ],
   administracao: [
     { id: "usuarios", nome: "Usuários", icone: "pessoas" },
@@ -268,6 +279,7 @@ function limparDados() {
   limparFolha();
   limparRescisao();
   limparConvencoes();
+  limparCustos();
   limparCadastro();
   Object.assign(estado, { vagas: [], candidatos: [], candidaturas: [], resumo: null, origens: [], busca: "" });
 }
@@ -322,6 +334,10 @@ async function renderizar() {
     } else if (moduloId === "folha") {
       conteudo.innerHTML = carregando;
       const telas = { resumo: paginaFolhaResumo, holerites: paginaHolerites, tomadores: paginaFolhaTomadores, decimo: paginaDecimoTerceiro, rescisao: paginaRescisaoFerias, convencoes: paginaConvencoes, verbas: paginaVerbas };
+      conteudo.innerHTML = await telas[pagina.id]();
+    } else if (moduloId === "financeiro" || moduloId === "estoque") {
+      conteudo.innerHTML = carregando;
+      const telas = { resultado: paginaResultado, custos: paginaLancamentos, itens: paginaItens, rateio: paginaRateio };
       conteudo.innerHTML = await telas[pagina.id]();
     } else if (moduloId === "administracao") {
       conteudo.innerHTML = carregando;
@@ -906,6 +922,7 @@ ligarEventosAcesso({ aoAlterar: renderizar });
 ligarEventosFolha({ aoAlterar: renderizar });
 ligarEventosRescisao({ aoAlterar: renderizar });
 ligarEventosConvencoes({ aoAlterar: renderizar });
+ligarEventosCustos({ aoAlterar: renderizar });
 ligarEventosCadastro({ aoAlterar: renderizar });
 sessao.aoSair((motivo) => {
   limparDados();
