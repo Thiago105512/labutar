@@ -58,6 +58,7 @@ export function lerPlanilhaColaboradores(texto) {
       avisos: p.avisos,
       vinculo: {
         tipo, admissao, cargo: col.cargo, cbo: col.cbo || null, salario,
+        sindicatoCnpj: col.sindicato_cnpj ? normalizarCNPJ(col.sindicato_cnpj) : null,
         matriculaAnterior: col.matricula_anterior || null,
         dependentesIRImportados: Number(col.dependentes_ir || 0),
         tomadorCnpj, setor: col.setor || null,

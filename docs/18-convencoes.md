@@ -6,8 +6,12 @@ ou prazo. As demais ficam listadas para consulta.
 
 ## 1. Qual instrumento vale
 
-- A empresa declara o **enquadramento sindical**: a convenção da categoria dela e para quais tipos
-  de vínculo (`folhaParametros.enquadramentoSindical`).
+- **Todo vínculo tem sindicato** (obrigatório na admissão e na importação): sem ele, o colaborador
+  fica fora da folha como pendência. A convenção aplicada é a do sindicato laboral do vínculo.
+- A empresa define o **sindicato padrão por tipo de vínculo** (`folhaParametros.sindicatosPadrao`),
+  sugerido na admissão; o DP confirma ou troca. Sindicato sem CCT cadastrada pode ser incluído
+  (o colaborador entra na folha, sem regras de convenção até a CCT ser cadastrada).
+- Associação ao sindicato e oposição às contribuições ficam na pessoa (ficha do colaborador).
 - **Acordo coletivo prevalece sobre a convenção** (CLT, art. 620): o do posto, depois o do tomador,
   depois o da empresa. O que o acordo não trata continua pela convenção.
 - Só vale o que está em vigência na competência.
@@ -35,9 +39,8 @@ SEEACEAM (laboral, CNPJ 23.006.562/0001-48) e SEAC-AM (patronal, CNPJ 34.501.213
 
 ## 3. Pendências
 
-- **Temporários:** a CCT está aplicada a terceirizados e próprios. Falta confirmar se os
-  temporários da empresa também são desta categoria ou têm outra (a remuneração deles segue a
-  equivalência com o tomador, Lei 6.019/1974, art. 12).
+- **Temporários:** no demo estão vinculados ao SEEACEAM (padrão da empresa). Se a categoria deles
+  for outra, é trocar o sindicato padrão do tipo e o de cada vínculo.
 - **Enquadramento das funções dos postos** que não estão na tabela (porteiro, operador de
   empilhadeira, eletricista de manutenção, cargos administrativos): enquanto isso vale o piso geral.
 - **Naturezas do eSocial** dos descontos sindicais e do VR (9220, 9231, 9232) marcadas "a conferir".

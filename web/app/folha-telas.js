@@ -47,7 +47,7 @@ export async function paginaFolhaResumo() {
   const f = await carregarFolha();
   const r = f.resumo;
   const indicadores = [
-    { rotulo: "Colaboradores na folha", valor: r.colaboradores, icone: "pessoas", cor: "var(--marca-500)", fundo: "var(--marca-100)", nota: `${f.pendencias.length} para a rescisão` },
+    { rotulo: "Colaboradores na folha", valor: r.colaboradores, icone: "pessoas", cor: "var(--marca-500)", fundo: "var(--marca-100)", nota: f.pendencias.length ? `${f.pendencias.length} fora da folha (ver abaixo)` : "todos calculados" },
     { rotulo: "Proventos", valor: moeda(r.proventos), icone: "dinheiro", cor: "var(--azul)", fundo: "var(--azul-bg)", nota: `descontos ${moeda(r.descontos)}` },
     { rotulo: "Líquido a pagar", valor: moeda(r.liquido), icone: "ok", cor: "var(--verde)", fundo: "var(--verde-bg)", nota: "depois do adiantamento" },
     { rotulo: "Custo total da empresa", valor: moeda(r.custoTotal), icone: "financeiro", cor: "var(--ambar)", fundo: "var(--ambar-bg)", nota: "proventos + FGTS + encargos" },
@@ -62,7 +62,7 @@ export async function paginaFolhaResumo() {
       <div>
         <h2>Folha de ${nomeCompetencia(f.competencia)}</h2>
         <p>${r.colaboradores} colaboradores calculados com INSS, IRRF (com a redução da Lei 15.270/2025), FGTS, salário-família e DSR pelo calendário de Manaus.
-        ${f.pendencias.length ? `${f.pendencias.length} desligamento no mês vai para a rescisão.` : ""}</p>
+        ${f.pendencias.length ? `${f.pendencias.length} fora da folha mensal: veja o motivo abaixo.` : ""}</p>
         <div class="acoes">
           <a class="botao botao-claro" href="#/folha/holerites">${icone("folha")}Ver holerites</a>
           <a class="botao botao-vidro" href="#/folha/tomadores">${icone("tomadores")}Custo por tomador</a>

@@ -7,11 +7,13 @@ import * as ats from "../../packages/ats/src/index.js";
 import { proximaMatricula, TIPO_VINCULO, VINCULO_ACEITO_POR_CONTRATO } from "../../packages/mao-de-obra/src/index.js";
 import { tabelaDaCompetencia } from "../../packages/folha/src/index.js";
 import { novoId } from "../../packages/core/src/ids.js";
+import { validarCNPJ, normalizarCNPJ } from "../../packages/core/src/validacao.js";
 import { dataNoFuso } from "../../packages/core/src/datas.js";
 import { sucesso, erroValidacao, erroNaoEncontrado, erroConflito } from "./http/resposta.js";
 import { exigirPermissao } from "./middleware/contexto.js";
 import { carregarCadastro } from "./cadastro.js";
 import { gravarCPF } from "./rotas-folha.js";
+import { listarSindicatos, resolverSindicato } from "./sindicatos.js";
 
 const invalido = (r) => { if (!r.ok) throw erroValidacao(r.erros.join("; "), r.erros); };
 
@@ -70,6 +72,7 @@ export function registrarRotasCadastro(r, { repo }) {
       totais: {
         ativos: itens.filter((v) => !v.desligamento || v.desligamento >= hoje).length,
         semCPF: itens.filter((v) => !v.pessoa?.cpf).length,
+        semSindicato: itens.filter((v) => !v.desligamento && !v.sindicato?.cnpj).length,
         porTipo: Object.fromEntries(Object.values(TIPO_VINCULO).map((t) => [t, itens.filter((v) => v.tipo === t).length])),
       },
     });
@@ -156,7 +159,10 @@ export function registrarRotasCadastro(r, { repo }) {
     const contrato = posto ? cad.contrato.get(posto.contratoId) : null;
     const tomador = contrato ? cad.tomador.get(contrato.tomadorId) : null;
     const vinculosDaPessoa = cad.vinculos.filter((v) => v.pessoaId === pessoa.id);
-    const dados = { ...d, cargo: d.cargo || posto?.funcao, salario: Number(d.salario) };
+    const [sindicatos, empresa] = await Promise.all([listarSindicatos(repo, tenant), repo.obter(tenant, "folhaParametros", "empresa")]);
+    const sindicato = resolverSindicato(sindicatos, { cnpj: d.sindicatoCnpj, tipo: d.tipo, empresa });
+    if (d.sindicatoCnpj && !sindicato) throw erroValidacao("sindicato não cadastrado: cadastre o sindicato antes de vincular", ["sindicatoCnpj"]);
+    const dados = { ...d, cargo: d.cargo || posto?.funcao, salario: Number(d.salario), sindicato };
     const r2 = validarVinculo(dados, {
       pessoa, posto, contrato, tomador, vinculosDaPessoa, salarioMinimo: salarioMinimoEm(d.admissao ?? ""),
       ocupados: posto ? cad.vinculos.filter((v) => v.postoId === posto.id && !v.desligamento).length : undefined,
@@ -172,6 +178,7 @@ export function registrarRotasCadastro(r, { repo }) {
       historicoSalarial: [{ desde: dados.admissao, valor: dados.salario, motivo: "Admissão" }],
       tomadorId: tomador?.id ?? null, tomadorCnpj: tomador?.cnpj ?? null, contratoId: contrato?.id ?? null, postoId: posto?.id ?? null,
       setor: dados.tipo === TIPO_VINCULO.PROPRIO ? d.setor : null,
+      sindicato,
       temporario: dados.tipo === TIPO_VINCULO.TEMPORARIO ? { fimPrevisto: d.temporario?.fimPrevisto ?? null, hipotese: contrato?.hipotese ?? null } : null,
       origem: candidato ? { candidatoId: candidato.id, candidaturaId: candidatura?.id ?? null, vagaId: candidatura?.vagaId ?? null } : null,
       criadoPor: ctx.usuario ?? null,
@@ -222,8 +229,16 @@ export function registrarRotasCadastro(r, { repo }) {
     const ocupacao = new Map();
     for (const v of cad.vinculos) if (v.postoId && !v.desligamento) ocupacao.set(v.postoId, (ocupacao.get(v.postoId) ?? 0) + 1);
     const norm = (s) => String(s ?? "").trim().toLowerCase();
+    const [sindicatos, empresa] = await Promise.all([listarSindicatos(repo, tenant), repo.obter(tenant, "folhaParametros", "empresa")]);
     for (const l of lidas.linhas) {
       const v = l.vinculo;
+      // Sindicato da planilha ou o padrão da empresa para o tipo: sem ele, não entra na folha.
+      const sindicato = resolverSindicato(sindicatos, { cnpj: v.sindicatoCnpj, tipo: v.tipo, empresa });
+      if (!sindicato) {
+        erros.push({ linha: l.linha, nome: l.pessoa.nome, erros: [v.sindicatoCnpj ? "sindicato da planilha não cadastrado" : "sem sindicato: informe sindicato_cnpj ou defina o sindicato padrão da empresa"] });
+        continue;
+      }
+      l.sindicato = sindicato;
       let tomador = null, contrato = null, posto = null;
       if (v.tipo !== TIPO_VINCULO.PROPRIO) {
         tomador = cad.tomadores.find((t) => t.cnpj === v.tomadorCnpj);
@@ -247,7 +262,7 @@ export function registrarRotasCadastro(r, { repo }) {
     if (!corpo?.confirmar) {
       return sucesso(res, {
         confirmado: false,
-        prontas: prontas.map((p) => ({ linha: p.linha, nome: p.pessoa.nome, cpf: p.pessoa.cpf, tipo: p.vinculo.tipo, cargo: p.vinculo.cargo, admissao: p.vinculo.admissao, salario: p.vinculo.salario, lotacao: p.tomador?.razaoSocial ?? p.vinculo.setor, avisos: p.avisos })),
+        prontas: prontas.map((p) => ({ linha: p.linha, nome: p.pessoa.nome, cpf: p.pessoa.cpf, tipo: p.vinculo.tipo, sindicato: p.sindicato.sigla, cargo: p.vinculo.cargo, admissao: p.vinculo.admissao, salario: p.vinculo.salario, lotacao: p.tomador?.razaoSocial ?? p.vinculo.setor, avisos: p.avisos })),
         erros,
       });
     }
@@ -266,12 +281,50 @@ export function registrarRotasCadastro(r, { repo }) {
         matriculaAnterior: p.vinculo.matriculaAnterior, dependentesIRImportados: p.vinculo.dependentesIRImportados,
         tomadorId: p.tomador?.id ?? null, tomadorCnpj: p.tomador?.cnpj ?? null, contratoId: p.contrato?.id ?? null, postoId: p.posto?.id ?? null,
         setor: p.vinculo.tipo === TIPO_VINCULO.PROPRIO ? p.vinculo.setor : null,
+        sindicato: p.sindicato,
         temporario: p.vinculo.tipo === TIPO_VINCULO.TEMPORARIO ? { fimPrevisto: null, hipotese: p.contrato?.hipotese ?? null } : null,
         importadoPor: ctx.usuario ?? null,
       });
       gravados += 1;
     }
     sucesso(res, { confirmado: true, gravados, erros });
+  });
+
+  // ------------------------------------------------------------ sindicatos
+
+  /** Sindicatos para vincular o colaborador e o padrão da empresa por tipo de vínculo. */
+  r.get("/api/sindicatos", async (req, res, ctx) => {
+    const tenant = exigirPermissao(ctx, "colaboradores", "ver");
+    const [itens, empresa] = await Promise.all([listarSindicatos(repo, tenant), repo.obter(tenant, "folhaParametros", "empresa")]);
+    sucesso(res, { itens, padraoPorTipo: empresa?.sindicatosPadrao ?? {} });
+  });
+
+  /** Sindicato sem convenção no sistema (categoria que ainda não teve a CCT cadastrada). */
+  r.post("/api/sindicatos", async (req, res, ctx, corpo) => {
+    const tenant = exigirPermissao(ctx, "colaboradores", "criar");
+    const v = validarCNPJ(corpo?.cnpj ?? "");
+    if (!v.valido) throw erroValidacao(`CNPJ do sindicato inválido: ${v.motivo}`, ["cnpj"]);
+    const nome = String(corpo?.nome ?? "").trim();
+    const sigla = String(corpo?.sigla ?? "").trim().toUpperCase();
+    if (nome.length < 5 || sigla.length < 2) throw erroValidacao("nome e sigla do sindicato obrigatórios", ["nome", "sigla"]);
+    const cnpj = normalizarCNPJ(corpo.cnpj);
+    if ((await listarSindicatos(repo, tenant)).some((s) => s.cnpj === cnpj)) throw erroConflito("sindicato já cadastrado");
+    sucesso(res, await repo.inserir(tenant, "sindicatos", { id: cnpj, cnpj, nome, sigla }), 201);
+  });
+
+  /** Sindicato do vínculo e, na pessoa, associação e oposição às contribuições. */
+  r.patch("/api/colaboradores/:matricula/sindicato", async (req, res, ctx, corpo) => {
+    const tenant = exigirPermissao(ctx, "colaboradores", "editar");
+    const v = await repo.obter(tenant, "vinculos", ctx.params.matricula);
+    if (!v) throw erroNaoEncontrado("colaborador não encontrado");
+    const sindicato = resolverSindicato(await listarSindicatos(repo, tenant), { cnpj: corpo?.sindicatoCnpj });
+    if (!sindicato) throw erroValidacao("sindicato obrigatório e cadastrado", ["sindicatoCnpj"]);
+    await repo.atualizar(tenant, "vinculos", v.id, { sindicato });
+    const pessoa = await repo.atualizar(tenant, "pessoas", v.pessoaId, {
+      associadoSindicato: Boolean(corpo?.associado),
+      oposicaoContribuicao: corpo?.oposicaoContribuicao ? { em: corpo.oposicaoEm ?? null } : null,
+    });
+    sucesso(res, { sindicato, associadoSindicato: pessoa.associadoSindicato, oposicaoContribuicao: pessoa.oposicaoContribuicao });
   });
 
   // ------------------------------------------------------------ tomadores, contratos e postos

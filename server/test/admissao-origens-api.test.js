@@ -103,3 +103,12 @@ test("CPF do recrutamento que já é de outra pessoa é recusado", async () => {
   } });
   assert.equal(r.status, 409);
 });
+
+test("vínculo sem sindicato (dado antigo) fica fora da folha como pendência", async () => {
+  const v = (await repo.listar(TENANT_DEMO, "vinculos", { tipo: "TERCEIRIZADO" }, { limite: 1 })).itens[0];
+  await repo.atualizar(TENANT_DEMO, "vinculos", v.id, { sindicato: null });
+  const f = (await chamar("/api/folha/2026-09")).json.dados;
+  assert.ok(!f.holerites.some((h) => h.colaborador.matricula === v.matricula));
+  const p = f.pendencias.find((x) => x.matricula === v.matricula);
+  assert.equal(p.tipo, "SEM_SINDICATO");
+});

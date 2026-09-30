@@ -42,6 +42,7 @@ export async function paginaColaboradores() {
       <span class="etiqueta sem-ponto e-marca">${totais.porTipo.TERCEIRIZADO} terceirizados</span>
       <span class="etiqueta sem-ponto e-cinza">${totais.porTipo.PROPRIO} próprios</span>
       ${totais.semCPF ? `<span class="etiqueta e-ambar">${totais.semCPF} sem CPF</span>` : ""}
+      ${totais.semSindicato ? `<span class="etiqueta e-vermelho">${totais.semSindicato} sem sindicato</span>` : ""}
       <input class="filtro-texto" type="search" placeholder="Buscar por nome, CPF, matrícula, cargo ou tomador" value="${esc(cache.busca)}" data-cad-busca>
       ${podeCriar ? `<button class="botao botao-primario" data-cad="novo-colaborador">${icone("mais")}Novo colaborador</button>` : ""}
     </div>
@@ -53,7 +54,7 @@ export async function paginaColaboradores() {
             <tr class="linha-clicavel" data-cad-colaborador="${esc(v.matricula)}">
               <td><div class="pessoa">${avatar(v.pessoa?.nome, "avatar-sm")}<div><strong>${esc(v.pessoa?.nome)}</strong>
                 <small>${v.pessoa?.cpf ? `CPF ${esc(cpf(v.pessoa.cpf))}` : '<span class="etiqueta e-ambar">CPF pendente</span>'} · ${esc(matricula(v.matricula))}</small></div></div></td>
-              <td>${etiqueta(NOME_VINCULO, v.tipo)}${v.desligamento ? ' <span class="etiqueta e-cinza">Desligado</span>' : ""}</td>
+              <td>${etiqueta(NOME_VINCULO, v.tipo)}${v.desligamento ? ' <span class="etiqueta e-cinza">Desligado</span>' : ""}${!v.sindicato && !v.desligamento ? ' <span class="etiqueta e-vermelho">Sem sindicato</span>' : ""}</td>
               <td>${esc(v.tomador?.nome ?? `Setor ${v.setor ?? "—"}`)}</td>
               <td>${esc(v.cargo ?? "")}</td>
               <td>${data(v.admissao)}</td>
@@ -91,6 +92,18 @@ async function painelColaborador(mat) {
           <div><small>Posto</small><strong>${esc(v.posto?.funcao ?? "—")}${v.posto?.insalubridadeGrau ? ` · insalubridade ${v.posto.insalubridadeGrau}%` : ""}${v.posto?.periculosidade ? " · periculosidade" : ""}</strong></div>
         </div>
       </div>
+      <div class="secao"><h4>Sindicato</h4>
+        ${v.sindicato ? `<p><strong>${esc(v.sindicato.sigla)}</strong> · ${esc(v.sindicato.nome)} <small class="dica">CNPJ ${esc(cnpj(v.sindicato.cnpj))}</small></p>
+          <p class="dica">${p.associadoSindicato ? "Associado" : "Não associado"}${p.oposicaoContribuicao ? " · com oposição às contribuições" : ""}</p>`
+          : '<p><span class="etiqueta e-vermelho">Sem sindicato</span> Fica fora da folha até ser vinculado.</p>'}
+        ${podeEditar ? `
+        <form class="formulario" id="form-cad-sindicato" style="margin-top:12px">
+          <div class="campo"><label for="c-sindicato">Sindicato</label><select id="c-sindicato" name="sindicatoCnpj" required><option value="">Selecione</option></select></div>
+          <label class="opcao-marcar"><input type="checkbox" name="associado" ${p.associadoSindicato ? "checked" : ""}> Associado ao sindicato (cesta básica e valores de associado)</label>
+          <label class="opcao-marcar"><input type="checkbox" name="oposicaoContribuicao" ${p.oposicaoContribuicao ? "checked" : ""}> Apresentou oposição por escrito às contribuições</label>
+          <button class="botao botao-secundario" type="submit">${icone("ok")}Salvar sindicato</button>
+        </form>` : ""}
+      </div>
       <div class="secao"><h4>Histórico salarial</h4>
         <table class="tabela tabela-compacta"><thead><tr><th>Desde</th><th>Motivo</th><th class="num">Salário</th></tr></thead>
           <tbody>${historico.map((h) => `<tr><td>${data(h.desde)}</td><td>${esc(h.motivo)}</td><td class="num">${moeda(h.valor)}</td></tr>`).join("")}</tbody></table>
@@ -121,6 +134,23 @@ async function painelColaborador(mat) {
       painelColaborador(mat);
     } catch (erro) { aviso(erro.message, "erro"); }
   });
+  const formSindicato = document.getElementById("form-cad-sindicato");
+  if (formSindicato) {
+    api("/sindicatos").then((lista) => {
+      formSindicato.sindicatoCnpj.innerHTML = `<option value="">Selecione</option>${lista.itens.map((x) => `<option value="${esc(x.cnpj)}">${esc(x.sigla)} · ${esc(x.nome)}</option>`).join("")}`;
+      formSindicato.sindicatoCnpj.value = v.sindicato?.cnpj ?? "";
+    }).catch((erro) => aviso(erro.message, "erro"));
+    formSindicato.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const f = new FormData(formSindicato);
+      try {
+        await api(`/colaboradores/${mat}/sindicato`, { metodo: "PATCH", corpo: { sindicatoCnpj: f.get("sindicatoCnpj"), associado: f.get("associado") === "on", oposicaoContribuicao: f.get("oposicaoContribuicao") === "on" } });
+        aviso("Sindicato salvo.");
+        await recarregar();
+        painelColaborador(mat);
+      } catch (erro) { aviso(erro.message, "erro"); }
+    });
+  }
   document.getElementById("form-cad-salario")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const f = Object.fromEntries(new FormData(e.target));
@@ -161,7 +191,8 @@ function linhaOrigem(o, i) {
  * cadastro (quem já trabalhou aqui). `inicial` já escolhe a origem (vindo do processo seletivo).
  */
 async function painelNovoColaborador({ candidaturaId = null } = {}) {
-  const [postos, prontos] = await Promise.all([postosDisponiveis(), api("/colaboradores/origens")]);
+  const [postos, prontos, sindicatos] = await Promise.all([postosDisponiveis(), api("/colaboradores/origens"), api("/sindicatos")]);
+  const opcoesSindicato = sindicatos.itens.map((x) => `<option value="${esc(x.cnpj)}">${esc(x.sigla)} · ${esc(x.nome)}${x.instrumentos.length ? "" : " (sem convenção cadastrada)"}</option>`).join("");
   let lista = prontos;
   let escolhida = candidaturaId ? prontos.find((o) => o.candidaturaId === candidaturaId) ?? null : null;
   const opcoes = (tipo) => postos.filter((p) => (tipo === "TEMPORARIO" ? p.contratoTipo === "TRABALHO_TEMPORARIO" : p.contratoTipo === "PRESTACAO_SERVICOS"))
@@ -202,6 +233,9 @@ async function painelNovoColaborador({ candidaturaId = null } = {}) {
           <select id="n-posto" name="postoId"><option value="">Selecione</option>${opcoes("TEMPORARIO")}</select>
           <p class="dica">Temporário só em contrato de trabalho temporário; terceirizado só em prestação de serviços.</p></div>
         <div class="campo" data-so-proprio hidden><label for="n-setor">Setor</label><input id="n-setor" name="setor" value="ADM"></div>
+        <div class="campo"><label for="n-sindicato">Sindicato</label>
+          <select id="n-sindicato" name="sindicatoCnpj" required><option value="">Selecione</option>${opcoesSindicato}</select>
+          <p class="dica">Obrigatório para entrar na folha: define a convenção coletiva (piso, benefícios e contribuições).</p></div>
         <div class="duas">
           <div class="campo"><label for="n-cargo">Cargo</label><input id="n-cargo" name="cargo" placeholder="Vem da função do posto"></div>
           <div class="campo"><label for="n-sal">Salário (R$)</label><input id="n-sal" name="salario" inputmode="decimal" placeholder="2.000,00" required></div>
@@ -263,8 +297,11 @@ async function painelNovoColaborador({ candidaturaId = null } = {}) {
     form.querySelector("[data-so-proprio]").hidden = tipo !== "PROPRIO";
     form.querySelector("[data-so-temporario]").hidden = tipo !== "TEMPORARIO";
     form.postoId.innerHTML = `<option value="">Selecione</option>${opcoes(tipo)}`;
+    // Sugere o sindicato padrão da empresa para o tipo de vínculo; o DP confirma ou troca.
+    if (sindicatos.padraoPorTipo[tipo]) form.sindicatoCnpj.value = sindicatos.padraoPorTipo[tipo];
   };
   form.tipo.addEventListener("change", ajustar);
+  if (sindicatos.padraoPorTipo[form.tipo.value]) form.sindicatoCnpj.value = sindicatos.padraoPorTipo[form.tipo.value];
   form.postoId.addEventListener("change", () => {
     const s = form.postoId.selectedOptions[0]?.dataset.salario;
     if (s && !form.salario.value) form.salario.value = moedaParaCampo(Number(s));
@@ -279,6 +316,7 @@ async function painelNovoColaborador({ candidaturaId = null } = {}) {
       vinculo: {
         tipo: f.tipo, admissao: f.admissao, cargo: f.cargo || undefined, salario: lerMoeda(f.salario),
         postoId: f.tipo === "PROPRIO" ? undefined : f.postoId || undefined,
+        sindicatoCnpj: f.sindicatoCnpj,
         setor: f.tipo === "PROPRIO" ? f.setor : undefined,
         temporario: f.tipo === "TEMPORARIO" ? { fimPrevisto: f.fimPrevisto || null } : undefined,
       },
@@ -302,7 +340,7 @@ export async function paginaImportacao() {
       <div class="cartao-cabecalho"><div><h3>Importar colaboradores do sistema anterior</h3>
         <p>Planilha CSV separada por ponto e vírgula. Primeiro o sistema confere cada linha; nada é gravado antes de você confirmar.</p></div></div>
       <div class="cartao-corpo formulario">
-        <p class="dica">Colunas: <code>matricula_anterior; nome; cpf; vinculo; admissao; cargo; salario; dependentes_ir; tomador_cnpj; setor</code>.
+        <p class="dica">Colunas: <code>matricula_anterior; nome; cpf; vinculo; admissao; cargo; salario; dependentes_ir; tomador_cnpj; setor; sindicato_cnpj</code> (sem <code>sindicato_cnpj</code>, vale o sindicato padrão da empresa para o tipo de vínculo).
           Vínculo: temporário, terceirizado ou próprio. O cargo precisa existir como posto do tomador.</p>
         <div class="campo"><label for="imp-arquivo">Arquivo</label><input id="imp-arquivo" type="file" accept=".csv,text/csv" data-cad-arquivo></div>
         <div class="campo"><label for="imp-texto">Ou cole aqui</label><textarea id="imp-texto" rows="6" data-cad-planilha>${esc(cache.planilha)}</textarea></div>

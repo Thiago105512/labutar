@@ -36,6 +36,8 @@ export const TOMADORES_DEMO = Object.freeze({
 });
 export const SETORES_DEMO = Object.freeze([{ id: "ADM", nome: "Administrativo próprio" }]);
 
+const SINDICATO_DEMO = Object.freeze({ cnpj: "23006562000148", sigla: "SEEACEAM", nome: "Sindicato dos Empregados em Empresas de Asseio e Conservação do Estado do Amazonas" });
+
 export const EMPRESA_FOLHA_DEMO = Object.freeze({
   id: "empresa",
   cnpj: EMPRESAS_DEMO[0].cnpj,
@@ -48,9 +50,9 @@ export const EMPRESA_FOLHA_DEMO = Object.freeze({
   arredondamentoINSS: "POR_FAIXA",
   local: { uf: "AM", municipio: "Manaus" },
   setores: SETORES_DEMO,
-  // Convenção da categoria da empresa. Temporários fora até a confirmação do enquadramento deles
-  // (remuneração equivalente à do tomador, Lei 6.019/1974, art. 12).
-  enquadramentoSindical: [{ instrumentoId: "AM000038-2026", tiposVinculo: ["TERCEIRIZADO", "PROPRIO"] }],
+  // Sindicato sugerido na admissão por tipo de vínculo (o DP confirma ou troca). A CCT AM000038/2026
+  // abrange todos os empregados das empresas de asseio, conservação e serviços terceirizados.
+  sindicatosPadrao: { TEMPORARIO: SINDICATO_DEMO.cnpj, TERCEIRIZADO: SINDICATO_DEMO.cnpj, PROPRIO: SINDICATO_DEMO.cnpj },
   // Desconto do vale-refeição pela empresa (a CCT permite até 10%).
   descontoVRPercentual: 0,
 });
@@ -188,6 +190,7 @@ export async function semearFolha(repo, tenantId) {
       tomadorId: tomador?.id ?? null, tomadorCnpj: tomador?.cnpj ?? null, contratoId: contrato?.id ?? null, postoId: posto?.id ?? null,
       setor: tomador ? null : "ADM",
       funcaoConvencao: tomador ? null : ENQUADRAMENTO_DEMO[c.cargo] ?? null,
+      sindicato: { ...SINDICATO_DEMO },
       temporario: c.vinculo === "TEMPORARIO" ? prazoDoTemporario(c.admissao) : null,
     });
     await repo.inserir(tenantId, "folhaLancamentos", { id: `${COMPETENCIA_DEMO}:${c.matricula}`, competencia: COMPETENCIA_DEMO, matricula: c.matricula, ...lancamentos });

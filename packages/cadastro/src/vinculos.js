@@ -2,7 +2,7 @@
  * Vínculo = uma contratação da pessoa (matrícula própria). Valida o destino pelo tipo de
  * vínculo e, no temporário, os prazos da Lei 6.019/1974 e a remuneração equivalente.
  */
-import { validarDataISO } from "../../core/src/validacao.js";
+import { validarDataISO, validarCNPJ } from "../../core/src/validacao.js";
 import { TIPO_VINCULO, VINCULO_ACEITO_POR_CONTRATO, TIPO_CONTRATO_TOMADOR } from "../../mao-de-obra/src/constantes.js";
 import { validarContratoTemporario } from "../../mao-de-obra/src/temporario.js";
 import { verificarQuarentenaExEmpregado } from "../../mao-de-obra/src/terceirizacao.js";
@@ -10,7 +10,7 @@ import { verificarQuarentenaExEmpregado } from "../../mao-de-obra/src/terceiriza
 const dataOk = (d) => validarDataISO(d).valido;
 
 /**
- * @param dados { pessoaId, tipo, admissao, cargo, cbo?, salario, jornadaMensal?, postoId?, setor?,
+ * @param dados { pessoaId, tipo, admissao, cargo, cbo?, salario, jornadaMensal?, postoId?, setor?, sindicato: { cnpj, sigla?, nome? },
  *   temporario?: { fimPrevisto, hipotese?, justificativa?, substituido? } }
  * @param contexto { pessoa, posto, contrato, tomador, vinculosDaPessoa, salarioMinimo, ocupados? }
  *   `ocupados`: vínculos ativos já no posto. Posto cheio impede a admissão: aumente as vagas
@@ -28,6 +28,8 @@ export function validarVinculo(dados = {}, contexto = {}) {
   else if (salarioMinimo && dados.salario < salarioMinimo && !(dados.jornadaMensal < 220)) {
     erros.push("salário abaixo do salário mínimo para jornada integral");
   }
+  // Sem sindicato não entra na folha: é ele que define a convenção coletiva aplicada.
+  if (!dados.sindicato?.cnpj || !validarCNPJ(dados.sindicato.cnpj).valido) erros.push("sindicato obrigatório: o colaborador só entra na folha vinculado a um sindicato");
   if (erros.length) return { ok: false, erros, avisos };
 
   const ativo = vinculosDaPessoa.find((v) => !v.desligamento || v.desligamento >= dados.admissao);
