@@ -1,0 +1,11 @@
+{
+  "name": "@labutar/convencoes",
+  "version": "0.1.0",
+  "description": "Convenções e acordos coletivos: pisos por função, reajuste, adicionais, jornada, benefícios, contribuições e regras de rescisão, com a CCT de Asseio, Conservação e Serviços Terceirizados do AM (AM000038/2026). JS puro.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "sideEffects": false
+}

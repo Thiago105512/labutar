@@ -12,6 +12,7 @@ import { api, sessao } from "./sessao.js";
 import { paginaColaboradores, paginaImportacao, paginaTomadores, ligarEventosCadastro, limparCadastro, admitirCandidatura } from "./cadastro-telas.js";
 import { paginaFolhaResumo, paginaHolerites, paginaFolhaTomadores, paginaVerbas, ligarEventosFolha, limparFolha } from "./folha-telas.js";
 import { paginaDecimoTerceiro, paginaRescisaoFerias, ligarEventosRescisao, limparRescisao } from "./rescisao-telas.js";
+import { paginaConvencoes, ligarEventosConvencoes, limparConvencoes } from "./convencoes-telas.js";
 import { esc, moeda, dataHora, avatar, etiqueta, diasDesde, quando, aviso, abrirPainel, fecharPainel, matiz, matricula } from "./ui.js";
 import {
   ICONE_MODULO,
@@ -49,6 +50,7 @@ const PAGINAS = {
     { id: "tomadores", nome: "Custo por tomador", icone: "tomadores" },
     { id: "decimo", nome: "13º salário", icone: "dinheiro" },
     { id: "rescisao", nome: "Rescisão e férias", icone: "relogio" },
+    { id: "convencoes", nome: "Convenções e acordos", icone: "juridico" },
     { id: "verbas", nome: "Catálogo de verbas", icone: "dinheiro" },
   ],
   administracao: [
@@ -265,6 +267,7 @@ function limparDados() {
   recrutamentoCarregado = false;
   limparFolha();
   limparRescisao();
+  limparConvencoes();
   limparCadastro();
   Object.assign(estado, { vagas: [], candidatos: [], candidaturas: [], resumo: null, origens: [], busca: "" });
 }
@@ -318,7 +321,7 @@ async function renderizar() {
       conteudo.innerHTML = await paginaTomadores();
     } else if (moduloId === "folha") {
       conteudo.innerHTML = carregando;
-      const telas = { resumo: paginaFolhaResumo, holerites: paginaHolerites, tomadores: paginaFolhaTomadores, decimo: paginaDecimoTerceiro, rescisao: paginaRescisaoFerias, verbas: paginaVerbas };
+      const telas = { resumo: paginaFolhaResumo, holerites: paginaHolerites, tomadores: paginaFolhaTomadores, decimo: paginaDecimoTerceiro, rescisao: paginaRescisaoFerias, convencoes: paginaConvencoes, verbas: paginaVerbas };
       conteudo.innerHTML = await telas[pagina.id]();
     } else if (moduloId === "administracao") {
       conteudo.innerHTML = carregando;
@@ -902,6 +905,7 @@ document.getElementById("sidebar-fundo").addEventListener("click", () => documen
 ligarEventosAcesso({ aoAlterar: renderizar });
 ligarEventosFolha({ aoAlterar: renderizar });
 ligarEventosRescisao({ aoAlterar: renderizar });
+ligarEventosConvencoes({ aoAlterar: renderizar });
 ligarEventosCadastro({ aoAlterar: renderizar });
 sessao.aoSair((motivo) => {
   limparDados();

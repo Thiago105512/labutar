@@ -30,6 +30,7 @@ o que entra do **eSocial** em [`docs/16-esocial.md`](docs/16-esocial.md) ·
 | `@labutar/acesso` | login, módulos, níveis, perfis, permissões, política de senha e contas de candidato, colaborador e cliente ([`docs/12-acesso.md`](docs/12-acesso.md)) | ✅ |
 | `@labutar/mao-de-obra` | **núcleo do domínio**: vínculos, prazos legais, alocação, rateio | ✅ |
 | `@labutar/cadastro` | pessoa (CPF), vínculo (matrícula), tomadores, contratos, postos, histórico salarial, importação de planilha | ✅ |
+| `@labutar/convencoes` | convenções e acordos coletivos: pisos, reajuste, adicionais, jornada, benefícios, contribuições, rescisão; CCT AM000038/2026 ([`docs/18-convencoes.md`](docs/18-convencoes.md)) | 🚧 |
 | `@labutar/folha` | motor da folha: tabelas com vigência, INSS, IRRF 2026, FGTS, adicionais, encargos por tomador | 🚧 |
 | `@labutar/admissao` | checklist, ASO, contrato, prazos do temporário | ⏸ contrato reservado |
 | `@labutar/esocial` | eventos eSocial | ⏸ contrato reservado |

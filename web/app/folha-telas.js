@@ -216,6 +216,17 @@ function painelHolerite(mat) {
           Valor-hora ${moeda(h.detalhe.valorHora)}; ${h.detalhe.diasDeContrato} dias de contrato no mês.</p>
         ${h.avisos.map((a) => `<p class="dica">${icone("relogio")}${esc(a)}</p>`).join("")}
       </div>
+      ${h.convencao ? `
+      <div class="secao">
+        <h4>Convenção coletiva</h4>
+        <div class="bases">
+          <div><small>Instrumento</small><strong>${esc(h.convencao.instrumento.tipo)} ${esc(h.convencao.instrumento.registroMTE)}</strong></div>
+          <div><small>Função</small><strong>${h.convencao.enquadrada ? esc(h.convencao.funcao) : "Fora da tabela (piso geral)"}</strong></div>
+          <div><small>Piso</small><strong>${moeda(h.convencao.piso)}</strong></div>
+          <div><small>Custo da empresa</small><strong>${moeda(h.convencao.custos.reduce((s, c) => s + c.valor, 0))}</strong></div>
+        </div>
+        ${h.convencao.beneficios.length ? `<p class="dica">Benefícios fora do holerite: ${h.convencao.beneficios.map((b) => `${esc(b.nome)} ${moeda(b.valor)}`).join(" · ")}.</p>` : ""}
+      </div>` : ""}
       ${podeLancar ? `
       <form class="secao formulario" id="form-lancamentos" data-matricula="${esc(mat)}">
         <h4>Lançamentos do mês</h4>
@@ -275,7 +286,7 @@ export async function paginaFolhaTomadores() {
     ${cabecalhoCompetencia(f)}
     <div class="cartao tabela-cartao">
       <table class="tabela">
-        <thead><tr><th>Lotação</th><th class="num">Colaboradores</th><th class="num">Proventos</th><th class="num">FGTS</th><th class="num">Encargos</th><th class="num">Custo total</th><th>Participação</th></tr></thead>
+        <thead><tr><th>Lotação</th><th class="num">Colaboradores</th><th class="num">Proventos</th><th class="num">FGTS</th><th class="num">Encargos</th><th class="num col-opcional">Convenção</th><th class="num">Custo total</th><th>Participação</th></tr></thead>
         <tbody>
           ${r.porLotacao.map((l) => `
             <tr>
@@ -284,14 +295,15 @@ export async function paginaFolhaTomadores() {
               <td class="num">${moeda(l.proventos)}</td>
               <td class="num">${moeda(l.fgts)}</td>
               <td class="num">${moeda(l.encargos.total)}</td>
+              <td class="num col-opcional">${moeda(l.beneficios ?? 0)}</td>
               <td class="num"><strong>${moeda(l.custoTotal)}</strong></td>
               <td><div class="barra"><i style="width:${(l.custoTotal / maior) * 100}%"></i></div></td>
             </tr>`).join("")}
-          <tr class="total"><td>Total</td><td class="num">${r.colaboradores}</td><td class="num">${moeda(r.proventos)}</td><td class="num">${moeda(r.fgts)}</td><td class="num">${moeda(r.encargos.total)}</td><td class="num"><strong>${moeda(r.custoTotal)}</strong></td><td></td></tr>
+          <tr class="total"><td>Total</td><td class="num">${r.colaboradores}</td><td class="num">${moeda(r.proventos)}</td><td class="num">${moeda(r.fgts)}</td><td class="num">${moeda(r.encargos.total)}</td><td class="num col-opcional">${moeda(r.beneficios ?? 0)}</td><td class="num"><strong>${moeda(r.custoTotal)}</strong></td><td></td></tr>
         </tbody>
       </table>
     </div>
-    <p class="dica">Cada tomador é uma lotação no eSocial (S-1020) e a remuneração vai segregada por lotação no S-1200. O custo por tomador é a base da fatura de mão de obra.</p>`;
+    <p class="dica">Cada tomador é uma lotação no eSocial (S-1020) e a remuneração vai segregada por lotação no S-1200. O custo por tomador é a base da fatura de mão de obra. A coluna Convenção soma os custos da convenção coletiva (vale-refeição, cesta, odontológico, seguro, assistência social e qualificação).</p>`;
 }
 
 // ---------------------------------------------------------------- verbas

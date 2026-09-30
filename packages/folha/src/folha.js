@@ -28,7 +28,11 @@ export function encargosDaEmpresa(baseINSS, empresa) {
   return { patronal, rat, terceiros, total: patronal + rat + terceiros };
 }
 
-export function calcularFolha({ empresa = {}, competencia, colaboradores = [], lancamentos = {} }) {
+/**
+ * @param custosExtras { [matricula]: [{ chave, nome, valor }] } — custos da empresa fora do holerite
+ *   (benefícios e contribuições da convenção coletiva), somados ao custo da lotação.
+ */
+export function calcularFolha({ empresa = {}, competencia, colaboradores = [], lancamentos = {}, custosExtras = {} }) {
   const tabela = tabelaDaCompetencia(competencia);
   const holerites = [];
   const pendencias = [];
@@ -69,8 +73,9 @@ export function calcularFolha({ empresa = {}, competencia, colaboradores = [], l
       porVerba.set(i.codigo, atual);
     }
     const chave = h.colaborador.lotacao ?? "SEM_LOTACAO";
-    const l = porLotacao.get(chave) ?? { lotacao: chave, colaboradores: 0, proventos: 0, baseINSS: 0, fgts: 0 };
+    const l = porLotacao.get(chave) ?? { lotacao: chave, colaboradores: 0, proventos: 0, baseINSS: 0, fgts: 0, beneficios: 0 };
     l.colaboradores += 1;
+    l.beneficios += (custosExtras[h.colaborador.matricula] ?? []).reduce((s, c) => s + c.valor, 0);
     l.proventos += h.proventos;
     l.baseINSS += h.bases.inss;
     l.fgts += h.fgts;
@@ -79,7 +84,7 @@ export function calcularFolha({ empresa = {}, competencia, colaboradores = [], l
 
   const lotacoes = [...porLotacao.values()].map((l) => {
     const encargos = encargosDaEmpresa(l.baseINSS, empresa);
-    return { ...l, encargos, custoTotal: l.proventos + l.fgts + encargos.total };
+    return { ...l, encargos, custoTotal: l.proventos + l.fgts + encargos.total + l.beneficios };
   });
   const encargos = lotacoes.reduce(
     (s, l) => ({ patronal: s.patronal + l.encargos.patronal, rat: s.rat + l.encargos.rat, terceiros: s.terceiros + l.encargos.terceiros, total: s.total + l.encargos.total }),
@@ -96,7 +101,8 @@ export function calcularFolha({ empresa = {}, competencia, colaboradores = [], l
       semCPF: holerites.filter((h) => h.pendencias.length).length,
       ...totais,
       encargos,
-      custoTotal: totais.proventos + totais.fgts + encargos.total,
+      beneficios: lotacoes.reduce((s, l) => s + l.beneficios, 0),
+      custoTotal: lotacoes.reduce((s, l) => s + l.custoTotal, 0),
       porVerba: [...porVerba.values()].sort((a, b) => a.codigo.localeCompare(b.codigo)),
       porLotacao: lotacoes.sort((a, b) => b.custoTotal - a.custoTotal),
     },

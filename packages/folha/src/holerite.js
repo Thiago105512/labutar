@@ -46,7 +46,8 @@ export function verbasSalariais(colaborador, dias, L, tabela, cal, { verbaDoSala
   lanca(VERBAS.PERICULOSIDADE, r((periculosidadeMensal * dias) / 30), colaborador.periculosidade ? "30%" : null);
   lanca(VERBAS.INSALUBRIDADE, r((insalubridadeMensal * dias) / 30), colaborador.insalubridadeGrau ? `${colaborador.insalubridadeGrau}% do mínimo` : null);
 
-  const jornada = colaborador.jornadaMensal ?? JORNADA_PADRAO;
+  // Divisor do valor-hora: a jornada mensal, salvo divisor fixado em norma coletiva (12x36: 192).
+  const jornada = colaborador.divisorHora ?? colaborador.jornadaMensal ?? JORNADA_PADRAO;
   const valorHora = (salario + periculosidadeMensal + insalubridadeMensal) / jornada;
   const he50 = r((L.horasExtras50 ?? 0) * valorHora * 1.5);
   const he100 = r((L.horasExtras100 ?? 0) * valorHora * 2);
@@ -68,7 +69,7 @@ export function verbasSalariais(colaborador, dias, L, tabela, cal, { verbaDoSala
  *   dependentesIR?, filhosSalarioFamilia?, insalubridadeGrau? (10|20|40), periculosidade?, lotacao }
  * @param lancamentos { horasExtras50?, horasExtras100?, horasNoturnas?, faltasDias?, dsrPerdidos?,
  *   adiantamento?, custoValeTransporte?, pensao?, outrosDescontos?, eConsignado?,
- *   outrosRendimentosIRNoMes?, irrfRetidoNoMes? } — os dois últimos para o regime de caixa do IRRF:
+ *   outrosRendimentosIRNoMes?, irrfRetidoNoMes?, verbasExtras? } — outrosRendimentos e irrfRetido para o regime de caixa do IRRF:
  *   o que outro pagamento do mesmo mês já pagou e reteve (13º, férias, complementar).
  * @param opcoes { local?, arredondamentoINSS?, arredondamentoFGTS?, dispensarIRRFAte10?, tabela? }
  */
@@ -115,7 +116,13 @@ export function calcularHolerite(colaborador, competencia, lancamentos = {}, opc
   lanca(VERBAS.ADIANTAMENTO, L.adiantamento ?? 0);
   lanca(VERBAS.OUTROS_DESCONTOS, L.outrosDescontos ?? 0);
   lanca(VERBAS.ECONSIGNADO, L.eConsignado ?? 0);
-  if (L.custoValeTransporte) lanca(VERBAS.VALE_TRANSPORTE, Math.min(L.custoValeTransporte, r(salarioMes * 0.06)), "6%");
+  const pctVT = colaborador.percentualVT ?? 6;
+  if (L.custoValeTransporte) lanca(VERBAS.VALE_TRANSPORTE, Math.min(L.custoValeTransporte, r((salarioMes * pctVT) / 100)), `${pctVT}%`);
+  // Verbas trazidas de fora do cálculo (convenção coletiva): chave do catálogo + valor.
+  for (const extra of L.verbasExtras ?? []) {
+    if (!VERBAS[extra.chave]) throw new Error(`verba ${extra.chave} não existe no catálogo`);
+    lanca(VERBAS[extra.chave], extra.valor, extra.referencia ?? null);
+  }
 
   const proventos = itens.filter((i) => i.tipo === TIPO_VERBA.PROVENTO).reduce((s, i) => s + i.valor, 0);
   const descontos = itens.filter((i) => i.tipo === TIPO_VERBA.DESCONTO).reduce((s, i) => s + i.valor, 0);

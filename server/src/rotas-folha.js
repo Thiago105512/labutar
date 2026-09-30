@@ -3,6 +3,7 @@ import { sucesso, erroValidacao, erroNaoEncontrado, erroConflito } from "./http/
 import { validarCPF } from "../../packages/core/src/validacao.js";
 import { exigirPermissao } from "./middleware/contexto.js";
 import { carregarCadastro, colaboradoresDaFolha, lotacoesDoCadastro } from "./cadastro.js";
+import { carregarConvencoes, aplicarConvencoes } from "./convencoes.js";
 
 /** Campos de lançamento aceitos e seus limites: horas no mês, dias, valores em centavos. */
 const CAMPOS = Object.freeze({
@@ -39,18 +40,46 @@ function competenciaValida(ctx) {
   return competencia;
 }
 
+/**
+ * Dados da folha a partir do cadastro, já com a convenção coletiva aplicada: `lancamentos` são os
+ * informados pelo DP (o que a tela edita); `calculo` leva as verbas e parâmetros da convenção.
+ */
 async function dadosDaFolha(repo, tenant, competencia) {
-  const [empresa, cad, lancamentos] = await Promise.all([
+  const [empresa, cad, lancamentos, instrumentos] = await Promise.all([
     repo.obter(tenant, "folhaParametros", "empresa"),
     carregarCadastro(repo, tenant),
     repo.listar(tenant, "folhaLancamentos", { competencia }, { limite: 100_000 }),
+    carregarConvencoes(repo, tenant),
   ]);
+  const informados = Object.fromEntries(lancamentos.itens.map(({ id, competencia: _c, matricula, ...l }) => [matricula, l]));
+  const colaboradores = colaboradoresDaFolha(cad, competencia, empresa ?? {});
+  const calculo = aplicarConvencoes({ colaboradores, lancamentos: informados, cad, empresa: empresa ?? {}, competencia, instrumentos });
   return {
     empresa: empresa ?? {},
     lotacoes: lotacoesDoCadastro(cad, empresa ?? {}),
-    colaboradores: colaboradoresDaFolha(cad, competencia, empresa ?? {}),
+    colaboradores,
     cadastro: cad,
-    lancamentos: Object.fromEntries(lancamentos.itens.map(({ id, competencia: _c, matricula, ...l }) => [matricula, l])),
+    lancamentos: informados,
+    calculo,
+  };
+}
+
+/** Folha calculada e a leitura da convenção de cada holerite (piso, função, avisos). */
+function folhaComConvencoes(d, competencia) {
+  const c = d.calculo;
+  const folha = calcularFolha({ empresa: d.empresa, competencia, colaboradores: c.colaboradores, lancamentos: c.lancamentos, custosExtras: c.custosExtras });
+  for (const h of folha.holerites) {
+    const conv = c.porColaborador[h.colaborador.matricula];
+    if (!conv) continue;
+    h.convencao = { instrumento: conv.instrumento, funcao: conv.funcao, enquadrada: conv.enquadrada, piso: conv.piso, beneficios: conv.beneficios, custos: conv.custos };
+    h.avisos.push(...conv.erros, ...conv.avisos);
+  }
+  return {
+    ...folha,
+    convencoes: {
+      conformidade: c.conformidade.map(({ beneficios, custos, descontos, ...r }) => r),
+      contribuicoesPatronais: c.contribuicoesPatronais,
+    },
   };
 }
 
@@ -77,8 +106,7 @@ export function registrarRotasFolha(r, { repo }) {
     const tenant = exigirPermissao(ctx, "folha", "ver");
     const competencia = competenciaValida(ctx);
     const d = await dadosDaFolha(repo, tenant, competencia);
-    const folha = calcularFolha({ empresa: d.empresa, competencia, colaboradores: d.colaboradores, lancamentos: d.lancamentos });
-    sucesso(res, { ...folha, empresa: d.empresa, lotacoes: d.lotacoes, lancamentos: d.lancamentos });
+    sucesso(res, { ...folhaComConvencoes(d, competencia), empresa: d.empresa, lotacoes: d.lotacoes, lancamentos: d.lancamentos });
   });
 
   r.put("/api/folha/:competencia/lancamentos/:matricula", async (req, res, ctx, corpo) => {
@@ -96,7 +124,11 @@ export function registrarRotasFolha(r, { repo }) {
     await repo.inserir(tenant, "folhaLancamentos", documento);
     const empresa = d0.empresa;
     try {
-      sucesso(res, calcularHolerite(colaborador, competencia, lancamentos, opcoesDaEmpresa(empresa, colaborador)));
+      // Recalcula com a convenção (os lançamentos mudam VR, cesta e descontos por falta).
+      const d = { ...d0, lancamentos: { ...d0.lancamentos, [colaborador.matricula]: lancamentos } };
+      d.calculo = aplicarConvencoes({ colaboradores: [colaborador], lancamentos: d.lancamentos, cad: d0.cadastro, empresa, competencia, instrumentos: await carregarConvencoes(repo, tenant) });
+      const c = d.calculo.colaboradores[0];
+      sucesso(res, calcularHolerite(c, competencia, d.calculo.lancamentos[c.matricula] ?? {}, opcoesDaEmpresa(empresa, c)));
     } catch (e) {
       throw erroValidacao(e.message, ["matricula"]);
     }
