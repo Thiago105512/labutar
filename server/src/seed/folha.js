@@ -3,6 +3,7 @@
  * (docs/14-cenario-de-teste.md), em escala de vitrine. Pessoas e valores fictícios.
  */
 import { TIPO_VINCULO, gerarMatricula } from "../../../packages/mao-de-obra/src/index.js";
+import { somarDias } from "../../../packages/core/src/datas.js";
 
 export const COMPETENCIA_DEMO = "2026-09";
 
@@ -93,6 +94,17 @@ const CONTRATO_DEMO = {
  * Semeia o cadastro (tomadores, contratos, postos, pessoas e vínculos) e os lançamentos de
  * setembro/2026 a partir da lista de demonstração. CPF em branco de propósito.
  */
+/**
+ * Prazo do temporário no demo: 180 dias (Lei 6.019/1974, art. 10, § 1º); quem já passou dos
+ * 180 dias na competência de demonstração está na prorrogação de 90 (§ 2º).
+ */
+function prazoDoTemporario(admissao) {
+  const fim180 = somarDias(admissao, 179);
+  return fim180 >= `${COMPETENCIA_DEMO}-30`
+    ? { fimPrevisto: fim180, prorrogado: false }
+    : { fimPrevisto: somarDias(admissao, 269), prorrogado: true };
+}
+
 export async function semearFolha(repo, tenantId) {
   if (await repo.contar(tenantId, "vinculos")) return { semeado: false };
   for (const e of EMPRESAS_DEMO) await repo.inserir(tenantId, "empresas", { ...e });
@@ -141,7 +153,7 @@ export async function semearFolha(repo, tenantId) {
       cargo: c.cargo, salario: c.salario, historicoSalarial: [{ desde: c.admissao, valor: c.salario, motivo: "Admissão" }],
       tomadorId: tomador?.id ?? null, tomadorCnpj: tomador?.cnpj ?? null, contratoId: contrato?.id ?? null, postoId: posto?.id ?? null,
       setor: tomador ? null : "ADM",
-      temporario: c.vinculo === "TEMPORARIO" ? { fimPrevisto: null } : null,
+      temporario: c.vinculo === "TEMPORARIO" ? prazoDoTemporario(c.admissao) : null,
     });
     await repo.inserir(tenantId, "folhaLancamentos", { id: `${COMPETENCIA_DEMO}:${c.matricula}`, competencia: COMPETENCIA_DEMO, matricula: c.matricula, ...lancamentos });
   }

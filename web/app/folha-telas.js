@@ -296,8 +296,9 @@ export async function paginaFolhaTomadores() {
 
 // ---------------------------------------------------------------- verbas
 
-const NOME_INCIDENCIA_CP = { "00": "Não incide", "11": "Base mensal", "31": "Desconto do segurado" };
-const NOME_INCIDENCIA_FGTS = { "00": "Não incide", "11": "Base mensal" };
+const NOME_INCIDENCIA_CP = { "00": "Não incide", "11": "Base mensal", "12": "Base do 13º", "31": "Desconto do segurado", "32": "Desconto do segurado no 13º" };
+const NOME_INCIDENCIA_FGTS = { "00": "Não incide", "11": "Base mensal", "12": "Base do 13º", "21": "Aviso prévio indenizado", "31": "Desconto do eConsignado" };
+const NOME_INCIDENCIA_IR = { true: "Mensal", 13: "Exclusiva do 13º", FERIAS: "Em separado (férias)", false: "Não incide" };
 
 export async function paginaVerbas() {
   if (!cache.parametros) cache.parametros = await api("/folha/parametros");
@@ -315,7 +316,7 @@ export async function paginaVerbas() {
               <td>${v.tipo === "PROVENTO" ? '<span class="etiqueta e-verde">Provento</span>' : '<span class="etiqueta e-vermelho">Desconto</span>'}</td>
               <td>${esc(NOME_INCIDENCIA_CP[v.incidencias.inss] ?? v.incidencias.inss)} <small class="dica">(${esc(v.incidencias.inss)})</small></td>
               <td>${esc(NOME_INCIDENCIA_FGTS[v.incidencias.fgts] ?? v.incidencias.fgts)} <small class="dica">(${esc(v.incidencias.fgts)})</small></td>
-              <td>${v.incidencias.irrf ? "Incide" : "Não incide"}</td>
+              <td>${NOME_INCIDENCIA_IR[v.incidencias.irrf]}</td>
               <td>${v.naturezaConferida ? '<span class="etiqueta e-verde">Conferida</span>' : '<span class="etiqueta e-ambar">A conferir</span>'}</td>
             </tr>`).join("")}
         </tbody>

@@ -7,3 +7,7 @@ export * from "./calendario.js";
 export * from "./verbas.js";
 export * from "./holerite.js";
 export * from "./folha.js";
+export * from "./avos.js";
+export * from "./decimo-terceiro.js";
+export * from "./ferias.js";
+export * from "./rescisao.js";

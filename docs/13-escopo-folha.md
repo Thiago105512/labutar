@@ -25,16 +25,16 @@ ou especialista em DP antes de implementar (ver seção 16).
 | Recálculo retroativo e reprodução exata de competências passadas | E | A | ⬜ | Exige guardar a versão das regras usada em cada cálculo |
 | Tabelas: INSS, IRRF, salário mínimo, salário-família, pisos | E | M | 🟡 | 2026 ✅ (Portaria Interministerial MPS/MF 13/2026; IRRF com simplificado e redução da Lei 15.270/2025); pisos ⬜ |
 | Folha mensal, adiantamento, complementar | E | M | 🟡 | Mensal ✅ (setembro/2026 no painel); desconto do adiantamento ✅; folha de adiantamento e complementar ⬜ |
-| 13º salário (1ª e 2ª parcelas, médias) | E | M | 📋 | |
-| Férias (gozadas, indenizadas, abono, fracionamento, 1/3) | E | M | 📋 | |
-| Rescisão em todas as modalidades, incluindo acordo (art. 484-A CLT) | E | A | 🟡 | Aviso prévio proporcional pronto em `core`; verbas em `rescisao` |
+| 13º salário (1ª e 2ª parcelas, médias) | E | M | ✅ | `folha/decimo-terceiro`: avos (15 dias no mês), 1ª parcela até 30/11 sem impostos, 2ª até 20/12 com INSS e IRRF exclusivos (redução da Lei 15.270 inclusa); contrato que termina antes vai na rescisão. Médias entram como valor informado |
+| Férias (gozadas, indenizadas, abono, fracionamento, 1/3) | E | M | 🟡 | `folha/ferias`: dias pelas faltas (art. 130), até 3 períodos (art. 134), início fora dos 2 dias antes de feriado/DSR, dobra fora do concessivo, abono isento, IRRF em separado, repartição por mês de gozo. ⬜ Gravar a programação e levar a parte do mês para a folha mensal |
+| Rescisão em todas as modalidades, incluindo acordo (art. 484-A CLT) | E | A | 🟡 | `folha/rescisao` com motivos 01–07, 10 e 33 da Tabela 19: aviso proporcional e projeção, 13º e férias (vencidas, dobro, proporcionais, sobre o aviso), art. 479 (não no temporário), multa e saque do FGTS, prazo de 10 dias. ⬜ Gravar a rescisão, termo (TRCT) e S-2299; demais motivos da Tabela 19 |
 | Horas extras, adicional noturno, DSR, insalubridade, periculosidade, comissões | E | M | 🟡 | ✅ com DSR pelo calendário do local (feriados do AM e de Manaus); comissões ⬜ |
 | Médias e reflexos (férias, 13º, rescisão) | E | A | ⬜ | |
 | Pensão alimentícia (desconto e repasse, incidência em férias e 13º) | E | M | ⬜ | |
 | Consignado, vale-transporte, plano de saúde, coparticipação | E | M | 🟡 | VT ✅ no holerite; **Crédito do Trabalhador (eConsignado)** ✅ verba 9253.01, importação do arquivo mensal ⬜; plano e coparticipação ⬜ |
 | Salário-paternidade e estabilidade (Lei 15.371/2026) | E | M | ⬜ | Vigência 01/01/2027 (10 dias; 15 em 2028; 20 em 2029), pago pelo INSS; estabilidade até 30 dias após o retorno |
 | Aritmética decimal com regras de arredondamento explícitas | E | B | ✅ | `core/dinheiro` (centavos inteiros, faixas progressivas, arredondamento) e `mao-de-obra/rateio` (maior resto, fecha no centavo) |
-| Simulação de folha e de rescisão antes do fechamento | D | M | ⬜ | |
+| Simulação de folha e de rescisão antes do fechamento | D | M | 🟡 | Simulação de rescisão e de férias por colaborador na tela da folha ✅; folha antes do fechamento ⬜ |
 | Críticas automáticas e comparação com a folha anterior | D | M | ⬜ | |
 | Cálculo de PLR e bonificações com tributação própria | D | M | ⬜ | |
 | Motor de regras configurável por usuário de RH, sem código | F | A | ⬜ | |
@@ -49,7 +49,7 @@ ou especialista em DP antes de implementar (ver seção 16).
 | Dependentes, dados bancários, documentos, histórico contratual | E | B | 🟡 | Pessoa por CPF com dependentes (IR e salário-família) e vínculos por matrícula prontos (`cadastro`); dados bancários e documentos ⬜ |
 | Alterações de cargo, salário, lotação, jornada, centro de custo, com histórico | E | M | 🟡 | Lotação/alocação e salário com vigência e histórico prontos (`cadastro`); cargo e jornada ⬜ |
 | Afastamentos (doença, acidente, maternidade, licenças), retorno, estabilidades | E | M | 📋 | Estabilidades ⬜ |
-| Férias: períodos aquisitivo e concessivo, alertas de vencimento | E | M | 📋 | |
+| Férias: períodos aquisitivo e concessivo, alertas de vencimento | E | M | 🟡 | Períodos aquisitivo e concessivo calculados (`folha/avos`); histórico de gozo e alertas ⬜ |
 | Contrato de experiência e prorrogações, com alertas | E | M | ⬜ | Prazo do temporário (180 + 90) já tem alerta |
 | Plano de cargos e salários, organograma | D | B | ⬜ | |
 | Transferência entre empresas do grupo | D | M | ⬜ | |
@@ -198,7 +198,7 @@ colaborador, por dia e por assunto.
 | Trilha de auditoria de cálculo e de acesso | E | A | 🟡 | Auditoria de acesso pronta; de cálculo ⬜ |
 | LGPD: base legal, criptografia, log, retenção, descarte, dados sensíveis | E | A | 🟡 | Consentimento, anonimização, senhas com scrypt, tokens só em hash; criptografia em repouso e política de retenção ⬜ |
 | Backup, alta disponibilidade, recuperação de desastres | E | M | ⬜ | Depende do provedor escolhido (docs/10) |
-| Suíte de regressão com casos reais de cálculo | E | A | 🟡 | Folha real de 12/2020 (38 colaboradores, anonimizada): INSS, IRRF, FGTS, encargos e os 11 holerites mensais no centavo; rescisão, férias e 13º a cobrir quando o motor tiver esses cálculos |
+| Suíte de regressão com casos reais de cálculo | E | A | 🟡 | Folha real de 12/2020 (38 colaboradores, anonimizada): INSS, IRRF, FGTS, encargos e os 11 holerites mensais no centavo; e as 27 rescisões (saldo, férias com 1/3, 13º, INSS, INSS 13º, IRRF e líquido) no centavo |
 | Ambiente de homologação separado | E | M | ⬜ | |
 | API aberta e webhooks | D | M | 📋 | |
 | Workflow de aprovação | D | M | ⬜ | |

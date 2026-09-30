@@ -78,6 +78,16 @@ Dependem do Anexo I (tabelas), que ainda falta obter: **Tabela 01** (categorias)
 (natureza das verbas), **Tabela 21** (incidência de IRRF), Tabela 04 (FPAS e terceiros), Tabela 18
 (motivos de afastamento), Tabela 19 (motivos de desligamento).
 
+Da Tabela 19 o motor já usa os motivos conferidos em fontes públicas: 01 (justa causa), 02 (sem
+justa causa), 03 e 04 (rescisão antecipada do contrato a termo, pelo empregador e pelo
+colaborador), 05 (culpa recíproca), 06 (término do contrato a termo — o fim normal do
+temporário), 07 (pedido de demissão), 10 (falecimento) e 33 (acordo, art. 484-A). Os demais
+entram quando o Anexo I for obtido.
+
+Naturezas da Tabela 03 usadas por férias, 13º e rescisão: 1016, 1017, 5001, 5504, 6000 a 6007,
+9201 e 9203 (variantes `.02` e `.03` para 13º e férias). As marcadas "a conferir" no catálogo
+(1020, 1024, 6004, 6104, 9213, 9214) precisam do Anexo I antes do primeiro S-1010.
+
 ## 7. Documentos que faltam
 
 A rede deste ambiente bloqueia o gov.br. Para completar, baixar em
@@ -112,6 +122,8 @@ afastamento da gestante ou lactante de atividade insalubre sem local salubre, qu
 |---|---|---|
 | **CNPJ alfanumérico** | eSocial aceita desde 01/08/2026 | ✅ validação, formatação e raiz nos dois formatos |
 | **IRRF — Lei 15.270/2025** (redução até R$ 7.350) | 01/2026 | ✅ no motor |
+| **IRRF do 13º e das férias** | 2026 | ✅ 13º com tributação exclusiva, férias em separado; a redução da Lei 15.270 vale para os dois; dispensa de até R$ 10 não vale para o 13º |
+| **Temporário: sem indenização do art. 479** | Decreto 10.854/2021, art. 64, II | ✅ rescisão antecipada do temporário sem a indenização |
 | **Crédito do Trabalhador (eConsignado)** | em vigor | ✅ verba 9253.01 (codIncFGTS 31); ⬜ importar o arquivo mensal do Portal Emprega Brasil; descontar também na rescisão (S-2299) |
 | **FGTS Digital** | em vigor | Vencimento dia 20; pagamento só por Pix; guia da rescisão em até 10 dias após o S-2299; processos trabalhistas pelo FGTS Digital desde 05/2026 |
 | **Salário-paternidade — Lei 15.371/2026** | **01/01/2027**: 10 dias; 2028: 15; 2029: 20 | Afastamento, verba de salário-paternidade pago pelo INSS com compensação na DCTFWeb, **estabilidade até 30 dias após o retorno** (bloquear desligamento) |
@@ -130,3 +142,8 @@ afastamento da gestante ou lactante de atividade insalubre sem local salubre, qu
 - [Contábeis — reoneração da folha em 2026](https://www.contabeis.com.br/noticias/74532/desoneracao-da-folha-em-2026-o-que-muda-com-a-reoneracao-gradual/)
 - [Sinat — NR-1 em fiscalização](https://www.sinat.com.br/nr-1-entra-em-fase-de-fiscalizacao-e-pressiona-empresas-a-partir-de-26-de-maio/)
 - [LegisWeb — FGTS de processos trabalhistas pelo FGTS Digital](https://www.legisweb.com.br/noticia/?id=33103)
+- [Grupo Módulos — IRRF a partir de 01/2026 (13º e férias)](https://grupomodulos.com.br/centraldeajuda/novo-calculo-de-irrf-a-partir-de-01-2026/)
+- [CRC-MG — isenção maior para o 13º](https://crcmg.org.br/noticias/reforma-do-imposto-de-renda-dara-isencao-maior-para-o-13o-entenda-o-calculo/)
+- [Guia Trabalhista — temporário sem a indenização do art. 479](https://www.guiatrabalhista.com.br/tematicas/rescisao-antecipada-contrato-temporario-isencao-art-479-clt.htm)
+- [Planalto — Decreto 10.854/2021](https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/decreto/d10854.htm)
+- [Departamento Pessoal — Tabela 19 do eSocial](https://departamento-pessoal.com/esocial/tabela-19-do-esocial-guia-completo-dos-motivos-de-desligamento/)
