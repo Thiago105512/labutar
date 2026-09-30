@@ -15,7 +15,8 @@ roadmap em [`docs/03-roadmap.md`](docs/03-roadmap.md) ·
 escopo da folha, item a item, em [`docs/13-escopo-folha.md`](docs/13-escopo-folha.md) ·
 cenário de teste (1.000 colaboradores) em [`docs/14-cenario-de-teste.md`](docs/14-cenario-de-teste.md) ·
 **padrões de nomes, formatos e telas** em [`docs/15-padroes.md`](docs/15-padroes.md) ·
-o que entra do **eSocial** em [`docs/16-esocial.md`](docs/16-esocial.md).
+o que entra do **eSocial** em [`docs/16-esocial.md`](docs/16-esocial.md) ·
+**clínica de SST do grupo** em [`docs/17-clinica-sst.md`](docs/17-clinica-sst.md).
 
 ## Estado atual
 

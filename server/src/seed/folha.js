@@ -6,9 +6,27 @@ import { TIPO_VINCULO, gerarMatricula } from "../../../packages/mao-de-obra/src/
 
 export const COMPETENCIA_DEMO = "2026-09";
 
+/**
+ * Empresa de teste: a CRQ faz, por enquanto, o papel da empresa de RH e o da clínica de SST
+ * do grupo (decisão de 2026-09-30). Só dados públicos do CNPJ.
+ */
+export const EMPRESAS_DEMO = Object.freeze([
+  Object.freeze({
+    id: "42288454000150",
+    cnpj: "42288454000150",
+    razaoSocial: "C R Q Clínica Integrada de Serviços Médicos",
+    nomeFantasia: "CRQ Serviços",
+    municipio: "Manaus",
+    uf: "AM",
+    cnaePrincipal: "8630-5/99",
+    papeis: ["EMPRESA_RH", "CLINICA_SST"],
+  }),
+]);
+
 export const EMPRESA_FOLHA_DEMO = Object.freeze({
   id: "empresa",
-  razaoSocial: "Labutar Demo Mão de Obra Ltda",
+  cnpj: EMPRESAS_DEMO[0].cnpj,
+  razaoSocial: EMPRESAS_DEMO[0].razaoSocial,
   regime: "NORMAL",
   ratPercentual: 3,
   fap: 1,
@@ -64,6 +82,7 @@ export function folhaDemo() {
 
 export async function semearFolha(repo, tenantId) {
   if (await repo.contar(tenantId, "folhaColaboradores")) return { semeado: false };
+  for (const e of EMPRESAS_DEMO) await repo.inserir(tenantId, "empresas", { ...e });
   await repo.inserir(tenantId, "folhaParametros", { ...EMPRESA_FOLHA_DEMO });
   for (const l of LOTACOES_DEMO) await repo.inserir(tenantId, "folhaLotacoes", { ...l });
   const dados = folhaDemo();

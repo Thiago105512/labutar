@@ -20,7 +20,7 @@ Cada fase termina num produto utilizável e vendável sozinho. Primeiro cliente 
 - ✅ CI rodando todos os testes em cada push (`.github/workflows/testes.yml`)
 - ✅ Driver PostgreSQL + migrações + Row-Level Security (`docs/10-decisao-postgresql.md`)
 - ✅ `packages/acesso` — login com senha (scrypt), sessões, escolha de módulo, 5 níveis por
-  módulo, 10 perfis padrão com Administrador geral de acesso total, ajustes por usuário,
+  módulo, 12 perfis padrão com Administrador geral de acesso total, ajustes por usuário,
   proteção contra escalada, auditoria (`docs/12-acesso.md`)
 - ⬜ `packages/plataforma` — planos do SaaS, onboarding de empresas, 2FA, recuperação de senha
 - ⬜ Backoffice do SaaS — clientes, planos, cobrança, suporte
@@ -87,6 +87,7 @@ Defeitos do código herdado: `docs/05-compliance.md`.
 
 - ⬜ `comercial` — clientes, prospects, concorrentes, BIDs, planilha de custos, propostas
 - ⬜ `sst` e `estoque` (EPI, uniformes)
+- ⬜ **Clínica de SST** do grupo (CNPJ próprio): exames, ASO, PCMSO, PGR, laudos (`docs/17-clinica-sst.md`)
 - ⬜ Treinamentos com validade e bloqueio de alocação (estende `avaliacoes/cursos`)
 
 O `comercial` pode ser antecipado: a planilha de custos só depende de `tabelas-legais`.

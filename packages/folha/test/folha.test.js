@@ -82,6 +82,10 @@ test("folha da competência: totais fecham, encargos por regime e pendências", 
 
   const simples = calcularFolha({ empresa: { regime: REGIME_TRIBUTARIO.SIMPLES_CPP_NO_DAS }, competencia: "2026-09", colaboradores });
   assert.equal(simples.resumo.encargos.total, 0);
+  const anexoIV = calcularFolha({ empresa: { ...empresa, regime: REGIME_TRIBUTARIO.SIMPLES_ANEXO_IV }, competencia: "2026-09", colaboradores });
+  assert.equal(anexoIV.resumo.encargos.patronal, f.resumo.encargos.patronal);
+  assert.equal(anexoIV.resumo.encargos.rat, f.resumo.encargos.rat);
+  assert.equal(anexoIV.resumo.encargos.terceiros, 0);
   assert.equal(simples.resumo.fgts, f.resumo.fgts);
 });
 

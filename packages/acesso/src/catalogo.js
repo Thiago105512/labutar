@@ -14,6 +14,7 @@ export const MODULOS = Object.freeze([
   { id: "ponto", nome: "Ponto eletrônico", grupo: "Operação", descricao: "Marcações, espelho de ponto, banco de horas" },
   { id: "folha", nome: "Folha de pagamento", grupo: "Operação", descricao: "Cálculo, holerites, férias, 13º, rescisões e eSocial" },
   { id: "sst", nome: "Saúde e segurança", grupo: "Operação", descricao: "ASO, PGR, PCMSO, EPI e CAT" },
+  { id: "clinica", nome: "Clínica de SST", grupo: "Operação", descricao: "Clínica do grupo (CNPJ próprio): exames, ASO, PCMSO, PGR e laudos" },
   { id: "treinamentos", nome: "Treinamentos", grupo: "Operação", descricao: "Cursos, NRs e certificados" },
   { id: "comercial", nome: "Comercial", grupo: "Gestão", descricao: "Tomadores, possíveis tomadores, concorrentes, BIDs e propostas" },
   { id: "financeiro", nome: "Financeiro", grupo: "Gestão", descricao: "Faturamento, notas, cobrança, contas a pagar e receber" },
