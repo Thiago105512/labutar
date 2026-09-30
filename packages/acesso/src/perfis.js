@@ -32,7 +32,7 @@ export const PERFIS_PADRAO = Object.freeze([
   {
     id: "GERENTE_RH",
     nome: "Gerente de RH e DP",
-    descricao: "Responde pelo ciclo do trabalhador, do recrutamento à folha.",
+    descricao: "Responde pelo ciclo do colaborador, do recrutamento à folha.",
     sistema: true,
     niveis: niveis({
       recrutamento: ADMINISTRADOR, colaboradores: GESTOR, admissao: GESTOR, ponto: GESTOR,

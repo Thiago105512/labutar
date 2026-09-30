@@ -1,5 +1,5 @@
 /**
- * Portal dos públicos externos: candidato, colaborador e cliente (tomador).
+ * Portal dos públicos externos: candidato, colaborador e tomador.
  *
  * Cada tipo de conta vê uma área própria. Tudo que aparece aqui vem de rotas
  * /api/portal/* que filtram pelo escopo gravado na conta — a tela nunca envia
@@ -7,7 +7,7 @@
  */
 import { icone } from "../app/icones.js";
 import { api, adotarSessao, entrar, sessao } from "../app/sessao.js";
-import { esc, avatar, aviso, abrirPainel, fecharPainel, dataHora } from "../app/ui.js";
+import { esc, moeda, avatar, aviso, abrirPainel, fecharPainel, dataHora } from "../app/ui.js";
 import { esconderTelaCheia, ligarEventosAcesso, telaTrocarSenhaObrigatoria } from "../app/acesso-telas.js";
 import { validarSenha } from "/packages/acesso/src/index.js";
 
@@ -16,8 +16,8 @@ const TIPOS = {
     chamada: "Acompanhe suas candidaturas e encontre novas vagas." },
   COLABORADOR: { id: "COLABORADOR", nome: "Colaborador", titulo: "Portal do colaborador", icone: "cracha",
     chamada: "Holerites, ponto, férias e documentos na palma da mão." },
-  TOMADOR: { id: "TOMADOR", nome: "Cliente", titulo: "Portal do cliente", icone: "tomadores",
-    chamada: "Acompanhe os trabalhadores do seu contrato, aprove ponto e veja faturas." },
+  TOMADOR: { id: "TOMADOR", nome: "Tomador", titulo: "Portal do tomador", icone: "tomadores",
+    chamada: "Acompanhe os colaboradores do seu contrato, aprove ponto e veja faturas." },
 };
 
 const MARCA = `<span class="marca-logo" aria-hidden="true"><svg viewBox="0 0 32 32"><defs><linearGradient id="lgp" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a3d"/><stop offset="1" stop-color="#ffb547"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#lgp)"/><path d="M10 8v16h12" fill="none" stroke="#1b1446" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="21" cy="11" r="3" fill="#1b1446"/></svg></span>`;
@@ -40,7 +40,7 @@ function mostrarTelaCheia(html) {
 const CONTAS_DEMO = {
   CANDIDATO: ["ana.lima@exemplo.com", "Ana (candidata)"],
   COLABORADOR: ["joao.batista@exemplo.com", "João (colaborador)"],
-  TOMADOR: ["gestor@eletronica-amazonia.com.br", "Gestor do cliente"],
+  TOMADOR: ["gestor@eletronica-amazonia.com.br", "Gestor do tomador"],
 };
 
 function telaEntrada({ modo = "entrar", motivo = null } = {}) {
@@ -94,7 +94,7 @@ function telaEntrada({ modo = "entrar", motivo = null } = {}) {
           ${t.id === "CANDIDATO" ? `<p class="troca-modo">${cadastro
             ? 'Já tem conta? <a href="#" data-modo="entrar">Entrar</a>'
             : 'Ainda não tem conta? <a href="#" data-modo="cadastro">Criar conta grátis</a>'}</p>`
-            : `<p class="dica">O acesso de ${t.id === "COLABORADOR" ? "colaborador é liberado pelo RH da empresa" : "cliente é liberado pela empresa contratada"}. Fale com eles se ainda não recebeu o seu.</p>`}
+            : `<p class="dica">O acesso de ${t.id === "COLABORADOR" ? "colaborador é liberado pelo RH da empresa" : "tomador é liberado pela empresa contratada"}. Fale com eles se ainda não recebeu o seu.</p>`}
           ${local && !cadastro ? `<button type="button" class="chip conta-demo" data-demo>Entrar como ${esc(CONTAS_DEMO[t.id][1])} (demonstração)</button>` : ""}
         </form>
       </section>
@@ -229,8 +229,7 @@ async function areaCandidato() {
     </section>`;
 }
 
-const reais = (c) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-const faixa = (s) => (s.min && s.max && s.min !== s.max ? `${reais(s.min)} – ${reais(s.max)}` : reais(s.max || s.min));
+const faixa = (s) => (s.min && s.max && s.min !== s.max ? `${moeda(s.min)} – ${moeda(s.max)}` : moeda(s.max || s.min));
 
 function campoPergunta(p) {
   const nome = `resp.${p.id}`;
@@ -328,13 +327,13 @@ async function areaColaborador() {
 // ------------------------------------------------------------------ tomador
 
 const SERVICOS_TOMADOR = [
-  ["verAlocados", "Trabalhadores no meu contrato", "candidatos", "Quem está alocado em cada posto, hoje."],
+  ["verAlocados", "Colaboradores no meu contrato", "candidatos", "Quem está alocado em cada posto, hoje."],
   ["verPresenca", "Presença de hoje", "ponto", "Quem já chegou, faltas e coberturas em andamento."],
   ["aprovarPonto", "Aprovar ponto", "ok", "Confira e aprove o espelho de ponto antes do fechamento."],
   ["aprovarMedicao", "Aprovar medição", "contabil", "Horas e postos do mês, que viram a fatura."],
   ["verMedicao", "Medições", "contabil", "Medições mensais aprovadas e pendentes."],
   ["verFaturas", "Faturas e notas fiscais", "financeiro", "Faturas, NFS-e e boletos do contrato."],
-  ["verDocumentos", "Documentos de comprovação", "sst", "Folha, guias de FGTS e INSS, certidões, ASO e EPI dos seus trabalhadores."],
+  ["verDocumentos", "Documentos de comprovação", "sst", "Folha, guias de FGTS e INSS, certidões, ASO e EPI dos seus colaboradores."],
   ["solicitarPosto", "Solicitar posto ou reposição", "mais", "Peça novos postos ou reposição de faltas."],
 ];
 

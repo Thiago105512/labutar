@@ -1,5 +1,6 @@
 import { escapeXML, normalizar } from "../../core/src/texto.js";
 import { urlPublica } from "./vagas.js";
+import { dataNoFuso, deslocamentoDoFuso } from "../../core/src/datas.js";
 import { MODELO_TRABALHO } from "./constantes.js";
 
 export const CANAIS_PUBLICACAO = Object.freeze({
@@ -165,7 +166,7 @@ export function gerarJobPosting(vaga, { baseUrl, tenantSlug, organizacao = {}, a
     },
     datePosted: quando.toISOString(),
     validThrough: vaga.datas?.encerradaEm
-      ? `${String(vaga.datas.encerradaEm).slice(0, 10)}T23:59:59-03:00`
+      ? `${dataNoFuso(vaga.datas.encerradaEm)}T23:59:59${deslocamentoDoFuso()}`
       : new Date(quando.getTime() + 30 * 86_400_000).toISOString(),
     employmentType: tipoDeEmprego(vaga),
     hiringOrganization: {

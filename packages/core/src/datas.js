@@ -1,14 +1,55 @@
 const MS_DIA = 86_400_000;
-const OFFSET_BRASIL_MIN = -180;
+
+/**
+ * Fuso de referência do produto: o foco da operação é o Polo Industrial de Manaus.
+ * Toda data civil ("que dia é") nasce neste fuso — nunca de UTC nem de Brasília por
+ * conta própria. Quando houver configuração por empresa, ela substitui este padrão.
+ */
+export const FUSO_PADRAO = "America/Manaus";
+
+const formatadoresDeData = new Map();
+function formatadorDeData(fuso) {
+  if (!formatadoresDeData.has(fuso)) {
+    formatadoresDeData.set(
+      fuso,
+      new Intl.DateTimeFormat("en-CA", { timeZone: fuso, year: "numeric", month: "2-digit", day: "2-digit" })
+    );
+  }
+  return formatadoresDeData.get(fuso);
+}
 
 /**
  * Todas as funções tratam datas civis (AAAA-MM-DD), não instantes.
- * O fuso de referência é configurável porque férias, aviso prévio e
- * vencimento de ASO são contados em data civil, e o servidor pode estar em UTC.
+ * Férias, aviso prévio, prazos do temporário e vencimento de ASO são contados em
+ * data civil no fuso da empresa, e o servidor roda em UTC.
+ * Aceita o nome do fuso (padrão) ou, por compatibilidade, o deslocamento em minutos.
  */
-export function hoje(offsetMinutos = OFFSET_BRASIL_MIN) {
-  const deslocado = new Date(Date.now() + offsetMinutos * 60_000);
-  return deslocado.toISOString().slice(0, 10);
+export function hoje(fuso = FUSO_PADRAO) {
+  if (typeof fuso === "number") return new Date(Date.now() + fuso * 60_000).toISOString().slice(0, 10);
+  return dataNoFuso(new Date(), fuso);
+}
+
+/**
+ * Data civil (AAAA-MM-DD) de um instante no fuso indicado. Uma data civil já pronta
+ * volta como está. É a única forma correta de transformar instante em dia:
+ * `instante.slice(0, 10)` devolve o dia em UTC, que em Manaus vira o dia seguinte às 20h.
+ */
+export function dataNoFuso(valor, fuso = FUSO_PADRAO) {
+  if (valor == null || valor === "") return null;
+  // Só instante ISO completo é convertido; qualquer outro texto segue como está para a validação recusar.
+  if (typeof valor === "string" && !/^\d{4}-\d{2}-\d{2}T/.test(valor)) return valor.slice(0, 10);
+  const instante = valor instanceof Date ? valor : new Date(valor);
+  if (Number.isNaN(instante.getTime())) return null;
+  return formatadorDeData(fuso).format(instante);
+}
+
+/** Deslocamento do fuso em relação a UTC no instante dado, no formato ISO ("-04:00"). */
+export function deslocamentoDoFuso(fuso = FUSO_PADRAO, instante = new Date()) {
+  const nome = new Intl.DateTimeFormat("en-US", { timeZone: fuso, timeZoneName: "longOffset" })
+    .formatToParts(instante)
+    .find((p) => p.type === "timeZoneName")?.value;
+  const m = /GMT([+-]\d{2}):?(\d{2})?/.exec(nome ?? "");
+  return m ? `${m[1]}:${m[2] ?? "00"}` : "+00:00";
 }
 
 export function paraData(iso) {

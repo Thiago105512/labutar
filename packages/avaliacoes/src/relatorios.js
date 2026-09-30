@@ -1,5 +1,6 @@
 import { AUDIENCIA_RELATORIO, NOME_FATOR_DISC, ORDEM_FATORES_DISC, RESSALVAS_DISC } from "./constantes.js";
 import { GUARDRAILS_BENCHMARK_DISC } from "./benchmark.js";
+import { dataNoFuso } from "../../core/src/datas.js";
 
 /**
  * Guia de gestão por fator. É a camada que transforma o perfil em ação: sem
@@ -319,7 +320,7 @@ export function formatarRelatorioMarkdown(relatorio) {
 
   const linhas = [`# ${relatorio.titulo}`];
   if (relatorio.subtitulo) linhas.push("", `_${relatorio.subtitulo}_`);
-  if (relatorio.geradoEm) linhas.push("", `Gerado em ${String(relatorio.geradoEm).slice(0, 10)}.`);
+  if (relatorio.geradoEm) linhas.push("", `Gerado em ${dataNoFuso(relatorio.geradoEm)}.`);
 
   for (const item of relatorio.secoes) {
     linhas.push("", `## ${item.titulo}`);

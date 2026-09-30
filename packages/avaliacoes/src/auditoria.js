@@ -1,4 +1,5 @@
 import { novoId } from "../../core/src/ids.js";
+import { dataNoFuso } from "../../core/src/datas.js";
 import { DECISAO_REVISAO } from "./constantes.js";
 
 export const REGISTRO_AUDITORIA = Object.freeze({
@@ -152,7 +153,7 @@ export function registroDeOperacoes(eventos = [], { tenantId = null } = {}) {
 
   const doTenant = tenantId ? eventos.filter((e) => !e.tenantId || e.tenantId === tenantId) : eventos;
   const ordenados = doTenant.slice().sort((a, b) => String(a.em).localeCompare(String(b.em)));
-  const datas = ordenados.map((e) => String(e.em).slice(0, 10));
+  const datas = ordenados.map((e) => dataNoFuso(e.em));
 
   return {
     tenantId: tenantId ? String(tenantId).trim() : null,

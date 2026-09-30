@@ -132,3 +132,34 @@ test("paraData e paraISO são simétricas e imunes ao fuso local", () => {
   assert.equal(paraISO(paraData("2026-09-27")), "2026-09-27");
   assert.equal(paraData("2026-09-27").getUTCDay(), 0);
 });
+
+import { FUSO_PADRAO, dataNoFuso, deslocamentoDoFuso, hoje as hojeNoFuso } from "../src/datas.js";
+
+test("fuso padrão é o de Manaus", () => {
+  assert.equal(FUSO_PADRAO, "America/Manaus");
+  assert.equal(deslocamentoDoFuso(), "-04:00");
+  assert.equal(deslocamentoDoFuso("America/Sao_Paulo", new Date("2026-09-30T12:00:00Z")), "-03:00");
+});
+
+test("dataNoFuso dá o dia civil de Manaus, não o de UTC", () => {
+  // 21h de 29/09 em Manaus já é 30/09 em UTC.
+  assert.equal(dataNoFuso("2026-09-30T01:00:00.000Z"), "2026-09-29");
+  assert.equal(dataNoFuso("2026-09-30T04:00:00.000Z"), "2026-09-30");
+  assert.equal(dataNoFuso(new Date("2026-09-30T01:00:00Z"), "America/Sao_Paulo"), "2026-09-29");
+  assert.equal(dataNoFuso("2026-09-30T02:59:00Z", "America/Sao_Paulo"), "2026-09-29");
+  assert.equal(dataNoFuso("2026-09-30T03:00:00Z", "America/Sao_Paulo"), "2026-09-30");
+});
+
+test("dataNoFuso mantém data civil e não inventa data a partir de outro formato", () => {
+  assert.equal(dataNoFuso("2026-09-30"), "2026-09-30");
+  assert.equal(dataNoFuso("01/10/2026"), "01/10/2026");
+  assert.equal(dataNoFuso(null), null);
+  assert.equal(dataNoFuso(""), null);
+  assert.equal(dataNoFuso("2026-99-99T00:00:00Z"), null);
+});
+
+test("hoje aceita nome de fuso e, por compatibilidade, deslocamento em minutos", () => {
+  assert.match(hojeNoFuso(), /^\d{4}-\d{2}-\d{2}$/);
+  assert.match(hojeNoFuso("America/Sao_Paulo"), /^\d{4}-\d{2}-\d{2}$/);
+  assert.match(hojeNoFuso(-180), /^\d{4}-\d{2}-\d{2}$/);
+});

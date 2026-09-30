@@ -39,7 +39,7 @@ async function principal() {
     for (const c of CONTAS_EXTERNAS_DEMO) console.log(`    ${c.email.padEnd(34)} portal ${c.tipo}`);
   }
   console.log(`\n  Painel da empresa: ${contexto.url}/web/app/index.html`);
-  console.log(`  Portal (candidato, colaborador, cliente): ${contexto.url}/web/portal/index.html`);
+  console.log(`  Portal (candidato, colaborador, tomador): ${contexto.url}/web/portal/index.html`);
   console.log(`
   API: POST ${contexto.url}/api/auth/entrar {"empresa":"${TENANT_DEMO}","email":"admin@demo.com.br","senha":"${SENHA_DEMO}"}
 `);

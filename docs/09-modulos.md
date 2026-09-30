@@ -40,7 +40,7 @@ interface pública do pacote ou reage a eventos (ex.: `admissao.concluida`).
 | `mao-de-obra` | **Núcleo do domínio** ([`11-dominio-mao-de-obra.md`](11-dominio-mao-de-obra.md)): vínculos temporário/terceirizado/próprio, prazos e quarentenas legais, alocação por dia, centro de custo, rateio, desmobilização | ✅ regras |
 | `tomadores` | Clientes tomadores, unidades, contratos comerciais, postos, preços, medição (cadastro e telas; regras em `mao-de-obra`) | ⬜ |
 | `alocacao` | Escala, quadro de postos descobertos, reposição de faltas (telas; regras em `mao-de-obra`) | ⬜ |
-| `ponto` | Marcações (REP-P, Portaria MTE 671/2021), offline, banco de horas, espelho, AFD/AEJ | ⬜ |
+| `ponto` | Marcações (REP-P, Portaria MTP 671/2021), offline, banco de horas, espelho, AFD/AEJ | ⬜ |
 | `compliance` | Certidões, guias pagas e documentos exibidos ao tomador (responsabilidade subsidiária) | ⬜ |
 
 ## Financeiro

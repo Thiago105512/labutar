@@ -55,7 +55,7 @@ export function telaLogin({ motivo = null, aoEntrar } = {}) {
           <p>Recrutamento, admissão, ponto, folha, tomadores e faturamento — com cada pessoa vendo só o que precisa.</p>
           <ul>
             <li>${icone("ok")}Temporários, terceirizados e próprios no mesmo cadastro</li>
-            <li>${icone("ok")}Custo de cada dia direto na fatura do cliente certo</li>
+            <li>${icone("ok")}Custo de cada dia direto na fatura do tomador certo</li>
             <li>${icone("ok")}Acesso por módulo e por perfil, com auditoria</li>
           </ul>
         </div>
@@ -351,7 +351,7 @@ export async function paginaAuditoria() {
 
 const ABAS_EXTERNAS = [
   { tipo: "COLABORADOR", nome: "Colaboradores", modulo: "colaboradores", icone: "cracha" },
-  { tipo: "TOMADOR", nome: "Clientes (tomadores)", modulo: "tomadores", icone: "tomadores" },
+  { tipo: "TOMADOR", nome: "Tomadores", modulo: "tomadores", icone: "tomadores" },
   { tipo: "CANDIDATO", nome: "Candidatos", modulo: "recrutamento", icone: "candidatos" },
 ];
 const cacheExternas = { tipo: null, contas: [], pessoas: [] };
@@ -383,11 +383,11 @@ export async function paginaContasExternas() {
       ? "Candidatos criam a própria conta no portal. Aqui você pode desativá-la ou redefinir a senha."
       : aba.tipo === "COLABORADOR"
         ? "O colaborador entra no portal com e-mail e senha para ver holerites, ponto, férias e documentos — só os dele."
-        : "Usuários do cliente veem só o próprio contrato: trabalhadores alocados, ponto, medição, faturas e documentos."}
+        : "Usuários do tomador veem só o próprio contrato: colaboradores alocados, ponto, medição, faturas e documentos."}
       Link do portal: <code>${esc(location.origin)}/web/portal/index.html?empresa=${esc(sessao.empresa ?? "")}&amp;perfil=${aba.tipo.toLowerCase()}</code></p>
     <div class="cartao tabela-cartao">
       <table class="tabela">
-        <thead><tr><th>Pessoa</th><th>${aba.tipo === "TOMADOR" ? "Cliente e papel" : "Cadastro vinculado"}</th><th>Situação</th><th>Último acesso</th><th></th></tr></thead>
+        <thead><tr><th>Pessoa</th><th>${aba.tipo === "TOMADOR" ? "Tomador e papel" : "Cadastro vinculado"}</th><th>Situação</th><th>Último acesso</th><th></th></tr></thead>
         <tbody>
           ${itens.map((c) => `
             <tr>
@@ -410,7 +410,7 @@ function painelNovaExterna() {
   abrirPainel(`
     <header class="painel-cabecalho">
       <span class="indicador-icone" style="color:var(--marca-500);background:var(--marca-100)">${icone(colaborador ? "cracha" : "tomadores")}</span>
-      <div class="texto"><h2>${colaborador ? "Acesso de colaborador" : "Acesso de cliente (tomador)"}</h2>
+      <div class="texto"><h2>${colaborador ? "Acesso de colaborador" : "Acesso de tomador"}</h2>
         <p>A pessoa recebe uma senha provisória e troca no primeiro acesso ao portal.</p></div>
       <button class="botao-icone" data-fechar aria-label="Fechar">${icone("fechar")}</button>
     </header>
@@ -421,7 +421,7 @@ function painelNovaExterna() {
             ${cacheExternas.pessoas.map((p) => `<option value="${esc(p.id)}" data-email="${esc(p.contato?.email ?? "")}" data-nome="${esc(p.dados?.nome ?? "")}">${esc(p.dados?.nome)}</option>`).join("")}
           </select><p class="dica">A pessoa vem do cadastro único (o mesmo do banco de talentos e da admissão).</p></div>` : `
         <div class="duas">
-          <div class="campo"><label for="x-tomador">Cliente (tomador)</label><input id="x-tomador" name="tomadorNome" required placeholder="Razão social do cliente"></div>
+          <div class="campo"><label for="x-tomador">Tomador</label><input id="x-tomador" name="tomadorNome" required placeholder="Razão social do tomador"></div>
           <div class="campo"><label for="x-papel">Papel no portal</label><select id="x-papel" name="papel">${PAPEIS_TOMADOR.map((p) => `<option value="${p.id}">${esc(p.nome)}</option>`).join("")}</select></div>
         </div>
         <p class="dica" id="x-papel-desc"></p>`}

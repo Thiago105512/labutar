@@ -1,5 +1,5 @@
 import { novoId } from "../../core/src/ids.js";
-import { hoje, diferencaDias, estaVencendo } from "../../core/src/datas.js";
+import { dataNoFuso, hoje, diferencaDias, estaVencendo } from "../../core/src/datas.js";
 import { validarDataISO } from "../../core/src/validacao.js";
 import { arredondar } from "../../core/src/dinheiro.js";
 import { PESO_PRIORIDADE, PRIORIDADE_AVISO, PUBLICO_ALVO } from "./constantes.js";
@@ -9,7 +9,7 @@ const VALOR_PRIORIDADE = Object.values(PRIORIDADE_AVISO);
 const VALOR_PUBLICO = Object.values(PUBLICO_ALVO);
 
 function diaDe(valor) {
-  return valor === null || valor === undefined || valor === "" ? null : String(valor).slice(0, 10);
+  return valor === null || valor === undefined || valor === "" ? null : dataNoFuso(valor);
 }
 
 function normalizarVigencia(vigencia, problemas) {

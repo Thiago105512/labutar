@@ -9,7 +9,7 @@
  */
 import { icone } from "./icones.js";
 import { api, sessao } from "./sessao.js";
-import { esc, avatar, etiqueta, diasDesde, quando, aviso, abrirPainel, fecharPainel, matiz } from "./ui.js";
+import { esc, moeda, dataHora, avatar, etiqueta, diasDesde, quando, aviso, abrirPainel, fecharPainel, matiz } from "./ui.js";
 import {
   ICONE_MODULO,
   esconderTelaCheia,
@@ -43,20 +43,20 @@ const PAGINAS = {
 
 const EM_BREVE = {
   colaboradores: {
-    resumo: "Temporários, terceirizados e próprios no mesmo cadastro, cada um com suas regras: onde está alocado hoje, prazo do contrato temporário, quarentenas legais e para qual cliente vai o custo de cada dia.",
+    resumo: "Temporários, terceirizados e próprios no mesmo cadastro, cada um com suas regras: onde está alocado hoje, prazo do contrato temporário, quarentenas legais e para qual tomador vai o custo de cada dia.",
     recursos: ["Temporário, terceirizado e próprio", "Alocação por tomador, posto ou setor", "Prazo de 180 + 90 dias com alerta", "Quarentenas legais bloqueadas", "Coberturas de folguistas e feristas", "Plano de desmobilização por contrato"],
   },
   admissao: {
-    resumo: "Do candidato aprovado ao trabalhador registrado, sem papel: documentos pelo celular, exame admissional, contrato assinado eletronicamente e envio ao eSocial.",
+    resumo: "Do candidato aprovado ao colaborador registrado, sem papel: documentos pelo celular, exame admissional, contrato assinado eletronicamente e envio ao eSocial.",
     recursos: ["Documentos pelo celular com OCR", "Agendamento e validade do ASO", "Contrato eletrônico (CLT e temporário)", "Prazos da Lei 6.019/1974", "Envio do S-2200 ao eSocial", "Bloqueio de início sem pendências"],
   },
   tomadores: {
-    resumo: "Clientes tomadores, contratos, postos de trabalho e quem está alocado em cada um, com reposição rápida de faltas.",
-    recursos: ["Contratos e postos por cliente", "Alocação e escala", "Reposição de faltas", "Portal do tomador", "Medição aprovada pelo cliente", "Compliance da terceirização"],
+    resumo: "Tomadores, contratos, postos de trabalho e quem está alocado em cada um, com reposição rápida de faltas.",
+    recursos: ["Contratos e postos por tomador", "Alocação e escala", "Reposição de faltas", "Portal do tomador", "Medição aprovada pelo tomador", "Compliance da terceirização"],
   },
   ponto: {
-    resumo: "Registro de ponto pelo app do trabalhador, com foto e localização, funcionando mesmo sem internet.",
-    recursos: ["REP-P (Portaria MTE 671/2021)", "Foto e geolocalização", "Registro offline", "Banco de horas", "Espelho de ponto", "Arquivos AFD e AEJ"],
+    resumo: "Importação das marcações dos relógios instalados nos tomadores, tratamento, espelho aprovado pelo tomador e banco de horas.",
+    recursos: ["Relógio no tomador (REP-C)", "Importação do AFD", "Escalas e turnos", "Banco de horas", "Espelho aprovado pelo tomador", "Geração do AEJ"],
   },
   folha: {
     resumo: "Cálculo mensal a partir do ponto, com convenções coletivas, férias, 13º, rescisão e eventos do eSocial.",
@@ -67,8 +67,8 @@ const EM_BREVE = {
     recursos: ["ASO e exames periódicos", "Entrega de EPI com assinatura", "CAT", "S-2220 e S-2240", "Alertas de vencimento", "Treinamentos NR"],
   },
   comercial: {
-    resumo: "Clientes, possíveis clientes, concorrentes e processos BID, com planilha de custos e formação de preço por posto.",
-    recursos: ["Mapa de clientes e prospects", "Cadastro de concorrentes", "BIDs em andamento e encerrados", "Planilha de custos (Excel e PDF)", "Propostas e contratos", "Relatórios de funil e carteira"],
+    resumo: "Tomadores, possíveis tomadores, concorrentes e processos BID, com planilha de custos e formação de preço por posto.",
+    recursos: ["Mapa de tomadores e possíveis tomadores", "Cadastro de concorrentes", "BIDs em andamento e encerrados", "Planilha de custos (Excel e PDF)", "Propostas e contratos", "Relatórios de funil e carteira"],
   },
   financeiro: {
     resumo: "Faturamento por medição, notas fiscais, cobrança e contas a pagar e receber.",
@@ -128,14 +128,12 @@ async function carregar() {
 
 // ---------------------------------------------------------------- utilidades
 
-const reais = (centavos) =>
-  (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 function faixaSalarial(vaga) {
   const s = vaga.salario;
   if (!s?.min && !s?.max) return "A combinar";
-  if (s.min && s.max && s.min !== s.max) return `${reais(s.min)} – ${reais(s.max)}`;
-  return reais(s.max || s.min);
+  if (s.min && s.max && s.min !== s.max) return `${moeda(s.min)} – ${moeda(s.max)}`;
+  return moeda(s.max || s.min);
 }
 
 function local(vaga) {
@@ -561,7 +559,7 @@ function telaCandidatos() {
           </div>
           ${comp.length ? `<div class="chips">${comp.map((x) => `<span class="chip">${esc(x.nome)}</span>`).join("")}</div>` : ""}
           <div class="perfil-rodape">
-            <span>${cands.length ? `<b>${cands.length}</b> candidatura${cands.length === 1 ? "" : "s"}` : "Sem candidaturas"}${c.pretensaoSalarial ? ` · pretensão <b>${reais(c.pretensaoSalarial)}</b>` : ""}</span>
+            <span>${cands.length ? `<b>${cands.length}</b> candidatura${cands.length === 1 ? "" : "s"}` : "Sem candidaturas"}${c.pretensaoSalarial ? ` · pretensão <b>${moeda(c.pretensaoSalarial)}</b>` : ""}</span>
             <span class="contatos">
               ${c.contato?.email ? `<a href="mailto:${esc(c.contato.email)}" title="${esc(c.contato.email)}" data-parar>${icone("email")}</a>` : ""}
               ${c.contato?.telefone ? `<a href="tel:${esc(c.contato.telefone.replace(/\D/g, ""))}" title="${esc(c.contato.telefone)}" data-parar>${icone("telefone")}</a>` : ""}
@@ -660,7 +658,7 @@ function painelCandidatura(id) {
       <div class="secao">
         <h4>Histórico</h4>
         <ul class="linha-tempo">
-          ${(c.historico ?? []).slice().reverse().map((h) => `<li><b>${esc(etapas.find((e) => e.id === (h.paraEtapaId ?? h.etapaId))?.nome ?? h.paraEtapaId ?? h.etapaId ?? h.evento ?? "Movimentação")}</b>${h.observacao ? ` — ${esc(h.observacao)}` : ""}<small>${h.em ? new Date(h.em).toLocaleString("pt-BR") : ""}</small></li>`).join("") || "<li>Candidatura recebida<small>" + esc(quando(c.criadaEm ?? c.etapaAtualDesde)) + "</small></li>"}
+          ${(c.historico ?? []).slice().reverse().map((h) => `<li><b>${esc(etapas.find((e) => e.id === (h.paraEtapaId ?? h.etapaId))?.nome ?? h.paraEtapaId ?? h.etapaId ?? h.evento ?? "Movimentação")}</b>${h.observacao ? ` — ${esc(h.observacao)}` : ""}<small>${h.em ? dataHora(h.em) : ""}</small></li>`).join("") || "<li>Candidatura recebida<small>" + esc(quando(c.criadaEm ?? c.etapaAtualDesde)) + "</small></li>"}
         </ul>
       </div>
     </div>

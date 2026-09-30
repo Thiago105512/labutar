@@ -1,4 +1,4 @@
-# Cenário padrão de teste — 1.000 trabalhadores
+# Cenário padrão de teste — 1.000 colaboradores
 
 > Cenário **fictício** definido em 2026-09-30 para testar volume e regras. Toda massa de
 > dados gerada para testes, demonstração e medição de desempenho segue este documento.
@@ -48,7 +48,7 @@ pode prestá-la. No cenário, T4 tem portaria e controle de acesso, não vigilâ
 | Ônibus fretado fornecido pela tomadora | Vale-transporte não devido nos dias com fretado; custo fora da fatura |
 | Refeitório da tomadora | Desconto de alimentação conforme acordo; nada a pagar em vale-refeição |
 | Feriados estaduais do Amazonas e municipais de Manaus | Calendário de feriados por município e por vigência em `tabelas-legais` (datas a conferir) |
-| Relógios dos tomadores de fabricantes diferentes | Importação de AFD padronizada pela Portaria 671, sem depender do fabricante |
+| Relógios dos tomadores de fabricantes diferentes | Importação de AFD padronizada pela Portaria MTP 671/2021, sem depender do fabricante |
 
 ## 3. Administrativo próprio (100)
 
@@ -81,7 +81,7 @@ vem da convenção; o que nenhum dos dois regula vem da lei.
 | ACT-Ponto | Acordo | Toda a empresa | Tolerâncias de marcação e, se for o caso, autorização de REP-A |
 | ACT-PLR | Acordo | Toda a empresa | Participação nos lucros |
 
-A regra aplicável é resolvida **por trabalhador, por dia e por assunto**: quem muda de tomador
+A regra aplicável é resolvida **por colaborador, por dia e por assunto**: quem muda de tomador
 no meio do mês passa a seguir o acordo do novo tomador a partir do dia da mudança — o mesmo
 modelo diário da alocação (docs/11). Temporários seguem, além disso, a remuneração equivalente
 à da tomadora (art. 12 da Lei 6.019/1974).
@@ -93,7 +93,7 @@ ponto; ele funciona como o programa de tratamento (PTRP, Portaria MTP 671/2021):
 
 1. Coleta o **AFD** (arquivo fonte de dados) de cada relógio: envio pelo portal do tomador,
    importação pela equipe ou integração com o fabricante.
-2. Identifica o trabalhador pelo CPF e a alocação do dia.
+2. Identifica o colaborador pelo CPF e a alocação do dia.
 3. Aplica escala, tolerâncias e o acordo coletivo daquele tomador.
 4. Gera espelho, banco de horas e ocorrências; o tomador aprova no portal.
 5. Gera o **AEJ** (arquivo eletrônico de jornada) e envia o ponto aprovado à folha e ao faturamento.
@@ -124,12 +124,12 @@ A massa gerada precisa conter, de propósito:
 3. Tentativa de recontratar temporário na mesma tomadora antes de 90 dias (bloqueio).
 4. Temporário que já trabalhou para outra filial da mesma tomadora (mesma raiz de CNPJ).
 5. Ex-empregado de tomador contratado como terceirizado antes de 18 meses (bloqueio).
-6. Trabalhador que muda de tomador no meio do mês (rateio em dois centros de custo).
-7. Trabalhador sem alocação em alguns dias (vai para o balde sem alocação).
+6. Colaborador que muda de tomador no meio do mês (rateio em dois centros de custo).
+7. Colaborador sem alocação em alguns dias (vai para o balde sem alocação).
 8. Terceirizado em T3 que cobre posto em T4 (cobertura entre tomadores e adicionais diferentes).
 9. Afastamento que atravessa o fim do contrato temporário.
 10. Admissão e desligamento dentro da mesma competência.
-11. Trabalhador que muda de T1 para T3 no meio do mês (acordo coletivo muda no dia).
+11. Colaborador que muda de T1 para T3 no meio do mês (acordo coletivo muda no dia).
 12. Mais de 100 temporários de T1 atingindo 180 dias na mesma semana, no fim do pico.
 13. Reajuste da convenção retroativo à data-base, com acordo vigente que não trata de salário.
 14. Turno da noite das 22h às 6h do dia seguinte, no fuso de Manaus (dia do ponto, adicional noturno).
