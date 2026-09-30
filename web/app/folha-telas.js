@@ -159,6 +159,7 @@ const CAMPOS_LANCAMENTO = [
   ["dsrPerdidos", "DSR perdidos", "dias"],
   ["adiantamento", "Adiantamento pago", "R$"],
   ["custoValeTransporte", "Custo do vale-transporte", "R$"],
+  ["eConsignado", "Crédito do Trabalhador (eConsignado)", "R$"],
 ];
 
 function painelHolerite(mat) {

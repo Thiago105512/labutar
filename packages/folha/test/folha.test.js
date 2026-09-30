@@ -121,3 +121,13 @@ test("cenário de teste: 1.000 colaboradores (600 temporários, 300 terceirizado
   assert.equal(f.resumo.porLotacao.reduce((s, l) => s + l.custoTotal, 0), f.resumo.custoTotal);
   assert.ok(ms < 1000, `levou ${Math.round(ms)} ms`);
 });
+
+test("Crédito do Trabalhador (eConsignado): desconta, não mexe nas bases e usa a natureza 9253", () => {
+  const base = { matricula: "1", nome: "A", salario: 300_000, admissao: "2025-01-06" };
+  const sem = calcularHolerite(base, "2026-09");
+  const com = calcularHolerite(base, "2026-09", { eConsignado: 45_000 });
+  assert.equal(valor(com, "9253.01"), 45_000);
+  assert.deepEqual(com.bases, sem.bases);
+  assert.equal(com.fgts, sem.fgts);
+  assert.equal(com.liquido, sem.liquido - 45_000);
+});

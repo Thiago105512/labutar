@@ -31,7 +31,7 @@ function diasDeContrato(colaborador, competencia) {
  * @param colaborador { matricula, nome, vinculo, salario, jornadaMensal?, admissao, desligamento?,
  *   dependentesIR?, filhosSalarioFamilia?, insalubridadeGrau? (10|20|40), periculosidade?, lotacao }
  * @param lancamentos { horasExtras50?, horasExtras100?, horasNoturnas?, faltasDias?, dsrPerdidos?,
- *   adiantamento?, custoValeTransporte?, pensao?, outrosDescontos?,
+ *   adiantamento?, custoValeTransporte?, pensao?, outrosDescontos?, eConsignado?,
  *   outrosRendimentosIRNoMes?, irrfRetidoNoMes? } — os dois últimos para o regime de caixa do IRRF:
  *   o que outro pagamento do mesmo mês já pagou e reteve (13º, férias, complementar).
  * @param opcoes { local?, arredondamentoINSS?, arredondamentoFGTS?, dispensarIRRFAte10?, tabela? }
@@ -100,6 +100,7 @@ export function calcularHolerite(colaborador, competencia, lancamentos = {}, opc
 
   lanca(VERBAS.ADIANTAMENTO, L.adiantamento ?? 0);
   lanca(VERBAS.OUTROS_DESCONTOS, L.outrosDescontos ?? 0);
+  lanca(VERBAS.ECONSIGNADO, L.eConsignado ?? 0);
   if (L.custoValeTransporte) lanca(VERBAS.VALE_TRANSPORTE, Math.min(L.custoValeTransporte, r(salarioMes * 0.06)), "6%");
 
   const proventos = itens.filter((i) => i.tipo === TIPO_VERBA.PROVENTO).reduce((s, i) => s + i.valor, 0);

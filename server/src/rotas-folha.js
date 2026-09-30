@@ -8,7 +8,7 @@ const CAMPOS = Object.freeze({
   horasExtras50: [0, 200], horasExtras100: [0, 200], horasNoturnas: [0, 250],
   faltasDias: [0, 30], dsrPerdidos: [0, 6],
   adiantamento: [0, 100_000_000], custoValeTransporte: [0, 10_000_000], pensao: [0, 100_000_000],
-  outrosDescontos: [0, 100_000_000], outrosRendimentosIRNoMes: [0, 1_000_000_000], irrfRetidoNoMes: [0, 100_000_000],
+  outrosDescontos: [0, 100_000_000], eConsignado: [0, 100_000_000], outrosRendimentosIRNoMes: [0, 1_000_000_000], irrfRetidoNoMes: [0, 100_000_000],
 });
 
 const opcoesDaEmpresa = (empresa, colaborador) => ({
