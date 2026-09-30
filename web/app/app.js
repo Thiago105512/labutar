@@ -1,405 +1,836 @@
 /**
- * Painel de recrutador do Labutar.
- * Fluxo mínimo: vagas + pipeline + movimentação de candidatura.
+ * Painel da empresa no Labutar.
+ *
+ * SPA sem bundler: cada tela é uma função que devolve HTML a partir do estado
+ * carregado da API. Todo texto vindo da API passa por `esc()` antes de entrar
+ * no HTML — nome de candidato é dado digitado por terceiros.
  */
-const API_BASE = 'http://localhost:8080/api';
-const TENANT_ID = 'demo-industrial';
+import { icone } from "./icones.js";
 
-class LabutarApp {
-  constructor() {
-    this.currentSection = 'vagas';
-    this.currentVagaFilter = null;
-    this.vagas = [];
-    this.candidaturas = [];
-    this.candidatos = [];
-    this.init();
+const API = "/api";
+const TENANT = "demo-industrial";
+// Identidade ainda é STUB de desenvolvimento (ver server/src/middleware/contexto.js).
+const USUARIO = "U_RECRUTADORA";
+
+const cabecalhos = (extra = {}) => ({
+  "X-Labutar-Tenant": TENANT,
+  "X-Labutar-Usuario": USUARIO,
+  "X-Labutar-Papel": "admin",
+  ...extra,
+});
+
+async function api(caminho, { metodo = "GET", corpo } = {}) {
+  const resposta = await fetch(`${API}${caminho}`, {
+    method: metodo,
+    headers: cabecalhos(corpo ? { "Content-Type": "application/json" } : {}),
+    body: corpo ? JSON.stringify(corpo) : undefined,
+  });
+  const json = await resposta.json().catch(() => ({}));
+  if (!resposta.ok || json.ok === false) {
+    throw new Error(json.erro || `Falha na requisição (${resposta.status})`);
   }
+  return json.dados;
+}
 
-  async init() {
-    this.setupEventListeners();
-    await this.loadData();
-    this.render();
+// ---------------------------------------------------------------- módulos
+
+const MODULOS = [
+  { grupo: "Recrutamento", itens: [
+    { id: "inicio", nome: "Início", icone: "inicio" },
+    { id: "vagas", nome: "Vagas", icone: "vagas", contador: () => estado.vagas.filter((v) => v.status === "ABERTA").length },
+    { id: "pipeline", nome: "Processo seletivo", icone: "pipeline" },
+    { id: "candidatos", nome: "Banco de talentos", icone: "candidatos", contador: () => estado.candidatos.length },
+  ]},
+  { grupo: "Mão de obra", itens: [
+    { id: "admissao", nome: "Admissão", titulo: "Admissão digital", icone: "admissao", breve: true,
+      resumo: "Do candidato aprovado ao trabalhador registrado, sem papel: documentos pelo celular, exame admissional, contrato assinado eletronicamente e envio ao eSocial.",
+      recursos: ["Documentos pelo celular com OCR", "Agendamento e validade do ASO", "Contrato eletrônico (CLT e temporário)", "Prazos da Lei 6.019/1974", "Envio do S-2200 ao eSocial", "Bloqueio de início sem pendências"] },
+    { id: "tomadores", nome: "Tomadores", titulo: "Tomadores e postos", icone: "tomadores", breve: true,
+      resumo: "Clientes tomadores, contratos, postos de trabalho e quem está alocado em cada um, com reposição rápida de faltas.",
+      recursos: ["Contratos e postos por cliente", "Alocação e escala", "Reposição de faltas", "Portal do tomador", "Medição aprovada pelo cliente", "Compliance da terceirização"] },
+    { id: "ponto", nome: "Ponto", titulo: "Ponto eletrônico", icone: "ponto", breve: true,
+      resumo: "Registro de ponto pelo app do trabalhador, com foto e localização, funcionando mesmo sem internet.",
+      recursos: ["REP-P (Portaria MTE 671/2021)", "Foto e geolocalização", "Registro offline", "Banco de horas", "Espelho de ponto", "Arquivos AFD e AEJ"] },
+    { id: "folha", nome: "Folha", titulo: "Folha de pagamento", icone: "folha", breve: true,
+      resumo: "Cálculo mensal a partir do ponto, com convenções coletivas, férias, 13º, rescisão e eventos do eSocial.",
+      recursos: ["Cálculo por convenção coletiva", "Férias, 13º e rescisão", "Holerite no app", "Pagamento em lote e PIX", "eSocial, FGTS Digital e DCTFWeb", "Tabelas legais por vigência"] },
+    { id: "sst", nome: "SST", titulo: "Saúde e segurança", icone: "sst", breve: true,
+      resumo: "PGR, PCMSO, ASO periódico, entrega de EPI e comunicação de acidentes.",
+      recursos: ["ASO e exames periódicos", "Entrega de EPI com assinatura", "CAT", "S-2220 e S-2240", "Alertas de vencimento", "Treinamentos NR"] },
+  ]},
+  { grupo: "Gestão", itens: [
+    { id: "comercial", nome: "Comercial", icone: "comercial", breve: true,
+      resumo: "Clientes, possíveis clientes, concorrentes e processos BID, com planilha de custos e formação de preço por posto.",
+      recursos: ["Mapa de clientes e prospects", "Cadastro de concorrentes", "BIDs em andamento e encerrados", "Planilha de custos (Excel e PDF)", "Propostas e contratos", "Relatórios de funil e carteira"] },
+    { id: "financeiro", nome: "Financeiro", icone: "financeiro", breve: true,
+      resumo: "Faturamento por medição, notas fiscais, cobrança e contas a pagar e receber.",
+      recursos: ["Fatura por medição", "NFS-e e retenções", "Boleto e PIX", "Contas a pagar e receber", "Conciliação bancária", "Centros de custo"] },
+    { id: "contabil", nome: "Contábil", icone: "contabil", breve: true,
+      resumo: "Lançamentos automáticos da folha e do faturamento, DRE e exportação para o contador.",
+      recursos: ["Plano de contas", "Lançamentos automáticos", "DRE gerencial", "Exportação ao contador"] },
+    { id: "treinamentos", nome: "Treinamentos", icone: "treinamentos", breve: true,
+      resumo: "Cursos, trilhas e certificados com validade, que bloqueiam alocação quando vencem.",
+      recursos: ["Cursos e trilhas", "Certificados", "Validade de NRs", "Bloqueio de alocação"] },
+    { id: "juridico", nome: "Jurídico", icone: "juridico", breve: true,
+      resumo: "Contratos, processos trabalhistas, prazos e provisões.",
+      recursos: ["Modelos de contrato", "Processos e audiências", "Prazos com alerta", "Provisões"] },
+    { id: "estoque", nome: "Estoque", titulo: "Estoque e compras", icone: "estoque", breve: true,
+      resumo: "Almoxarifado de EPI e uniformes, requisições, cotações e pedidos de compra.",
+      recursos: ["EPI e uniformes", "Validade do CA", "Requisição e cotação", "Pedidos e fornecedores"] },
+  ]},
+];
+const TODOS_MODULOS = MODULOS.flatMap((g) => g.itens.map((i) => ({ ...i, grupo: g.grupo })));
+
+// ---------------------------------------------------------------- estado
+
+const estado = {
+  vagas: [],
+  candidatos: [],
+  candidaturas: [],
+  resumo: null,
+  origens: [],
+  filtroVagas: "TODAS",
+  vagaPipeline: null,
+  busca: "",
+};
+
+const candidatoPorId = (id) => estado.candidatos.find((c) => c.id === id);
+const vagaPorId = (id) => estado.vagas.find((v) => v.id === id);
+
+async function carregar() {
+  const [vagas, candidatos, resumo, origens] = await Promise.all([
+    api("/vagas?limite=200"),
+    api("/candidatos?limite=200"),
+    api("/metricas/resumo").catch(() => null),
+    api("/metricas/origens").catch(() => []),
+  ]);
+  estado.vagas = vagas.itens ?? [];
+  estado.candidatos = candidatos.itens ?? [];
+  estado.resumo = resumo;
+  estado.origens = origens ?? [];
+
+  const listas = await Promise.all(
+    estado.vagas.map((v) => api(`/vagas/${v.id}/candidaturas?limite=500`).then((d) => d.itens ?? []).catch(() => []))
+  );
+  estado.candidaturas = listas.flat();
+}
+
+// ---------------------------------------------------------------- utilidades
+
+const esc = (valor) =>
+  String(valor ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+const iniciais = (nome = "?") =>
+  nome.trim().split(/\s+/).filter((p) => p.length > 2 || p === p.toUpperCase()).slice(0, 2).map((p) => p[0]).join("").toUpperCase() || "?";
+
+function matiz(texto = "") {
+  let h = 0;
+  for (const c of texto) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return h;
+}
+
+const avatar = (nome, classe = "") => `<span class="avatar ${classe}" style="--h:${matiz(nome)}">${esc(iniciais(nome))}</span>`;
+
+const reais = (centavos) =>
+  (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+
+function faixaSalarial(vaga) {
+  const s = vaga.salario;
+  if (!s?.min && !s?.max) return "A combinar";
+  if (s.min && s.max && s.min !== s.max) return `${reais(s.min)} – ${reais(s.max)}`;
+  return reais(s.max || s.min);
+}
+
+function local(vaga) {
+  if (vaga.local?.modelo === "REMOTO") return "Remoto";
+  const partes = [vaga.local?.cidade, vaga.local?.uf].filter(Boolean);
+  const base = partes.join(", ") || "Local a definir";
+  return vaga.local?.modelo === "HIBRIDO" ? `${base} · Híbrido` : base;
+}
+
+const STATUS_VAGA = {
+  ABERTA: ["Aberta", "e-verde"],
+  RASCUNHO: ["Rascunho", "e-cinza"],
+  PAUSADA: ["Pausada", "e-ambar"],
+  ENCERRADA: ["Encerrada", "e-azul"],
+  CANCELADA: ["Cancelada", "e-vermelho"],
+};
+const STATUS_CANDIDATURA = {
+  EM_ANDAMENTO: ["Em andamento", "e-azul"],
+  APROVADO: ["Aprovado", "e-verde"],
+  REPROVADO: ["Reprovado", "e-vermelho"],
+  DESISTENTE: ["Desistiu", "e-cinza"],
+  BANCO: ["Banco de talentos", "e-marca"],
+};
+const DECISAO = {
+  APROVADO_AUTOMATICO: "Aprovado na triagem automática",
+  ANALISE_MANUAL: "Encaminhado para análise manual",
+  REPROVADO_AUTOMATICO: "Abaixo da nota de corte",
+  REPROVADO_KNOCKOUT: "Não atendeu pergunta eliminatória",
+};
+const etiqueta = (mapa, chave) => {
+  const [texto, cor] = mapa[chave] ?? [chave ?? "—", "e-cinza"];
+  return `<span class="etiqueta ${cor}">${esc(texto)}</span>`;
+};
+
+const CONTRATO = { CLT: "CLT", TEMPORARIO: "Temporário", PJ: "PJ", ESTAGIO: "Estágio", APRENDIZ: "Aprendiz" };
+
+const AREAS = {
+  Tecnologia: { icone: "raio", h: 250 },
+  Engenharia: { icone: "config", h: 205 },
+  Qualidade: { icone: "sst", h: 165 },
+  Produção: { icone: "estoque", h: 18 },
+  Logística: { icone: "compras", h: 35 },
+  Administrativo: { icone: "folha", h: 280 },
+};
+const visualArea = (area) => AREAS[area] ?? { icone: "vagas", h: matiz(area || "vaga") };
+
+function corScore(v) {
+  if (v >= 80) return "var(--verde)";
+  if (v >= 60) return "var(--azul)";
+  return "var(--ambar)";
+}
+const anel = (v, classe = "") => {
+  const valor = Math.max(0, Math.min(100, Math.round(v ?? 0)));
+  return `<span class="anel ${classe}" style="--v:${valor};--cor:${corScore(valor)}"><svg viewBox="0 0 36 36"><circle class="trilho" cx="18" cy="18" r="15.9155"/><circle class="valor" cx="18" cy="18" r="15.9155" pathLength="100"/></svg><b>${valor}</b></span>`;
+};
+
+function diasDesde(iso) {
+  if (!iso) return null;
+  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000));
+}
+const quando = (iso) => {
+  const d = diasDesde(iso);
+  if (d === null) return "";
+  if (d === 0) return "hoje";
+  if (d === 1) return "há 1 dia";
+  return `há ${d} dias`;
+};
+
+function cargoAtual(candidato) {
+  const atual = candidato.experiencias?.find((e) => e.atual) ?? candidato.experiencias?.[0];
+  return atual ? `${atual.cargo} · ${atual.empresa}` : candidato.formacao?.[0]?.curso ?? "Sem experiência registrada";
+}
+
+const casaBusca = (...textos) => {
+  const termo = estado.busca.trim().toLowerCase();
+  return !termo || textos.some((t) => String(t ?? "").toLowerCase().includes(termo));
+};
+
+// ---------------------------------------------------------------- menu e rotas
+
+function desenharMenu(rotaAtual) {
+  document.getElementById("menu").innerHTML = MODULOS.map((g) => `
+    <div class="menu-grupo">${g.grupo}</div>
+    ${g.itens.map((m) => {
+      const n = m.contador?.();
+      return `<a class="menu-item ${m.id === rotaAtual ? "ativo" : ""} ${m.breve ? "em-breve" : ""}" href="#/${m.id}">
+        ${icone(m.icone)}<span>${m.nome}</span>
+        ${m.breve ? '<span class="breve">em breve</span>' : n ? `<span class="contador">${n}</span>` : ""}
+      </a>`;
+    }).join("")}
+  `).join("");
+}
+
+function rotaAtual() {
+  const [rota, param] = location.hash.replace(/^#\/?/, "").split("/");
+  return { rota: rota || "inicio", param: param ? decodeURIComponent(param) : null };
+}
+
+function renderizar() {
+  const { rota, param } = rotaAtual();
+  const modulo = TODOS_MODULOS.find((m) => m.id === rota) ?? TODOS_MODULOS[0];
+  desenharMenu(modulo.id);
+  document.getElementById("titulo-pagina").textContent = modulo.titulo ?? modulo.nome;
+  document.getElementById("migalha").textContent = modulo.grupo;
+  document.getElementById("sidebar").classList.remove("aberta");
+
+  const conteudo = document.getElementById("conteudo");
+  if (modulo.breve) conteudo.innerHTML = telaEmBreve(modulo);
+  else if (modulo.id === "vagas") conteudo.innerHTML = telaVagas();
+  else if (modulo.id === "pipeline") conteudo.innerHTML = telaPipeline(param);
+  else if (modulo.id === "candidatos") conteudo.innerHTML = telaCandidatos();
+  else conteudo.innerHTML = telaInicio();
+}
+
+// ---------------------------------------------------------------- telas
+
+const ILUSTRACAO = `
+<svg class="ilustracao" viewBox="0 0 260 170" aria-hidden="true">
+  <defs>
+    <linearGradient id="il1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity=".75"/></linearGradient>
+    <linearGradient id="il2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff8a3d"/><stop offset="1" stop-color="#ffb547"/></linearGradient>
+  </defs>
+  <rect x="18" y="22" width="150" height="120" rx="14" fill="url(#il1)"/>
+  <circle cx="48" cy="54" r="14" fill="#c9c1ff"/><rect x="70" y="46" width="70" height="7" rx="3.5" fill="#d9d4ff"/><rect x="70" y="58" width="46" height="6" rx="3" fill="#ebe8fd"/>
+  <circle cx="48" cy="92" r="14" fill="#ffd3b0"/><rect x="70" y="84" width="60" height="7" rx="3.5" fill="#d9d4ff"/><rect x="70" y="96" width="38" height="6" rx="3" fill="#ebe8fd"/>
+  <rect x="34" y="118" width="118" height="9" rx="4.5" fill="#ebe8fd"/><rect x="34" y="118" width="84" height="9" rx="4.5" fill="url(#il2)"/>
+  <rect x="150" y="60" width="96" height="92" rx="14" fill="#fff"/>
+  <circle cx="198" cy="96" r="24" fill="none" stroke="#ebe8fd" stroke-width="7"/>
+  <circle cx="198" cy="96" r="24" fill="none" stroke="url(#il2)" stroke-width="7" stroke-linecap="round" stroke-dasharray="120 151" transform="rotate(-90 198 96)"/>
+  <text x="198" y="101" text-anchor="middle" font-family="Inter,sans-serif" font-weight="800" font-size="14" fill="#261c63">87</text>
+  <rect x="172" y="132" width="52" height="7" rx="3.5" fill="#ebe8fd"/>
+  <circle cx="226" cy="30" r="16" fill="url(#il2)"/><path d="M219 30l5 5 9-10" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
+function telaInicio() {
+  const r = estado.resumo ?? { vagas: {}, candidaturas: {} };
+  const emAndamento = estado.candidaturas.filter((c) => c.status === "EM_ANDAMENTO");
+  const hora = new Date().getHours();
+  const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+
+  const indicadores = [
+    { rotulo: "Vagas abertas", valor: r.vagas.abertas ?? 0, icone: "vagas", cor: "var(--marca-500)", fundo: "var(--marca-100)", nota: `${r.vagas.total ?? 0} no total` },
+    { rotulo: "Candidaturas", valor: r.candidaturas.total ?? estado.candidaturas.length, icone: "candidatos", cor: "var(--azul)", fundo: "var(--azul-bg)", nota: `${estado.candidatos.length} no banco de talentos` },
+    { rotulo: "Em andamento", valor: r.candidaturas.emAndamento ?? emAndamento.length, icone: "pipeline", cor: "var(--ambar)", fundo: "var(--ambar-bg)", nota: `${(r.slaAtrasadas ?? []).length} com prazo vencido` },
+    { rotulo: "Destaques", valor: r.candidaturas.destaques ?? 0, icone: "estrela", cor: "var(--verde)", fundo: "var(--verde-bg)", nota: "score acima de 80" },
+  ];
+
+  // Funil agregado de todas as vagas abertas, pela ordem das etapas-padrão.
+  const etapas = new Map();
+  for (const vaga of estado.vagas.filter((v) => v.status === "ABERTA")) {
+    for (const e of vaga.etapas ?? []) if (e.tipo !== "SAIDA" && !etapas.has(e.id)) etapas.set(e.id, { nome: e.nome, ordem: e.ordem, n: 0 });
   }
+  for (const c of emAndamento) if (etapas.has(c.etapaAtualId)) etapas.get(c.etapaAtualId).n += 1;
+  const linhasFunil = [...etapas.values()].sort((a, b) => a.ordem - b.ordem);
+  const maxFunil = Math.max(1, ...linhasFunil.map((l) => l.n));
 
-  setupEventListeners() {
-    document.querySelectorAll('.nav-item').forEach((item) => {
-      item.addEventListener('click', (event) => {
-        event.preventDefault();
-        this.navigateTo(event.currentTarget.dataset.route);
-      });
-    });
+  const destaques = [...emAndamento].sort((a, b) => (b.score?.total ?? 0) - (a.score?.total ?? 0)).slice(0, 5);
+  const vagasRecentes = [...estado.vagas].sort((a, b) => String(b.datas?.criadaEm ?? "").localeCompare(String(a.datas?.criadaEm ?? ""))).slice(0, 4);
 
-    document.getElementById('btn-nova-vaga').addEventListener('click', () => {
-      document.getElementById('modal-nova-vaga').classList.add('active');
-    });
+  return `
+    <section class="boas-vindas">
+      <div>
+        <h2>${saudacao}! Seu processo seletivo em um só lugar.</h2>
+        <p>${r.vagas.abertas ?? 0} vagas abertas e ${emAndamento.length} candidatos em andamento. A triagem automática já ordenou todos pelo score de aderência.</p>
+        <div class="acoes">
+          <button class="botao botao-claro" data-acao="nova-vaga">${icone("mais")}Publicar vaga</button>
+          <a class="botao botao-vidro" href="#/pipeline">${icone("pipeline")}Ver processo seletivo</a>
+        </div>
+      </div>
+      ${ILUSTRACAO}
+    </section>
 
-    document.getElementById('form-nova-vaga').addEventListener('submit', async (event) => {
-      event.preventDefault();
-      await this.criarVaga();
-    });
+    <section class="indicadores">
+      ${indicadores.map((i) => `
+        <div class="cartao indicador">
+          <span class="indicador-icone" style="color:${i.cor};background:${i.fundo}">${icone(i.icone)}</span>
+          <div><small>${i.rotulo}</small><strong>${i.valor}</strong><span class="dica">${esc(i.nota)}</span></div>
+        </div>`).join("")}
+    </section>
 
-    document.querySelectorAll('.btn-close, .btn-close-form').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        document.getElementById('modal-nova-vaga')?.classList.remove('active');
-        document.getElementById('modal-candidatura')?.classList.remove('active');
-      });
-    });
-
-    document.getElementById('filter-vaga').addEventListener('change', (event) => {
-      this.currentVagaFilter = event.target.value || null;
-      this.renderPipeline();
-    });
-  }
-
-  navigateTo(route) {
-    document.querySelectorAll('.nav-item').forEach((item) => item.classList.remove('active'));
-    const link = document.querySelector(`[data-route="${route}"]`);
-    if (link) link.classList.add('active');
-
-    document.querySelectorAll('.content-section').forEach((section) => section.classList.remove('active'));
-    const sectionEl = document.getElementById(`${route}-section`);
-    if (sectionEl) sectionEl.classList.add('active');
-
-    const titles = { vagas: 'Vagas', candidatos: 'Candidatos', pipeline: 'Pipeline' };
-    const pageTitle = document.getElementById('page-title');
-    if (pageTitle) pageTitle.textContent = titles[route] ?? 'Labutar';
-
-    this.currentSection = route;
-
-    if (route === 'vagas') this.renderVagas();
-    if (route === 'pipeline') this.renderPipeline();
-    if (route === 'candidatos') this.renderCandidatos();
-  }
-
-  async loadData() {
-    try {
-      const vagasRes = await fetch(`${API_BASE}/vagas`, {
-        headers: { 'X-Labutar-Tenant': TENANT_ID }
-      });
-      const vagasData = await vagasRes.json();
-      this.vagas = vagasData?.dados?.itens || [];
-
-      const candidatosRes = await fetch(`${API_BASE}/candidatos`, {
-        headers: { 'X-Labutar-Tenant': TENANT_ID }
-      });
-      const candidatosData = await candidatosRes.json();
-      this.candidatos = candidatosData?.dados?.itens || [];
-
-      this.candidaturas = [];
-      const vagasAbertas = this.vagas.filter((vaga) => vaga.status === 'ABERTA');
-      for (const vaga of vagasAbertas) {
-        const res = await fetch(`${API_BASE}/vagas/${vaga.id}/candidaturas`, {
-          headers: { 'X-Labutar-Tenant': TENANT_ID }
-        });
-        const data = await res.json();
-        const itens = data?.dados?.itens || [];
-        this.candidaturas.push(...itens.map((candidatura) => ({ ...candidatura, vagaTitulo: vaga.titulo })));
-      }
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-      this.showError('Erro ao carregar dados do servidor');
-    }
-  }
-
-  render() {
-    if (this.currentSection === 'vagas') this.renderVagas();
-    if (this.currentSection === 'pipeline') this.renderPipeline();
-    if (this.currentSection === 'candidatos') this.renderCandidatos();
-  }
-
-  renderVagas() {
-    const container = document.getElementById('vagas-grid');
-    if (!container) return;
-
-    if (!this.vagas.length) {
-      container.innerHTML = '<div class="loading">Nenhuma vaga criada.</div>';
-      return;
-    }
-
-    container.innerHTML = this.vagas.map((vaga) => `
-      <div class="vaga-card">
-        <div class="vaga-card-header">
-          <div>
-            <div class="vaga-card-title">${vaga.titulo}</div>
-            <span class="vaga-status ${vaga.status}">${vaga.status}</span>
+    <section class="grade-inicio">
+      <div class="cartao">
+        <div class="cartao-cabecalho"><div><h3>Funil de seleção</h3><p>Candidatos em andamento por etapa, em todas as vagas abertas</p></div></div>
+        <div class="cartao-corpo">
+          <div class="funil">
+            ${linhasFunil.map((l) => `
+              <div class="funil-linha"><span>${esc(l.nome)}</span><div class="barra"><i style="width:${Math.max(l.n ? 6 : 0, (l.n / maxFunil) * 100)}%"></i></div><b>${l.n}</b></div>`).join("") || '<div class="vazio">Nenhuma vaga aberta.</div>'}
           </div>
         </div>
-        <div class="vaga-card-meta">
-          <div>📍 ${vaga.local?.cidade || 'Remoto'}, ${vaga.local?.uf || ''}</div>
-          <div>💼 ${vaga.area || 'N/A'}</div>
-          <div>🎯 ${vaga.quantidadeVagas || 1} vaga(s)</div>
-          ${vaga.salario?.min ? `<div>💰 R$ ${(vaga.salario.min / 100).toLocaleString('pt-BR')} - R$ ${(vaga.salario.max / 100).toLocaleString('pt-BR')}</div>` : ''}
-        </div>
-        <div class="vaga-card-actions">
-          <button class="btn btn-primary" type="button" onclick="app.abrirVaga('${vaga.id}')">
-            ${vaga.status === 'ABERTA' ? '✓ Aberta' : 'Abrir'}
-          </button>
-          <button class="btn btn-secondary" type="button" onclick="app.visualizarPipeline('${vaga.id}')">
-            Pipeline →
-          </button>
-        </div>
       </div>
-    `).join('');
-  }
 
-  renderPipeline() {
-    const container = document.getElementById('pipeline-container');
-    const filterSelect = document.getElementById('filter-vaga');
-    if (!container || !filterSelect) return;
-
-    const openVagas = this.vagas.filter((vaga) => vaga.status === 'ABERTA');
-    filterSelect.innerHTML = '<option value="">Todas as vagas</option>' +
-      openVagas.map((vaga) => `<option value="${vaga.id}">${vaga.titulo}</option>`).join('');
-
-    const selected = this.currentVagaFilter || (openVagas[0]?.id ?? '');
-    if (selected) filterSelect.value = selected;
-
-    const vagaBase = openVagas.find((vaga) => vaga.id === selected) || openVagas[0];
-    if (!vagaBase || !Array.isArray(vagaBase.etapas)) {
-      container.innerHTML = '<div class="loading">Nenhuma vaga aberta.</div>';
-      return;
-    }
-
-    const etapas = vagaBase.etapas || [];
-    const pipelineColumns = etapas.map((etapa) => {
-      const candidaturas = this.candidaturas.filter((c) => c.vagaId === vagaBase.id && c.etapaAtualId === etapa.id);
-      return { ...etapa, candidaturas };
-    });
-
-    container.innerHTML = pipelineColumns.map((etapa) => `
-      <div class="pipeline-column">
-        <div class="pipeline-column-header">
-          ${etapa.nome}
-          <span class="pipeline-column-count">${etapa.candidaturas.length}</span>
-        </div>
-        <div class="pipeline-cards">
-          ${etapa.candidaturas.length === 0 ? '<div class="loading small">Vazio</div>' : etapa.candidaturas.map((candidatura) => {
-            const candidato = this.candidatos.find((item) => item.id === candidatura.candidatoId);
-            const nome = candidato?.dados?.nome || 'Candidato';
-            const score = candidatura.score?.total ?? 0;
-            return `
-              <div class="candidatura-card" onclick="app.openCandidaturaDetails('${candidatura.id}')">
-                <div class="candidatura-card-name">${nome}</div>
-                <div class="candidatura-card-score">Score: ${score}%</div>
-                ${candidatura.score?.destaque ? '<div class="pill destaque">⭐ Destaque</div>' : ''}
-                <div class="pill">${candidatura.status || 'EM_ANDAMENTO'}</div>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-    `).join('');
-  }
-
-  renderCandidatos() {
-    const container = document.getElementById('candidatos-list');
-    if (!container) return;
-
-    if (!this.candidatos.length) {
-      container.innerHTML = '<div class="loading">Nenhum candidato no banco.</div>';
-      return;
-    }
-
-    container.innerHTML = this.candidatos.map((candidato) => `
-      <div class="candidate-item">
-        <div class="candidate-name">${candidato.dados?.nome || 'Nome não informado'}</div>
-        <div class="candidate-meta">
-          <div>📧 ${candidato.contato?.email || 'N/A'}</div>
-          <div>📱 ${candidato.contato?.telefone || 'N/A'}</div>
-          <div>📍 ${candidato.contato?.cidade || 'N/A'} / ${candidato.contato?.uf || 'N/A'}</div>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  async criarVaga() {
-    const titulo = document.getElementById('vaga-titulo').value.trim();
-    const descricao = document.getElementById('vaga-descricao').value.trim();
-    const area = document.getElementById('vaga-area').value.trim();
-    const nivel = document.getElementById('vaga-nivel').value;
-    const cidade = document.getElementById('vaga-cidade').value.trim();
-    const uf = document.getElementById('vaga-uf').value.trim();
-    const salarioMin = Number(document.getElementById('vaga-salario-min').value || 0);
-    const salarioMax = Number(document.getElementById('vaga-salario-max').value || 0);
-    const quantidade = Number(document.getElementById('vaga-quantidade').value || 1);
-
-    if (!titulo || !descricao) {
-      this.showError('Título e descrição são obrigatórios');
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_BASE}/vagas`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Labutar-Tenant': TENANT_ID,
-          'X-Labutar-User': 'recrutador-teste'
-        },
-        body: JSON.stringify({
-          titulo,
-          descricao,
-          area,
-          nivel,
-          local: { modelo: cidade ? 'PRESENCIAL' : 'REMOTO', cidade, uf },
-          salario: { min: salarioMin, max: salarioMax, exibir: salarioMin > 0 || salarioMax > 0 },
-          quantidadeVagas: quantidade,
-          regrasTriagem: { corteMinimo: 60 }
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao criar vaga');
-      }
-
-      const data = await response.json();
-      this.vagas.push(data.dados.vaga);
-      document.getElementById('modal-nova-vaga').classList.remove('active');
-      document.getElementById('form-nova-vaga').reset();
-      this.renderVagas();
-      this.showSuccess('Vaga criada com sucesso');
-    } catch (error) {
-      console.error(error);
-      this.showError('Erro ao criar vaga');
-    }
-  }
-
-  async abrirVaga(vagaId) {
-    const vaga = this.vagas.find((item) => item.id === vagaId);
-    if (!vaga || vaga.status === 'ABERTA') return;
-
-    try {
-      const response = await fetch(`${API_BASE}/vagas/${vagaId}/status`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Labutar-Tenant': TENANT_ID,
-          'X-Labutar-User': 'recrutador-teste'
-        },
-        body: JSON.stringify({ para: 'ABERTA' })
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao abrir vaga');
-      }
-
-      const data = await response.json();
-      const index = this.vagas.findIndex((item) => item.id === vagaId);
-      this.vagas[index] = data.dados.vaga;
-      this.renderVagas();
-      this.showSuccess('Vaga aberta com sucesso');
-    } catch (error) {
-      console.error(error);
-      this.showError('Erro ao abrir vaga');
-    }
-  }
-
-  visualizeVagaPipeline(vagaId) {
-    this.currentVagaFilter = vagaId;
-    this.navigateTo('pipeline');
-  }
-
-  visualizarPipeline(vagaId) {
-    this.visualizeVagaPipeline(vagaId);
-  }
-
-  async openCandidaturaDetails(candidaturaId) {
-    const candidatura = this.candidaturas.find((item) => item.id === candidaturaId);
-    if (!candidatura) return;
-
-    const modal = document.getElementById('modal-candidatura');
-    const body = document.getElementById('candidatura-body');
-    const vaga = this.vagas.find((item) => item.id === candidatura.vagaId);
-    const candidato = this.candidatos.find((item) => item.id === candidatura.candidatoId);
-    const etapaAtual = vaga?.etapas?.find((etapa) => etapa.id === candidatura.etapaAtualId);
-    const proximaEtapa = vaga?.etapas?.find((etapa, index, etapas) => {
-      return etapas[index - 1]?.id === candidatura.etapaAtualId || (index === 0 && !etapas.some((item) => item.id === candidatura.etapaAtualId));
-    });
-
-    const proxima = vaga?.etapas && Array.isArray(vaga.etapas)
-      ? vaga.etapas[vaga.etapas.findIndex((etapa) => etapa.id === candidatura.etapaAtualId) + 1]
-      : null;
-
-    const score = candidatura.score?.total ?? 0;
-    const decisoes = candidatura.triagem?.decisao || 'sem decisão';
-
-    body.innerHTML = `
-      <div class="detail-grid">
-        <div class="detail-box">
-          <h4>Dados do candidato</h4>
-          <p><strong>Nome:</strong> ${candidato?.dados?.nome || 'N/A'}</p>
-          <p><strong>E-mail:</strong> ${candidato?.contato?.email || 'N/A'}</p>
-          <p><strong>Telefone:</strong> ${candidato?.contato?.telefone || 'N/A'}</p>
-          <p><strong>Local:</strong> ${candidato?.contato?.cidade || 'N/A'} / ${candidato?.contato?.uf || 'N/A'}</p>
-        </div>
-
-        <div class="detail-box">
-          <h4>Dados da vaga</h4>
-          <p><strong>Vaga:</strong> ${vaga?.titulo || candidatura.vagaTitulo || 'N/A'}</p>
-          <p><strong>Etapa atual:</strong> ${etapaAtual?.nome || candidatura.etapaAtualId}</p>
-          <p><strong>Decisão da triagem:</strong> ${decisoes}</p>
-          <p><strong>Score:</strong> ${score}%</p>
+      <div class="cartao">
+        <div class="cartao-cabecalho"><div><h3>Melhores candidatos</h3><p>Maior aderência entre os que estão em andamento</p></div><a class="botao botao-fantasma botao-sm" href="#/pipeline">Ver todos</a></div>
+        <div class="cartao-corpo lista">
+          ${destaques.map((c) => {
+            const cand = candidatoPorId(c.candidatoId);
+            return `<div class="lista-item" data-candidatura="${esc(c.id)}">
+              ${avatar(cand?.dados?.nome)}
+              <div class="texto"><strong>${esc(cand?.dados?.nome ?? "Candidato")}</strong><small>${esc(vagaPorId(c.vagaId)?.titulo ?? "")}</small></div>
+              ${anel(c.score?.total)}
+            </div>`;
+          }).join("") || '<div class="vazio">Sem candidaturas ainda.</div>'}
         </div>
       </div>
 
-      <div class="detail-box mt-1">
+      <div class="cartao">
+        <div class="cartao-cabecalho"><div><h3>Vagas recentes</h3><p>Acompanhe as últimas publicações</p></div><a class="botao botao-fantasma botao-sm" href="#/vagas">Ver vagas</a></div>
+        <div class="cartao-corpo lista">
+          ${vagasRecentes.map((v) => {
+            const va = visualArea(v.area);
+            const n = estado.candidaturas.filter((c) => c.vagaId === v.id).length;
+            return `<a class="lista-item" href="#/pipeline/${encodeURIComponent(v.id)}">
+              <span class="indicador-icone" style="width:38px;height:38px;color:hsl(${va.h} 60% 40%);background:hsl(${va.h} 80% 94%)">${icone(va.icone)}</span>
+              <div class="texto"><strong>${esc(v.titulo)}</strong><small>${esc(local(v))} · ${n} candidato${n === 1 ? "" : "s"}</small></div>
+              ${etiqueta(STATUS_VAGA, v.status)}
+            </a>`;
+          }).join("")}
+        </div>
+      </div>
+
+      <div class="cartao">
+        <div class="cartao-cabecalho"><div><h3>Origem dos candidatos</h3><p>De onde vêm as candidaturas</p></div></div>
+        <div class="cartao-corpo">${graficoOrigens()}</div>
+      </div>
+    </section>`;
+}
+
+const NOME_CANAL = {
+  PORTAL_LABUTAR: "Portal de vagas", LINKEDIN: "LinkedIn", INDEED: "Indeed", CATHO: "Catho",
+  INFOJOBS: "InfoJobs", INDICACAO: "Indicação", WHATSAPP: "WhatsApp", FACEBOOK: "Facebook", MANUAL: "Cadastro manual",
+};
+function graficoOrigens() {
+  const dados = estado.origens.filter((o) => o.quantidade > 0);
+  const total = dados.reduce((s, o) => s + o.quantidade, 0);
+  if (!total) return '<div class="vazio">Sem candidaturas ainda.</div>';
+  const cores = ["#5b47e0", "#ff8a3d", "#12a071", "#2f7ae5", "#d6455d", "#c77a0a"];
+  let acumulado = 0;
+  const fatias = dados.map((o, i) => {
+    const parte = (o.quantidade / total) * 100;
+    const arco = `<circle cx="21" cy="21" r="15.9155" fill="none" stroke="${cores[i % cores.length]}" stroke-width="6" pathLength="100" stroke-dasharray="${parte} ${100 - parte}" stroke-dashoffset="${-acumulado}" transform="rotate(-90 21 21)"/>`;
+    acumulado += parte;
+    return arco;
+  }).join("");
+  return `<div class="rosca">
+    <svg viewBox="0 0 42 42"><circle cx="21" cy="21" r="15.9155" fill="none" stroke="#eef0f5" stroke-width="6"/>${fatias}
+      <text x="21" y="21" text-anchor="middle" font-size="7" font-weight="800" fill="#171a2b" font-family="Inter,sans-serif">${total}</text>
+      <text x="21" y="27" text-anchor="middle" font-size="3.2" fill="#8a90a8" font-family="Inter,sans-serif">candidaturas</text></svg>
+    <div class="legenda">${dados.map((o, i) => `<div><i style="background:${cores[i % cores.length]}"></i>${esc(NOME_CANAL[o.canal] ?? o.canal)}<b>${Math.round((o.quantidade / total) * 100)}%</b></div>`).join("")}</div>
+  </div>`;
+}
+
+function telaVagas() {
+  const contagem = (s) => estado.vagas.filter((v) => s === "TODAS" || v.status === s).length;
+  const filtros = [["TODAS", "Todas"], ["ABERTA", "Abertas"], ["RASCUNHO", "Rascunhos"], ["PAUSADA", "Pausadas"], ["ENCERRADA", "Encerradas"]];
+  const vagas = estado.vagas.filter((v) =>
+    (estado.filtroVagas === "TODAS" || v.status === estado.filtroVagas) &&
+    casaBusca(v.titulo, v.area, v.local?.cidade, v.resumo));
+
+  return `
+    <div class="barra-filtros">
+      ${filtros.map(([s, nome]) => `<button class="filtro ${estado.filtroVagas === s ? "ativo" : ""}" data-filtro-vagas="${s}">${nome}<b>${contagem(s)}</b></button>`).join("")}
+      <span class="direita">${vagas.length} vaga${vagas.length === 1 ? "" : "s"}</span>
+    </div>
+    <div class="grade-vagas">
+      ${vagas.map(cartaoVaga).join("") || '<div class="cartao vazio">Nenhuma vaga encontrada.</div>'}
+    </div>`;
+}
+
+function cartaoVaga(v) {
+  const va = visualArea(v.area);
+  const candidaturas = estado.candidaturas.filter((c) => c.vagaId === v.id);
+  const pessoas = candidaturas.slice(0, 4).map((c) => candidatoPorId(c.candidatoId)?.dados?.nome ?? "?");
+  const competencias = (v.competencias ?? []).slice(0, 4);
+  return `
+    <article class="cartao vaga">
+      <div class="vaga-capa" style="--h:${va.h}">
+        <span class="vaga-capa-icone">${icone(va.icone)}</span>
+        ${etiqueta(STATUS_VAGA, v.status)}
+      </div>
+      <div class="vaga-corpo">
+        <div>
+          <div class="vaga-area">${esc(v.area || "Geral")}${v.nivel ? ` · ${esc(v.nivel)}` : ""}</div>
+          <h3>${esc(v.titulo)}</h3>
+        </div>
+        ${v.resumo ? `<p class="vaga-resumo">${esc(v.resumo)}</p>` : ""}
+        <div class="meta">
+          <span>${icone("local")}${esc(local(v))}</span>
+          <span>${icone("pessoas")}${v.quantidadeVagas ?? 1} posição${(v.quantidadeVagas ?? 1) > 1 ? "ões" : ""}</span>
+          ${v.tipoContrato ? `<span>${icone("admissao")}${esc(CONTRATO[v.tipoContrato] ?? v.tipoContrato)}</span>` : ""}
+        </div>
+        ${competencias.length ? `<div class="chips">${competencias.map((c) => `<span class="chip">${esc(c.nome)}</span>`).join("")}</div>` : ""}
+        <div class="vaga-salario">${esc(faixaSalarial(v))} <small>/ mês</small></div>
+      </div>
+      <div class="vaga-rodape">
+        <div class="pilha">
+          ${pessoas.map((n) => avatar(n)).join("")}
+          <small>${candidaturas.length ? `${candidaturas.length} candidato${candidaturas.length === 1 ? "" : "s"}` : "Sem candidatos ainda"}</small>
+        </div>
+        ${v.status === "RASCUNHO"
+          ? `<button class="botao botao-secundario botao-sm" data-abrir-vaga="${esc(v.id)}">Publicar</button>`
+          : `<a class="botao botao-secundario botao-sm" href="#/pipeline/${encodeURIComponent(v.id)}">Processo ${icone("seta")}</a>`}
+      </div>
+    </article>`;
+}
+
+const COR_ETAPA = { TRIAGEM: "#8a90a8", CURRICULO: "#2f7ae5", AVALIACAO: "#5b47e0", ENTREVISTA: "#c77a0a", PROPOSTA: "#ff8a3d", APPROVACAO: "#12a071", ADMISSAO: "#0e8f6a" };
+
+function telaPipeline(vagaId) {
+  const elegiveis = estado.vagas.filter((v) => v.status !== "RASCUNHO" && v.status !== "CANCELADA");
+  const vaga = vagaPorId(vagaId) ?? vagaPorId(estado.vagaPipeline) ?? elegiveis[0];
+  if (!vaga) return '<div class="cartao vazio">Nenhuma vaga publicada ainda.</div>';
+  estado.vagaPipeline = vaga.id;
+
+  const candidaturas = estado.candidaturas.filter((c) => c.vagaId === vaga.id);
+  const colunas = (vaga.etapas ?? []).filter((e) => e.tipo !== "SAIDA").sort((a, b) => a.ordem - b.ordem);
+
+  return `
+    <div class="pipeline-topo">
+      <select class="seletor" id="seletor-vaga">
+        ${elegiveis.map((v) => `<option value="${esc(v.id)}" ${v.id === vaga.id ? "selected" : ""}>${esc(v.titulo)}</option>`).join("")}
+      </select>
+      ${etiqueta(STATUS_VAGA, vaga.status)}
+      <div class="meta"><span>${icone("local")}${esc(local(vaga))}</span><span>${icone("candidatos")}${candidaturas.length} candidatura${candidaturas.length === 1 ? "" : "s"}</span></div>
+    </div>
+    <div class="kanban">
+      ${colunas.map((etapa) => {
+        const cards = candidaturas
+          .filter((c) => c.etapaAtualId === etapa.id && casaBusca(candidatoPorId(c.candidatoId)?.dados?.nome))
+          .sort((a, b) => (b.score?.total ?? 0) - (a.score?.total ?? 0));
+        return `<section class="coluna">
+          <header class="coluna-topo"><i style="background:${COR_ETAPA[etapa.tipo] ?? "#8a90a8"}"></i><strong>${esc(etapa.nome)}</strong><span>${cards.length}</span></header>
+          ${cards.map(fichaCandidatura).join("") || '<div class="coluna-vazia">Nenhum candidato nesta etapa</div>'}
+        </section>`;
+      }).join("")}
+    </div>`;
+}
+
+function fichaCandidatura(c) {
+  const cand = candidatoPorId(c.candidatoId);
+  const nome = cand?.dados?.nome ?? "Candidato";
+  const dias = diasDesde(c.etapaAtualDesde);
+  return `<article class="cartao ficha" data-candidatura="${esc(c.id)}">
+    <div class="ficha-topo">
+      ${avatar(nome)}
+      <div class="texto"><strong>${esc(nome)}</strong><small>${esc(cand ? cargoAtual(cand) : "")}</small></div>
+      ${anel(c.score?.total)}
+    </div>
+    <div class="ficha-rodape">
+      <span>${icone("relogio")}${dias === null ? "—" : dias === 0 ? "Entrou hoje" : `${dias} dia${dias === 1 ? "" : "s"} na etapa`}</span>
+      ${c.status !== "EM_ANDAMENTO" ? etiqueta(STATUS_CANDIDATURA, c.status) : c.score?.destaque ? '<span class="etiqueta e-destaque sem-ponto">★ Destaque</span>' : ""}
+    </div>
+  </article>`;
+}
+
+function telaCandidatos() {
+  const lista = estado.candidatos.filter((c) =>
+    casaBusca(c.dados?.nome, c.contato?.cidade, cargoAtual(c), ...(c.competencias ?? []).map((x) => x.nome)));
+  return `
+    <div class="barra-filtros"><span class="direita" style="margin-left:0">${lista.length} pessoa${lista.length === 1 ? "" : "s"} no banco de talentos</span></div>
+    <div class="grade-candidatos">
+      ${lista.map((c) => {
+        const cands = estado.candidaturas.filter((x) => x.candidatoId === c.id);
+        const melhor = Math.max(0, ...cands.map((x) => x.score?.total ?? 0));
+        const comp = [...(c.competencias ?? [])].sort((a, b) => (b.nivel ?? 0) - (a.nivel ?? 0)).slice(0, 4);
+        return `<article class="cartao perfil" data-candidato="${esc(c.id)}">
+          <div class="perfil-topo">
+            ${avatar(c.dados?.nome, "avatar-lg")}
+            <div class="texto"><strong>${esc(c.dados?.nome)}</strong><small>${esc(cargoAtual(c))}</small>
+              <div class="meta" style="margin-top:6px"><span>${icone("local")}${esc([c.contato?.cidade, c.contato?.uf].filter(Boolean).join(" / ") || "—")}</span></div>
+            </div>
+            ${cands.length ? anel(melhor) : ""}
+          </div>
+          ${comp.length ? `<div class="chips">${comp.map((x) => `<span class="chip">${esc(x.nome)}</span>`).join("")}</div>` : ""}
+          <div class="perfil-rodape">
+            <span>${cands.length ? `<b>${cands.length}</b> candidatura${cands.length === 1 ? "" : "s"}` : "Sem candidaturas"}${c.pretensaoSalarial ? ` · pretensão <b>${reais(c.pretensaoSalarial)}</b>` : ""}</span>
+            <span class="contatos">
+              ${c.contato?.email ? `<a href="mailto:${esc(c.contato.email)}" title="${esc(c.contato.email)}" data-parar>${icone("email")}</a>` : ""}
+              ${c.contato?.telefone ? `<a href="tel:${esc(c.contato.telefone.replace(/\D/g, ""))}" title="${esc(c.contato.telefone)}" data-parar>${icone("telefone")}</a>` : ""}
+            </span>
+          </div>
+        </article>`;
+      }).join("") || '<div class="cartao vazio">Nenhum candidato encontrado.</div>'}
+    </div>`;
+}
+
+function telaEmBreve(m) {
+  return `<section class="cartao em-breve-pagina">
+    <div>
+      <span class="etiqueta e-destaque">${icone("foguete", "")}Em desenvolvimento</span>
+      <h2>${esc(m.titulo ?? m.nome)}</h2>
+      <p>${esc(m.resumo)}</p>
+      <div class="recursos">${m.recursos.map((r) => `<div class="recurso">${icone("ok")}<span>${esc(r)}</span></div>`).join("")}</div>
+    </div>
+    <div class="em-breve-arte">${icone(m.icone)}</div>
+  </section>`;
+}
+
+// ---------------------------------------------------------------- painel lateral
+
+function abrirPainel(html) {
+  document.getElementById("painel").innerHTML = html;
+  const el = document.getElementById("painel-lateral");
+  el.classList.add("aberto");
+  el.setAttribute("aria-hidden", "false");
+}
+function fecharPainel() {
+  const el = document.getElementById("painel-lateral");
+  el.classList.remove("aberto");
+  el.setAttribute("aria-hidden", "true");
+}
+
+const NOME_COMPONENTE = { competencias: "Competências", experiencia: "Experiência", formacao: "Formação", idiomas: "Idiomas", localizacao: "Localização" };
+
+function painelCandidatura(id) {
+  const c = estado.candidaturas.find((x) => x.id === id);
+  if (!c) return;
+  const cand = candidatoPorId(c.candidatoId);
+  const vaga = vagaPorId(c.vagaId);
+  const etapas = (vaga?.etapas ?? []).filter((e) => e.tipo !== "SAIDA").sort((a, b) => a.ordem - b.ordem);
+  const indice = etapas.findIndex((e) => e.id === c.etapaAtualId);
+  const proxima = etapas[indice + 1];
+  const comp = c.score?.componentes ?? {};
+  const detalhe = comp.competencias?.detalhe ?? [];
+  const nome = cand?.dados?.nome ?? "Candidato";
+
+  abrirPainel(`
+    <header class="painel-cabecalho">
+      ${avatar(nome, "avatar-lg")}
+      <div class="texto">
+        <h2>${esc(nome)}</h2>
+        <p>${esc(cand ? cargoAtual(cand) : "")}</p>
+        <div class="meta" style="margin-top:8px">
+          ${cand?.contato?.cidade ? `<span>${icone("local")}${esc(cand.contato.cidade)} / ${esc(cand.contato.uf ?? "")}</span>` : ""}
+          ${cand?.contato?.email ? `<span>${icone("email")}${esc(cand.contato.email)}</span>` : ""}
+          ${cand?.contato?.telefone ? `<span>${icone("telefone")}${esc(cand.contato.telefone)}</span>` : ""}
+        </div>
+      </div>
+      <button class="botao-icone" data-fechar aria-label="Fechar">${icone("fechar")}</button>
+    </header>
+    <div class="painel-corpo">
+      <div class="secao">
+        <h4>${esc(vaga?.titulo ?? "")}</h4>
+        <div class="etapas-trilha">${etapas.map((e, i) => `<i class="${i < indice ? "feito" : i === indice ? "atual" : ""}" title="${esc(e.nome)}"></i>`).join("")}</div>
+        <p class="dica" style="margin-top:8px">Etapa atual: <b>${esc(etapas[indice]?.nome ?? c.etapaAtualId)}</b> · ${quando(c.etapaAtualDesde)} · ${etiqueta(STATUS_CANDIDATURA, c.status)}</p>
+      </div>
+
+      <div class="score-resumo">
+        ${anel(c.score?.total, "anel-lg")}
+        <div>
+          <strong>Aderência à vaga</strong>
+          <p>${esc(DECISAO[c.triagem?.decisao] ?? (c.score?.destaque ? "Candidato em destaque para esta vaga" : "Calculado pela triagem automática"))}</p>
+          <p class="dica">Nota de corte: ${c.score?.corteMinimo ?? "—"}</p>
+        </div>
+      </div>
+
+      <div class="secao">
+        <h4>Composição do score</h4>
+        <div class="componentes">
+          ${Object.entries(comp).map(([k, v]) => `
+            <div class="componente"><span>${NOME_COMPONENTE[k] ?? k}</span><div class="barra"><i style="width:${v?.score ?? 0}%;background:${corScore(v?.score ?? 0)}"></i></div><b>${v?.score ?? 0}</b></div>`).join("")}
+        </div>
+      </div>
+
+      ${detalhe.length ? `<div class="secao">
+        <h4>Competências exigidas</h4>
+        <table class="competencias-tabela">
+          ${detalhe.map((d) => `<tr>
+            <td>${esc(d.competencia)}${d.obrigatoria ? ' <span class="etiqueta e-marca sem-ponto">obrigatória</span>' : ""}</td>
+            <td><span class="niveis">${[1, 2, 3, 4, 5].map((n) => `<i class="${n <= (d.nivelCandidato ?? 0) ? "cheio" : ""}"></i>`).join("")}</span></td>
+            <td>${d.atende ? '<span class="etiqueta e-verde">atende</span>' : '<span class="etiqueta e-vermelho">abaixo</span>'}</td>
+          </tr>`).join("")}
+        </table>
+      </div>` : ""}
+
+      ${(c.respostasKnockout ?? []).length ? `<div class="secao">
+        <h4>Perguntas eliminatórias</h4>
+        <div class="lista">${c.respostasKnockout.map((k) => `<div class="lista-item" style="cursor:default">
+          <div class="texto"><strong style="white-space:normal">${esc(k.pergunta)}</strong><small>Resposta: ${esc(k.valor)}</small></div>
+          ${k.pendente ? '<span class="etiqueta e-ambar">pendente</span>' : k.atende ? '<span class="etiqueta e-verde">atende</span>' : '<span class="etiqueta e-vermelho">não atende</span>'}
+        </div>`).join("")}</div>
+      </div>` : ""}
+
+      <div class="secao">
         <h4>Histórico</h4>
-        <ul class="history-list">
-          ${(candidatura.historico || []).map((item) => `
-            <li>
-              <span>${item.etapaId}</span>
-              <small>${new Date(item.em).toLocaleString('pt-BR')}</small>
-            </li>
-          `).join('') || '<li>Sem histórico.</li>'}
+        <ul class="linha-tempo">
+          ${(c.historico ?? []).slice().reverse().map((h) => `<li><b>${esc(etapas.find((e) => e.id === (h.paraEtapaId ?? h.etapaId))?.nome ?? h.paraEtapaId ?? h.etapaId ?? h.evento ?? "Movimentação")}</b>${h.observacao ? ` — ${esc(h.observacao)}` : ""}<small>${h.em ? new Date(h.em).toLocaleString("pt-BR") : ""}</small></li>`).join("") || "<li>Candidatura recebida<small>" + esc(quando(c.criadaEm ?? c.etapaAtualDesde)) + "</small></li>"}
         </ul>
       </div>
+    </div>
+    <footer class="painel-rodape">
+      <button class="botao botao-secundario" data-fechar>Fechar</button>
+      ${proxima && c.status === "EM_ANDAMENTO"
+        ? `<button class="botao botao-primario" data-mover="${esc(c.id)}" data-para="${esc(proxima.id)}">Avançar para ${esc(proxima.nome)} ${icone("seta")}</button>`
+        : ""}
+    </footer>`);
+}
 
-      <div class="modal-action-area">
-        ${proxima ? `<button class="btn btn-primary" type="button" onclick="app.moverCandidatura('${candidatura.id}', '${proxima.id}')">Avançar para ${proxima.nome}</button>` : '<button class="btn btn-secondary" type="button" disabled>Finalizada</button>'}
+function painelCandidato(id) {
+  const c = candidatoPorId(id);
+  if (!c) return;
+  const cands = estado.candidaturas.filter((x) => x.candidatoId === id);
+  abrirPainel(`
+    <header class="painel-cabecalho">
+      ${avatar(c.dados?.nome, "avatar-lg")}
+      <div class="texto"><h2>${esc(c.dados?.nome)}</h2><p>${esc(cargoAtual(c))}</p>
+        <div class="meta" style="margin-top:8px">
+          ${c.contato?.cidade ? `<span>${icone("local")}${esc(c.contato.cidade)} / ${esc(c.contato.uf ?? "")}</span>` : ""}
+          ${c.contato?.email ? `<span>${icone("email")}${esc(c.contato.email)}</span>` : ""}
+          ${c.contato?.telefone ? `<span>${icone("telefone")}${esc(c.contato.telefone)}</span>` : ""}
+        </div></div>
+      <button class="botao-icone" data-fechar aria-label="Fechar">${icone("fechar")}</button>
+    </header>
+    <div class="painel-corpo">
+      ${c.curriculoTexto ? `<div class="secao"><h4>Resumo</h4><p>${esc(c.curriculoTexto)}</p></div>` : ""}
+      <div class="secao"><h4>Candidaturas</h4><div class="lista">
+        ${cands.map((x) => `<div class="lista-item" data-candidatura="${esc(x.id)}"><div class="texto"><strong>${esc(vagaPorId(x.vagaId)?.titulo ?? "")}</strong><small>${esc(vagaPorId(x.vagaId)?.etapas?.find((e) => e.id === x.etapaAtualId)?.nome ?? "")}</small></div>${anel(x.score?.total)}</div>`).join("") || '<p class="dica">Nenhuma candidatura.</p>'}
+      </div></div>
+      ${(c.competencias ?? []).length ? `<div class="secao"><h4>Competências</h4><table class="competencias-tabela">
+        ${c.competencias.map((x) => `<tr><td>${esc(x.nome)}</td><td style="text-align:right"><span class="niveis">${[1, 2, 3, 4, 5].map((n) => `<i class="${n <= (x.nivel ?? 0) ? "cheio" : ""}"></i>`).join("")}</span></td></tr>`).join("")}
+      </table></div>` : ""}
+      ${(c.experiencias ?? []).length ? `<div class="secao"><h4>Experiência</h4><ul class="linha-tempo">
+        ${c.experiencias.map((e) => `<li><b>${esc(e.cargo)}</b> · ${esc(e.empresa)}<small>${esc(e.inicio?.slice(0, 7) ?? "")} — ${e.atual ? "atual" : esc(e.fim?.slice(0, 7) ?? "")}</small></li>`).join("")}
+      </ul></div>` : ""}
+      ${(c.formacao ?? []).length ? `<div class="secao"><h4>Formação</h4><ul class="linha-tempo">
+        ${c.formacao.map((f) => `<li><b>${esc(f.curso)}</b><small>${esc(f.instituicao ?? "")}${f.concluido ? "" : " · em andamento"}</small></li>`).join("")}
+      </ul></div>` : ""}
+    </div>
+    <footer class="painel-rodape"><button class="botao botao-secundario" data-fechar>Fechar</button></footer>`);
+}
+
+function painelNovaVaga() {
+  abrirPainel(`
+    <header class="painel-cabecalho">
+      <span class="indicador-icone" style="color:var(--marca-500);background:var(--marca-100)">${icone("vagas")}</span>
+      <div class="texto"><h2>Nova vaga</h2><p>A vaga é criada como rascunho. Você publica quando estiver pronta.</p></div>
+      <button class="botao-icone" data-fechar aria-label="Fechar">${icone("fechar")}</button>
+    </header>
+    <form class="painel-corpo formulario" id="form-vaga">
+      <div class="campo"><label for="f-titulo">Título da vaga *</label><input id="f-titulo" name="titulo" required maxlength="140" placeholder="Ex.: Auxiliar de logística — temporário"></div>
+      <div class="campo"><label for="f-resumo">Resumo</label><input id="f-resumo" name="resumo" maxlength="200" placeholder="Uma frase que aparece no cartão da vaga"></div>
+      <div class="campo"><label for="f-descricao">Descrição *</label><textarea id="f-descricao" name="descricao" required placeholder="Atividades, requisitos e benefícios"></textarea></div>
+      <div class="duas">
+        <div class="campo"><label for="f-area">Área</label>
+          <select id="f-area" name="area"><option value="">Selecionar</option>${Object.keys(AREAS).map((a) => `<option>${a}</option>`).join("")}</select></div>
+        <div class="campo"><label for="f-nivel">Nível</label>
+          <select id="f-nivel" name="nivel"><option value="">Selecionar</option><option>Operacional</option><option>Técnico</option><option>Júnior</option><option>Pleno</option><option>Sênior</option><option>Liderança</option></select></div>
       </div>
-    `;
+      <div class="duas">
+        <div class="campo"><label for="f-contrato">Contrato</label>
+          <select id="f-contrato" name="tipoContrato"><option value="CLT">CLT</option><option value="TEMPORARIO">Temporário</option><option value="PJ">PJ</option><option value="ESTAGIO">Estágio</option><option value="APRENDIZ">Aprendiz</option></select></div>
+        <div class="campo"><label for="f-modelo">Modelo</label>
+          <select id="f-modelo" name="modelo"><option value="PRESENCIAL">Presencial</option><option value="HIBRIDO">Híbrido</option><option value="REMOTO">Remoto</option></select></div>
+      </div>
+      <div class="duas">
+        <div class="campo"><label for="f-cidade">Cidade</label><input id="f-cidade" name="cidade" placeholder="Ex.: Manaus"></div>
+        <div class="campo"><label for="f-uf">UF</label><input id="f-uf" name="uf" maxlength="2" placeholder="AM" style="text-transform:uppercase"></div>
+      </div>
+      <div class="duas">
+        <div class="campo"><label for="f-min">Salário mínimo (R$)</label><input id="f-min" name="salarioMin" type="number" min="0" step="0.01" placeholder="2.200,00"></div>
+        <div class="campo"><label for="f-max">Salário máximo (R$)</label><input id="f-max" name="salarioMax" type="number" min="0" step="0.01" placeholder="2.800,00"></div>
+      </div>
+      <div class="campo"><label for="f-qtd">Número de posições</label><input id="f-qtd" name="quantidadeVagas" type="number" min="1" value="1"></div>
+      <p class="dica">Competências, perguntas eliminatórias e etapas podem ser ajustadas depois, antes de publicar.</p>
+    </form>
+    <footer class="painel-rodape">
+      <button class="botao botao-secundario" data-fechar type="button">Cancelar</button>
+      <button class="botao botao-primario" type="submit" form="form-vaga">${icone("ok")}Criar rascunho</button>
+    </footer>`);
+  setTimeout(() => document.getElementById("f-titulo")?.focus(), 250);
+}
 
-    modal.classList.add('active');
-  }
+// ---------------------------------------------------------------- ações
 
-  async moverCandidatura(candidaturaId, paraEtapaId) {
-    try {
-      const response = await fetch(`${API_BASE}/candidaturas/${candidaturaId}/mover`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Labutar-Tenant': TENANT_ID,
-          'X-Labutar-User': 'recrutador-teste'
-        },
-        body: JSON.stringify({ paraEtapaId, observacao: 'Movido pelo painel de recrutador' })
-      });
+function aviso(texto, tipo = "ok") {
+  const el = document.createElement("div");
+  el.className = `aviso ${tipo === "erro" ? "erro" : ""}`;
+  el.innerHTML = `${icone(tipo === "erro" ? "fechar" : "ok")}<span>${esc(texto)}</span>`;
+  document.getElementById("avisos").appendChild(el);
+  setTimeout(() => el.remove(), 4200);
+}
 
-      if (!response.ok) {
-        throw new Error('Erro ao mover candidatura');
-      }
-
-      const data = await response.json();
-      const index = this.candidaturas.findIndex((item) => item.id === candidaturaId);
-      if (index >= 0) {
-        this.candidaturas[index] = { ...this.candidaturas[index], ...data.dados };
-      }
-
-      document.getElementById('modal-candidatura').classList.remove('active');
-      this.renderPipeline();
-      this.showSuccess('Candidatura movida com sucesso');
-    } catch (error) {
-      console.error(error);
-      this.showError('Erro ao mover candidatura');
-    }
-  }
-
-  showSuccess(message) {
-    console.log(`✓ ${message}`);
-  }
-
-  showError(message) {
-    console.error(`✗ ${message}`);
+async function criarVaga(form) {
+  const f = Object.fromEntries(new FormData(form));
+  const centavos = (v) => (v ? Math.round(Number(v) * 100) : 0);
+  const corpo = {
+    titulo: f.titulo.trim(),
+    resumo: f.resumo.trim() || undefined,
+    descricao: f.descricao.trim(),
+    area: f.area || undefined,
+    nivel: f.nivel || undefined,
+    tipoContrato: f.tipoContrato,
+    local: { modelo: f.modelo, cidade: f.cidade.trim() || undefined, uf: f.uf.trim().toUpperCase() || undefined },
+    salario: { min: centavos(f.salarioMin), max: centavos(f.salarioMax), exibir: Boolean(f.salarioMin || f.salarioMax) },
+    quantidadeVagas: Math.max(1, Number(f.quantidadeVagas) || 1),
+  };
+  try {
+    const dados = await api("/vagas", { metodo: "POST", corpo });
+    estado.vagas.unshift(dados.vaga);
+    fecharPainel();
+    estado.filtroVagas = "TODAS";
+    location.hash = "#/vagas";
+    renderizar();
+    aviso("Rascunho criado. Complete e publique quando quiser.");
+  } catch (erro) {
+    aviso(erro.message, "erro");
   }
 }
 
-window.app = new LabutarApp();
+async function publicarVaga(id) {
+  try {
+    const dados = await api(`/vagas/${id}/status`, { metodo: "POST", corpo: { para: "ABERTA" } });
+    const i = estado.vagas.findIndex((v) => v.id === id);
+    if (i >= 0) estado.vagas[i] = dados.vaga ?? dados;
+    renderizar();
+    aviso("Vaga publicada.");
+  } catch (erro) {
+    aviso(`Não foi possível publicar: ${erro.message}`, "erro");
+  }
+}
+
+async function moverCandidatura(id, paraEtapaId) {
+  try {
+    const atualizada = await api(`/candidaturas/${id}/mover`, {
+      metodo: "POST",
+      corpo: { paraEtapaId, observacao: "Movido pelo painel" },
+    });
+    const i = estado.candidaturas.findIndex((c) => c.id === id);
+    if (i >= 0) estado.candidaturas[i] = { ...estado.candidaturas[i], ...atualizada };
+    fecharPainel();
+    renderizar();
+    aviso("Candidato avançou de etapa.");
+  } catch (erro) {
+    aviso(erro.message, "erro");
+  }
+}
+
+// ---------------------------------------------------------------- eventos
+
+document.addEventListener("click", (evento) => {
+  const alvo = evento.target;
+  if (alvo.closest("[data-parar]")) return;
+
+  if (alvo.closest("[data-fechar]")) return fecharPainel();
+  const filtro = alvo.closest("[data-filtro-vagas]");
+  if (filtro) { estado.filtroVagas = filtro.dataset.filtroVagas; return renderizar(); }
+  const publicar = alvo.closest("[data-abrir-vaga]");
+  if (publicar) return publicarVaga(publicar.dataset.abrirVaga);
+  const mover = alvo.closest("[data-mover]");
+  if (mover) return moverCandidatura(mover.dataset.mover, mover.dataset.para);
+  if (alvo.closest("[data-acao='nova-vaga']")) return painelNovaVaga();
+  const candidatura = alvo.closest("[data-candidatura]");
+  if (candidatura) return painelCandidatura(candidatura.dataset.candidatura);
+  const candidato = alvo.closest("[data-candidato]");
+  if (candidato) return painelCandidato(candidato.dataset.candidato);
+});
+
+document.addEventListener("change", (evento) => {
+  if (evento.target.id === "seletor-vaga") location.hash = `#/pipeline/${encodeURIComponent(evento.target.value)}`;
+});
+
+document.addEventListener("submit", (evento) => {
+  if (evento.target.id === "form-vaga") {
+    evento.preventDefault();
+    criarVaga(evento.target);
+  }
+});
+
+document.addEventListener("keydown", (evento) => {
+  if (evento.key === "Escape") fecharPainel();
+});
+
+document.getElementById("busca").addEventListener("input", (evento) => {
+  estado.busca = evento.target.value;
+  const { rota } = rotaAtual();
+  if (!["vagas", "candidatos", "pipeline"].includes(rota)) location.hash = "#/candidatos";
+  else renderizar();
+});
+
+window.addEventListener("hashchange", renderizar);
+
+// ícones da moldura
+document.getElementById("icone-busca").innerHTML = icone("busca");
+document.getElementById("botao-sino").innerHTML = `${icone("sino")}<span class="ponto-alerta"></span>`;
+document.getElementById("botao-nova-vaga").innerHTML = `${icone("mais")}<span>Nova vaga</span>`;
+document.getElementById("botao-nova-vaga").dataset.acao = "nova-vaga";
+document.getElementById("abrir-menu").innerHTML = icone("menu");
+document.getElementById("abrir-menu").addEventListener("click", () => document.getElementById("sidebar").classList.toggle("aberta"));
+document.getElementById("sidebar-fundo").addEventListener("click", () => document.getElementById("sidebar").classList.remove("aberta"));
+
+carregar()
+  .then(renderizar)
+  .catch((erro) => {
+    document.getElementById("conteudo").innerHTML =
+      `<div class="cartao vazio"><strong>Não foi possível carregar os dados.</strong><p class="dica">${esc(erro.message)}</p></div>`;
+  });
