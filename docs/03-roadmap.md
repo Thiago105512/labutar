@@ -1,78 +1,95 @@
 # Labutar — Roadmap
 
-Status em 2026-09-27. ✅ pronto · 🚧 em construção · ⏸ adiado de propósito · ⬜ não iniciado
+Status em 2026-09-30. ✅ pronto · 🚧 em construção · ⏸ contrato reservado · ⬜ não iniciado
 
-## Fase 0 — Fundação ✅
+Revisado em 2026-09-30, quando o escopo passou de "ATS até o eSocial" para SaaS completo
+de R&S, mão de obra temporária/terceirizada e gestão da empresa (`docs/09-modulos.md`).
+Duas mudanças em relação ao roadmap anterior:
 
-- `packages/core`: validações (CPF, CNPJ, PIS, CNH, e-mail, telefone ANATEL, CEP, data),
-  datas civis com aviso prévio da Lei 12.506/2011, IDs (incluindo o `Id` de 36 chars do
-  eSocial), dinheiro em centavos com cálculo por faixas progressivas, texto com máscaras LGPD
-- **49 testes passando** (`npm run test:core`)
+- **eSocial deixou de ser a última fase.** Com folha própria, ele é obrigatório.
+- **Ponto vem antes da folha**, porque a folha calcula a partir das marcações.
 
-## Fase 1 — ATS (o produto) 🚧
+Cada fase termina num produto utilizável e vendável sozinho. Primeiro cliente piloto:
+100 trabalhadores ativos.
 
-Prioridade absoluta. É o que o Selecty/Gupy/Recrutei vendem.
+## Fase 0 — Fundação 🚧
 
-1. **Vagas** — CRUD, slug, status, etapas configuráveis, templates de processo, knockout
-2. **Candidatos / banco de talentos** — dedup por CPF → e-mail → telefone
-3. **Candidatura + pipeline** — máquina de estados com histórico e SLA por etapa
-4. **Triagem automatizada** — score de aderência ponderado + corte + reprovação automática
-5. **Portal público de vagas** — SEO, candidatura, acompanhamento pelo candidato
-6. **Entrevistas** — agendamento, link de vídeo, lembretes, scorecard por critério
+- ✅ `packages/core` — validações, datas, dinheiro, IDs, máscaras LGPD
+- ✅ Estrutura multi-tenant no `server` com fronteira de escopo (`db/guard.js`)
+- ✅ CI rodando todos os testes em cada push (`.github/workflows/testes.yml`)
+- ⬜ Driver PostgreSQL + migrações (`docs/10-decisao-postgresql.md`)
+- ⬜ `packages/plataforma` — login, perfis por módulo, auditoria, planos do SaaS
+- ⬜ Backoffice do SaaS — clientes, planos, cobrança, suporte
 
-## Fase 2 — O que torna "mais completo"
+## Fase 1 — Recrutamento e seleção 🚧
 
-7. **Avaliações** — DISC, comportamental, técnico, redação; laudo automático
-8. **Cursos e trilhas** — aula, progresso, certificado
-9. **Avisos e mural** — público-alvo, confirmação de leitura
-10. **Comunicação** — templates de e-mail e WhatsApp com variáveis
-11. **Relatórios** — funil, tempo de contratação, origem, diversidade
+- ✅ `ats` — vagas, pipeline, triagem com score, banco de talentos, canais
+- ✅ `avaliacoes` — DISC, testes, cursos, laudos
+- ✅ `comunica` — templates, avisos, lembretes (entrega real ⬜)
+- 🚧 Painel do recrutador (`web/app`)
+- ⬜ Portal do candidato — vagas, candidatura, acompanhamento
+- ⬜ Entrevistas — agenda, vídeo ao vivo e gravado, scorecard
+- ⬜ Área do psicólogo — testes homologados SATEPSI, laudo restrito
 
-## Fase 3 — Multi-canal e IA
+Detalhe dos entregáveis em `docs/04-fase-1-checklist.md`.
 
-12. **Publicação multicanal** — LinkedIn, Indeed, Catho, InfoJobs, Facebook.
-    ⚠️ Depende de API de terceiros; Catho **não tem API pública** (verificado em
-    2026-09-27: `developers.catho.com.br` não resolve). Começar por feed XML/RSS
-    próprio + Google for Jobs (`JobPosting` schema.org), que não depende de ninguém.
-13. **Matching por IA** — embeddings de vaga × currículo
-14. **Bot conversacional** — triagem por WhatsApp
+## Fase 2 — Admissão e operação
 
-## Fase 4 — Admissão ⏸ **ADIADA DE PROPÓSITO**
+- ⏸ `admissao` — documentos, ASO, contrato eletrônico, prazos do temporário
+- ⬜ `colaboradores` — cadastro único, dependentes, benefícios
+- ⬜ `tomadores` — clientes, contratos, postos, preços
+- ⬜ `alocacao` — escala, reposição de faltas
+- ⬜ Importação de dados de outros sistemas (implantação de clientes)
 
-Decisão do usuário em 2026-09-27: eSocial fica para depois, **mas já preparado**.
+## Fase 3 — Ponto e app do trabalhador
 
-O que "preparado" significa — está feito:
+- ⬜ `ponto` — REP-P (Portaria MTE 671/2021), foto, geolocalização, offline,
+  banco de horas, espelho, AFD/AEJ, atestado técnico do desenvolvedor
+- ⬜ App do trabalhador (PWA) — ponto, holerite, documentos, férias, chamados
 
-- Modelo de dados completo: `Admissao` e `EventoESocial` (`docs/02-modelo-de-dados.md`)
-- Contrato do pacote em `packages/esocial/README.md`
-- `idEventoESocial()` no core, testado (36 chars no padrão oficial)
-- Inventário dos defeitos do código herdado em `docs/05-compliance.md`
+## Fase 4 — Folha e eSocial
 
-O que **não** está feito (e não deve ser tentado antes da Fase 1 terminar):
+- ⬜ `tabelas-legais` — INSS, IRRF, feriados, convenções, versionadas por vigência
+- ⬜ `folha` — cálculo, férias, 13º, encargos, holerite, pagamento em lote
+- ⏸ `esocial` — tabelas, S-2200/2206/2230/2299, S-1200/1210/1299, SST; FGTS Digital, DCTFWeb
+- ⬜ `rescisao` — verbas por modalidade, TRCT, prazos
+- Rodar em paralelo com o sistema atual do cliente por 2–3 competências antes de virar
 
-- Assinatura ICP-Brasil corrigida
-- Envio SOAP real
-- S-2200 / S-2240 (só o S-2220 existe no código herdado, e com leiaute divergente)
+Bloqueios externos: certificado digital A1, habilitação na produção restrita do eSocial,
+XSD oficial do leiaute vigente, revisão por especialista em DP e contador.
+Defeitos do código herdado: `docs/05-compliance.md`.
 
-Bloqueios externos, independentes de código:
+## Fase 5 — Faturamento e financeiro
 
-- Certificado digital A1 válido
-- Habilitação no **ambiente de produção restrita** do eSocial
-- XSD oficial do leiaute vigente para validação
+- ⬜ `faturamento` — medição aprovada pelo tomador, NFS-e, retenções, glosas
+- ⬜ `financeiro` — pagar/receber, boleto/PIX, conciliação, centros de custo
+- ⬜ Portal do tomador — presença, aprovação de ponto, faturas
+- ⬜ `compliance` — certidões e guias exibidas ao tomador
 
-## Fase 5 — Operação ⬜
+## Fase 6 — Gestão da empresa
 
-15. Firebase provisionado + regras de segurança por tenant e papel
-16. CI (testes em todo push)
-17. Billing — assinatura por tenant, planos, limites de vagas
-18. LGPD operacional — exportação, eliminação, registro de tratamento
+- ⬜ `comercial` — clientes, prospects, concorrentes, BIDs, planilha de custos, propostas
+- ⬜ `sst` e `estoque` (EPI, uniformes)
+- ⬜ Treinamentos com validade e bloqueio de alocação (estende `avaliacoes/cursos`)
+
+O `comercial` pode ser antecipado: a planilha de custos só depende de `tabelas-legais`.
+
+## Fase 7 — Gestão avançada
+
+- ⬜ `contabil` — plano de contas, lançamentos automáticos, DRE, exportação ao contador
+- ⬜ `juridico`, `compras`
+- ⬜ BI e relatórios gerenciais
+
+## Fase 8 — Inteligência e ecossistema
+
+- ⬜ Match por IA, previsão de faltas e turnover, assistente de DP
+- ⬜ API pública, webhooks, integrações com ERPs e contabilidade
 
 ## Ordem de execução
 
 ```
-Fase 0 ✅ → Fase 1 (1→6) → Fase 2 → Fase 3 → Fase 5 → Fase 4
+Fase 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 ```
 
-A Fase 4 vem por último de propósito: é a que tem mais dependência externa e menos
-valor imediato. A Fase 5 (operação) antecede a 4 porque enviar evento ao governo sem
-CI, sem backup e sem regras de segurança é pedir multa.
+Operação (backup, regras de segurança, monitoramento) acompanha cada fase: nenhum
+módulo que envia dado ao governo ou mexe com dinheiro sobe sem ela.
