@@ -3,7 +3,7 @@
  * Todo texto de origem externa passa por `esc()` antes de virar HTML.
  */
 import { icone } from "./icones.js";
-import { FUSO_PADRAO, formatarBRL, formatarCNPJ, formatarCPF, formatarDataBR } from "/packages/core/src/index.js";
+import { FUSO_PADRAO, formatarBRL, formatarCNPJ, formatarCPF, formatarDataBR, paraCentavos } from "/packages/core/src/index.js";
 import { formatarMatricula } from "/packages/mao-de-obra/src/matricula.js";
 
 export const esc = (valor) =>
@@ -42,6 +42,8 @@ export const quando = (iso) => {
 // Formatos únicos da interface (docs/15-padroes.md): toda tela usa estes, nunca um próprio.
 /** Valor em centavos → "R$ 1.234,56". */
 export const moeda = (centavos) => (centavos == null ? "—" : formatarBRL(centavos));
+/** Valor digitado ("2.000,00", "2000") → centavos. */
+export const lerMoeda = (texto) => paraCentavos(texto);
 /** CNPJ só com os caracteres → "42.288.454/0001-50" (também alfanumérico). */
 export const cnpj = (valor) => (valor ? formatarCNPJ(valor) : "—");
 /** CPF só com dígitos → "529.982.247-25". */

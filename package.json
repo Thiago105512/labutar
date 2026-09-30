@@ -13,6 +13,7 @@
     "packages/mao-de-obra",
     "packages/folha",
     "packages/clinica",
+    "packages/cadastro",
     "packages/acesso",
     "packages/admissao",
     "packages/esocial",
