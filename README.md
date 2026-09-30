@@ -1,30 +1,38 @@
 # Labutar
 
-ATS B2B brasileiro — do anúncio da vaga à admissão. Publicação multicanal, triagem
-automatizada com score de aderência, pipeline configurável, entrevistas, avaliações,
-cursos, avisos e (na Fase 4) integração com o eSocial.
+SaaS multiempresa para empresas de **recrutamento e seleção e de mão de obra temporária e
+terceirizada**. Cobre o ciclo do trabalhador (vaga → seleção → admissão → ponto → folha →
+rescisão, com eSocial), o ciclo do cliente tomador (proposta → contrato → medição → fatura)
+e a gestão da própria empresa: comercial, financeiro, contábil, jurídico, estoque, compras
+e treinamentos.
 
-Inspiração: [Selecty](https://selecty.com.br) 4.0, Gupy, Recrutei, Bizneo HR.
-Diferencial pretendido: **nenhum ATS nacional fecha o ciclo até o eSocial**. O Labutar fecha.
+Inspiração no recrutamento: [Selecty](https://selecty.com.br) 4.0, Gupy, Recrutei, Bizneo HR.
+Diferencial: **ATS, gestão de temporários/terceirizados e folha no mesmo cadastro**.
+
+Mapa de módulos em [`docs/09-modulos.md`](docs/09-modulos.md) ·
+roadmap em [`docs/03-roadmap.md`](docs/03-roadmap.md).
 
 ## Estado atual
 
 | Pacote | O que é | Estado |
 |---|---|---|
-| `@labutar/core` | validações fiscais, datas, IDs, dinheiro, texto/LGPD | ✅ 49 testes |
-| `@labutar/ats` | vagas, pipeline, triagem, candidatos, canais | ✅ 107 testes |
-| `@labutar/avaliacoes` | DISC, testes, cursos, laudos, benchmark com guardrails | ✅ 91 testes |
-| `@labutar/comunica` | templates, canais, avisos, lembretes (sem entrega) | ✅ 97 testes |
-| `@labutar/esocial` | S-2200 / S-2220 / S-2240 | ⏸ **adiado**, contrato reservado |
-| `server` | API + repositório multi-tenant com fronteira de escopo | 🚧 camada de dados, 24 testes |
-| `web` | site institucional + painel + portal de vagas (PWA) | ⬜ |
+| `@labutar/core` | validações fiscais, datas, IDs, dinheiro, texto/LGPD | ✅ |
+| `@labutar/ats` | vagas, pipeline, triagem, candidatos, canais | ✅ |
+| `@labutar/avaliacoes` | DISC, testes, cursos, laudos, benchmark com guardrails | ✅ |
+| `@labutar/comunica` | templates, canais, avisos, lembretes (sem entrega) | ✅ |
+| `@labutar/ia` | prompts, desidentificação, rubricas | ✅ |
+| `@labutar/admissao` | checklist, ASO, contrato, prazos do temporário | ⏸ contrato reservado |
+| `@labutar/esocial` | eventos eSocial | ⏸ contrato reservado |
+| `server` | API + repositório multi-tenant com fronteira de escopo | 🚧 |
+| `web/app` | painel do recrutador | 🚧 |
+| ponto, folha, tomadores, faturamento, comercial e demais | ver `docs/09-modulos.md` | ⬜ |
 
-**368 testes passando.** Sem CI, sem Firebase ligado, nada em produção.
-Ver [`docs/03-roadmap.md`](docs/03-roadmap.md).
+**513 testes passando** (1 pulado sem `firebase-admin`), rodados pelo CI em todo push.
+Nada em produção.
 
-O backend roda **sem `npm install` e sem Firebase**: o driver padrão é memória.
-Firestore é opt-in e o isolamento em projeto compartilhado está explicado em
-[`docs/06-firebase.md`](docs/06-firebase.md) — leia antes de configurar chave.
+O backend roda **sem `npm install`**: o driver padrão é memória. O banco principal passa a
+ser **PostgreSQL** ([`docs/10-decisao-postgresql.md`](docs/10-decisao-postgresql.md));
+o driver Firestore ([`docs/06-firebase.md`](docs/06-firebase.md)) fica até a troca.
 
 ## Rodando
 

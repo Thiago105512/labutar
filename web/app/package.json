@@ -1,0 +1,6 @@
+{
+  "name": "@labutar/web-app",
+  "version": "0.1.0",
+  "description": "Painel de recrutador do Labutar",
+  "type": "module"
+}

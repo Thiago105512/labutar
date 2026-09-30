@@ -1,0 +1,12 @@
+{
+  "name": "@labutar/admissao",
+  "version": "0.0.0",
+  "description": "Admissão digital: checklist documental, ASO, contrato e prazos do trabalho temporário. JS puro. Contrato reservado; implementação na fase de admissão.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "sideEffects": false,
+  "private": true
+}
