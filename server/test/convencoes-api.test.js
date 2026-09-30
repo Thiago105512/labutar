@@ -30,12 +30,12 @@ before(async () => {
 });
 after(() => fechar());
 
-test("CCT cadastrada e enquadrada para terceirizados e próprios", async () => {
+test("CCT cadastrada, com os colaboradores vinculados ao sindicato dela", async () => {
   const r = await chamar("/api/convencoes");
   assert.equal(r.status, 200, JSON.stringify(r.json));
   const [cct] = r.json.dados;
   assert.equal(cct.registroMTE, "AM000038/2026");
-  assert.deepEqual(cct.enquadramento.tiposVinculo, ["TERCEIRIZADO", "PROPRIO"]);
+  assert.ok(cct.vinculados.TEMPORARIO > 0 && cct.vinculados.TERCEIRIZADO > 0 && cct.vinculados.PROPRIO > 0);
   assert.equal(cct.funcoes, 144);
   const d = await chamar(`/api/convencoes/${cct.id}`);
   assert.equal(d.json.dados.pisos.length, 116);
@@ -49,10 +49,9 @@ test("folha aplica a convenção: mensalidade, custos por tomador e conformidade
   assert.equal(marcia.convencao.instrumento.registroMTE, "AM000038/2026");
   assert.equal(marcia.convencao.funcao, "Agente de Limpeza");
   assert.equal(marcia.itens.find((i) => i.codigo === "9231.01").valor, 3400); // 2% de 1.700,00
-  // Temporário fora do enquadramento: sem desconto sindical.
+  // A convenção vem do sindicato do vínculo: o temporário vinculado ao SEEACEAM também tem.
   const temp = f.holerites.find((h) => h.colaborador.vinculo === "TEMPORARIO");
-  assert.equal(temp.convencao, undefined);
-  assert.ok(!temp.itens.some((i) => i.codigo === "9231.01"));
+  assert.equal(temp.convencao.instrumento.registroMTE, "AM000038/2026");
   // Custos da convenção entram no custo do tomador (odontológico, assistência, seguro, qualificação).
   assert.ok(f.resumo.beneficios >= 5_100 * 11);
   assert.ok(f.resumo.porLotacao.some((l) => l.beneficios > 0));
@@ -74,4 +73,22 @@ test("enquadrar a função do posto tira da lista e recusa função fora da tabe
   assert.equal(h.convencao.piso, 184779);
   // R$ 1.850,00 ≥ piso de recepcionista (1.847,79): continua conforme.
   assert.ok(!depois.convencoes.conformidade.some((c) => c.matricula === porteiro.matricula));
+});
+
+test("sem sindicato não entra na folha; sindicato padrão na admissão e troca pela ficha", async () => {
+  const lista = (await chamar("/api/sindicatos")).json.dados;
+  assert.equal(lista.itens[0].sigla, "SEEACEAM");
+  assert.equal(lista.padraoPorTipo.TERCEIRIZADO, "23006562000148");
+  // Sindicato avulso (sem CCT cadastrada) e troca do vínculo para ele.
+  const novo = await chamar("/api/sindicatos", { metodo: "POST", corpo: { cnpj: "12.ABC.345/01DE-35", nome: "Sindicato de Teste da Categoria", sigla: "sintest" } });
+  assert.equal(novo.status, 201, JSON.stringify(novo.json));
+  const f0 = (await chamar("/api/folha/2026-09")).json.dados;
+  const alvo = f0.holerites.find((h) => h.colaborador.vinculo === "PROPRIO").colaborador.matricula;
+  const troca = await chamar(`/api/colaboradores/${alvo}/sindicato`, { metodo: "PATCH", corpo: { sindicatoCnpj: "12ABC34501DE35", associado: true } });
+  assert.equal(troca.status, 200, JSON.stringify(troca.json));
+  const f1 = (await chamar("/api/folha/2026-09")).json.dados;
+  const h = f1.holerites.find((x) => x.colaborador.matricula === alvo);
+  assert.equal(h.convencao, undefined, "sindicato sem convenção: sem regras de CCT");
+  assert.ok(!h.itens.some((i) => i.codigo === "9231.01"));
+  assert.equal((await chamar(`/api/colaboradores/${alvo}/sindicato`, { metodo: "PATCH", corpo: { sindicatoCnpj: "" } })).status, 400);
 });

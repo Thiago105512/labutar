@@ -52,7 +52,10 @@ async function dadosDaFolha(repo, tenant, competencia) {
     carregarConvencoes(repo, tenant),
   ]);
   const informados = Object.fromEntries(lancamentos.itens.map(({ id, competencia: _c, matricula, ...l }) => [matricula, l]));
-  const colaboradores = colaboradoresDaFolha(cad, competencia, empresa ?? {});
+  const todos = colaboradoresDaFolha(cad, competencia, empresa ?? {});
+  // Sem sindicato não entra no cálculo: vira pendência do DP.
+  const colaboradores = todos.filter((c) => c.sindicato?.cnpj);
+  const semSindicato = todos.filter((c) => !c.sindicato?.cnpj);
   const calculo = aplicarConvencoes({ colaboradores, lancamentos: informados, cad, empresa: empresa ?? {}, competencia, instrumentos });
   return {
     empresa: empresa ?? {},
@@ -61,6 +64,7 @@ async function dadosDaFolha(repo, tenant, competencia) {
     cadastro: cad,
     lancamentos: informados,
     calculo,
+    semSindicato,
   };
 }
 
@@ -73,6 +77,9 @@ function folhaComConvencoes(d, competencia) {
     if (!conv) continue;
     h.convencao = { instrumento: conv.instrumento, funcao: conv.funcao, enquadrada: conv.enquadrada, piso: conv.piso, beneficios: conv.beneficios, custos: conv.custos };
     h.avisos.push(...conv.erros, ...conv.avisos);
+  }
+  for (const x of d.semSindicato ?? []) {
+    folha.pendencias.push({ matricula: x.matricula, nome: x.nome, motivo: "sem sindicato: vincule o colaborador a um sindicato para entrar na folha", tipo: "SEM_SINDICATO" });
   }
   return {
     ...folha,

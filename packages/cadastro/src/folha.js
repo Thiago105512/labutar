@@ -27,6 +27,7 @@ export function colaboradorDaFolha({ vinculo, pessoa, posto = null, tomador = nu
     admissao: vinculo.admissao,
     desligamento: vinculo.desligamento ?? null,
     fimPrevisto: vinculo.temporario?.fimPrevisto ?? vinculo.fimPrevisto ?? null,
+    sindicato: vinculo.sindicato ?? null,
     // Importado do sistema anterior só com a quantidade: vale até os dependentes serem cadastrados.
     dependentesIR: pessoa?.dependentes?.length ? deps.dependentesIR : vinculo.dependentesIRImportados ?? 0,
     filhosSalarioFamilia: deps.filhosSalarioFamilia,

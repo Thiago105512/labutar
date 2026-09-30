@@ -1,6 +1,6 @@
 /**
  * Convenções e acordos coletivos na folha: para cada colaborador, o instrumento que vale (pelo
- * enquadramento sindical da empresa e pelos ACTs), o piso da função, os descontos e custos do mês.
+ * sindicato do vínculo e pelos ACTs), o piso da função, os descontos e custos do mês.
  * O cálculo das regras é do pacote packages/convencoes; aqui só se junta com o cadastro.
  */
 import {
@@ -14,12 +14,9 @@ export async function carregarConvencoes(repo, tenant) {
   return (await repo.listar(tenant, "convencoes", {}, TUDO)).itens;
 }
 
-/** Instrumentos que a empresa aplica, com os tipos de vínculo de cada um. */
-export function instrumentosDaEmpresa(instrumentos, empresa = {}) {
-  const porId = new Map(instrumentos.map((i) => [i.id, i]));
-  return (empresa.enquadramentoSindical ?? [])
-    .map((e) => porId.get(e.instrumentoId) && { ...porId.get(e.instrumentoId), abrangencia: { ...porId.get(e.instrumentoId).abrangencia, tiposVinculo: e.tiposVinculo ?? null } })
-    .filter(Boolean);
+/** Convenções e acordos do sindicato laboral do vínculo. */
+export function instrumentosDoSindicato(instrumentos, cnpj) {
+  return cnpj ? instrumentos.filter((i) => i.sindicatoLaboral?.cnpj === cnpj) : [];
 }
 
 /** Dias de trabalho no mês para o vale-refeição: segunda a sexta sem feriado (12x36: dia sim, dia não). */
@@ -44,7 +41,6 @@ function diasDeTrabalho(competencia, { admissao, local, escala }) {
  *   da convenção), custosExtras, conformidade, porColaborador }
  */
 export function aplicarConvencoes({ colaboradores, lancamentos, cad, empresa, competencia, instrumentos }) {
-  const daEmpresa = instrumentosDaEmpresa(instrumentos, empresa);
   const fimDoMes = `${competencia}-${String(new Date(Date.UTC(Number(competencia.slice(0, 4)), Number(competencia.slice(5, 7)), 0)).getUTCDate()).padStart(2, "0")}`;
   const vinculoPorMatricula = new Map(cad.vinculos.map((v) => [v.matricula, v]));
   const saida = { colaboradores: [], lancamentos: { ...lancamentos }, custosExtras: {}, conformidade: [], porColaborador: {} };
@@ -54,7 +50,8 @@ export function aplicarConvencoes({ colaboradores, lancamentos, cad, empresa, co
     const posto = v?.postoId ? cad.posto.get(v.postoId) : null;
     const tomador = v?.tomadorId ? cad.tomador.get(v.tomadorId) : null;
     const pessoa = v ? cad.pessoa.get(v.pessoaId) : null;
-    const { principal } = instrumentoAplicavel(daEmpresa, {
+    // A convenção vem do sindicato do vínculo; o acordo coletivo (se houver) prevalece.
+    const { principal } = instrumentoAplicavel(instrumentosDoSindicato(instrumentos, v?.sindicato?.cnpj), {
       data: fimDoMes, empresaCnpj: empresa.cnpj, tomadorCnpj: tomador?.cnpj, postoId: posto?.id, tipoVinculo: c.vinculo,
     });
     if (!principal) { saida.colaboradores.push(c); continue; }
@@ -96,7 +93,7 @@ export function aplicarConvencoes({ colaboradores, lancamentos, cad, empresa, co
   const porInstrumento = new Map();
   for (const r of Object.values(saida.porColaborador)) porInstrumento.set(r.instrumento.id, (porInstrumento.get(r.instrumento.id) ?? 0) + 1);
   saida.contribuicoesPatronais = [...porInstrumento].map(([id, n]) => {
-    const i = daEmpresa.find((x) => x.id === id);
+    const i = instrumentos.find((x) => x.id === id);
     return { instrumento: i.registroMTE, colaboradores: n, valor: contribuicaoPatronal(i, n) };
   });
   return saida;

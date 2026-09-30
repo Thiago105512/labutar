@@ -27,7 +27,7 @@ export async function paginaConvencoes() {
   const semFuncao = conf.filter((c) => !c.enquadrada && !c.erros.length);
   const patronais = cache.folha.convencoes?.contribuicoesPatronais ?? [];
   return `
-    <div class="barra-filtros"><span class="dica">A convenção da categoria vale para os vínculos enquadrados; acordo coletivo do tomador ou da empresa prevalece sobre ela (CLT, art. 620).</span></div>
+    <div class="barra-filtros"><span class="dica">A convenção vale para quem é vinculado ao sindicato dela (o sindicato é obrigatório no cadastro); acordo coletivo do tomador ou da empresa prevalece sobre ela (CLT, art. 620).</span></div>
     <div class="grade-folha">
       ${cache.lista.map((i) => `
         <div class="cartao linha-clicavel" data-conv="${esc(i.id)}">
@@ -43,7 +43,7 @@ export async function paginaConvencoes() {
               <div><small>Funções com piso</small><strong>${i.funcoes}</strong></div>
             </div>
             <p class="dica" style="margin-top:12px">${esc(i.sindicatoLaboral.sigla)} (CNPJ ${esc(cnpj(i.sindicatoLaboral.cnpj))})${i.sindicatoPatronal ? ` e ${esc(i.sindicatoPatronal.sigla)} (CNPJ ${esc(cnpj(i.sindicatoPatronal.cnpj))})` : ""}</p>
-            <p class="dica">Aplicada a: ${i.enquadramento ? (i.enquadramento.tiposVinculo ?? ["TEMPORARIO", "TERCEIRIZADO", "PROPRIO"]).map((t) => etiqueta(NOME_VINCULO, t)).join(" ") : '<span class="etiqueta e-ambar">empresa não enquadrada</span>'}</p>
+            <p class="dica">Aplicada a quem é vinculado ao ${esc(i.sindicatoLaboral.sigla)}: ${Object.keys(i.vinculados ?? {}).length ? Object.entries(i.vinculados).map(([t, n]) => `${etiqueta(NOME_VINCULO, t)} ${n}`).join(" ") : "nenhum colaborador ainda"}</p>
           </div>
         </div>`).join("")}
     </div>
