@@ -14,18 +14,41 @@
 | Próprio, prazo indeterminado | 100 | 101 | Administrativo da empresa |
 | **Total** | **1.000** | | |
 
-## 2. Tomadores
+## 2. Tomadores: indústrias do Polo Industrial de Manaus
+
+O foco da prestação de serviços são **indústrias do Polo Industrial de Manaus (PIM)**. Os 4
+tomadores do cenário são indústrias fictícias do polo:
 
 | Tomador | Temporários | Terceirizados | Total | Hipótese / serviço | O que testa |
 |---|---|---|---|---|---|
-| T1 — Indústria (polo industrial) | 350 | 50 | 400 | Temporário por acréscimo extraordinário de serviços; terceirizado em limpeza | Volume, turnos, adicional noturno, pico de produção |
-| T2 — Varejo (rede de supermercados) | 200 | 0 | 200 | Temporário por acréscimo (fim de ano) e substituição de férias | Admissões e desligamentos em massa, 180 + 90 dias |
-| T3 — Hospital | 50 | 150 | 200 | Temporário em substituição de licenças; terceirizado em higienização e recepção | Insalubridade pelo local do posto, escala 12x36 |
-| T4 — Centro logístico | 0 | 100 | 100 | Vigilância e portaria | Periculosidade, convenção de vigilância, coberturas de posto |
+| T1 — Eletroeletrônicos (TVs e áudio) | 350 | 50 | 400 | Temporário por acréscimo extraordinário (pico de produção do 2º semestre); terceirizado em limpeza | Volume, 3 turnos, adicional noturno, pico sazonal |
+| T2 — Duas rodas (motocicletas) | 200 | 0 | 200 | Temporário por acréscimo extraordinário e substituição de férias coletivas | Admissões e desligamentos em massa, 180 + 90 dias |
+| T3 — Informática e celulares | 50 | 150 | 200 | Temporário em substituição de afastados; terceirizado em logística interna e manutenção | Insalubridade por posto, turnos de revezamento |
+| T4 — Plásticos e injeção (fornecedor do polo) | 0 | 100 | 100 | Portaria e controle de acesso, operação de empilhadeira | Coberturas de posto, adicional de função, NR-11 |
 | **Total** | **600** | **300** | **900** | | |
 
 O temporário recebe remuneração equivalente à dos empregados da tomadora na mesma função
 (art. 12 da Lei 6.019/1974): cada tomador tem tabela salarial própria por função.
+
+**Temporário: 180 + 90 dias.** Até 180 dias, consecutivos ou não, por tomadora (contados pela
+raiz do CNPJ, todas as filiais juntas), prorrogáveis por até 90 dias com justificativa; depois,
+90 dias de intervalo antes de nova contratação na mesma tomadora. **Já implementado e testado**
+em `packages/mao-de-obra` (docs/11).
+
+**Vigilância armada ou patrimonial fica fora:** só empresa autorizada pela Polícia Federal
+pode prestá-la. No cenário, T4 tem portaria e controle de acesso, não vigilância.
+
+### Particularidades do polo que o sistema precisa tratar
+
+| Particularidade | Efeito no sistema |
+|---|---|
+| Fuso de Manaus (UTC−4, `America/Manaus`) | Dia do ponto, prazos e competência calculados no fuso local, não no de Brasília nem em UTC. Hoje parte do código deriva a data em UTC ou fixa −03:00: corrigir ao construir o `ponto` |
+| 3 turnos, turno da noite cruzando a meia-noite | Jornada atribuída ao dia de início do turno; adicional noturno e hora reduzida |
+| Sazonalidade (pico no 2º semestre, férias coletivas) | Picos de admissão e desligamento; muitos contratos chegando a 180 dias ao mesmo tempo |
+| Ônibus fretado fornecido pela tomadora | Vale-transporte não devido nos dias com fretado; custo fora da fatura |
+| Refeitório da tomadora | Desconto de alimentação conforme acordo; nada a pagar em vale-refeição |
+| Feriados estaduais do Amazonas e municipais de Manaus | Calendário de feriados por município e por vigência em `tabelas-legais` (datas a conferir) |
+| Relógios dos tomadores de fabricantes diferentes | Importação de AFD padronizada pela Portaria 671, sem depender do fabricante |
 
 ## 3. Administrativo próprio (100)
 
@@ -52,8 +75,9 @@ vem da convenção; o que nenhum dos dois regula vem da lei.
 |---|---|---|---|
 | CCT da categoria | Convenção | Todos os empregados da empresa | Piso, reajuste anual, adicionais, benefícios, contribuições |
 | ACT-T1 | Acordo | Alocados em T1 | Turnos de revezamento, adicional noturno diferenciado, banco de horas |
-| ACT-T3 | Acordo | Alocados em T3 | Escala 12x36, intervalo, feriados trabalhados |
-| ACT-T4 | Acordo | Alocados em T4 | Escala de vigilância, cobertura de posto, adicional de função |
+| ACT-T2 | Acordo | Alocados em T2 | Férias coletivas, compensação de dias-ponte |
+| ACT-T3 | Acordo | Alocados em T3 | Turnos de revezamento, intervalo, feriados trabalhados |
+| ACT-T4 | Acordo | Alocados em T4 | Escala de portaria, cobertura de posto, adicional de função |
 | ACT-Ponto | Acordo | Toda a empresa | Tolerâncias de marcação e, se for o caso, autorização de REP-A |
 | ACT-PLR | Acordo | Toda a empresa | Participação nos lucros |
 
@@ -88,6 +112,9 @@ relógio de tomador diferente do alocado (cobertura) e AFD reenviado com marcaç
 | Férias | ~30 | Terceirizados e administrativo |
 | Coberturas de posto | ~40 | Faltas e férias em T3 e T4 |
 
+No pico do 2º semestre as admissões de temporários podem dobrar; em janeiro, com o fim dos
+contratos do pico, os desligamentos dobram.
+
 ## 7. Casos-limite obrigatórios na massa
 
 A massa gerada precisa conter, de propósito:
@@ -103,7 +130,9 @@ A massa gerada precisa conter, de propósito:
 9. Afastamento que atravessa o fim do contrato temporário.
 10. Admissão e desligamento dentro da mesma competência.
 11. Trabalhador que muda de T1 para T3 no meio do mês (acordo coletivo muda no dia).
-12. Reajuste da convenção retroativo à data-base, com acordo vigente que não trata de salário.
+12. Mais de 100 temporários de T1 atingindo 180 dias na mesma semana, no fim do pico.
+13. Reajuste da convenção retroativo à data-base, com acordo vigente que não trata de salário.
+14. Turno da noite das 22h às 6h do dia seguinte, no fuso de Manaus (dia do ponto, adicional noturno).
 
 ## 8. O que o cenário mede
 
