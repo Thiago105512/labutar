@@ -1,0 +1,11 @@
+{
+  "name": "@labutar/folha",
+  "version": "0.1.0",
+  "description": "Motor de cálculo da folha: tabelas legais com vigência por competência, catálogo de verbas no padrão do eSocial, holerite e resumo da competência com encargos por tomador. JS puro, roda no Node e no navegador.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "sideEffects": false
+}

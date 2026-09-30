@@ -1,4 +1,5 @@
 import { iniciar } from "./index.js";
+import { semearFolha } from "./seed/folha.js";
 import { semear, semearUsuarios, SENHA_DEMO, USUARIOS_DEMO, CONTAS_EXTERNAS_DEMO, TENANT_DEMO } from "./seed/dados.js";
 
 /**
@@ -32,6 +33,8 @@ async function principal() {
   } else {
     console.log(`  seed pulado: ${resultado.motivo}`);
   }
+  const folha = await semearFolha(contexto.repo, TENANT_DEMO);
+  if (folha.semeado) console.log(`  folha de setembro/2026: ${folha.colaboradores} colaboradores de demonstração`);
   const usuarios = await semearUsuarios(contexto.acesso, { repo: contexto.repo });
   if (usuarios.semeado) {
     console.log(`\n  Usuários de demonstração (senha "${SENHA_DEMO}", empresa "${TENANT_DEMO}"):`);

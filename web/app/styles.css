@@ -649,3 +649,29 @@ a.modulo-cartao:hover { transform: translateY(-3px); box-shadow: var(--sombra-2)
   .grade-perfis { grid-template-columns: 1fr; }
   .topo-acoes #topo-usuario { display: none; }
 }
+
+/* ---------------------------------------------------------------- folha */
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tabela-compacta td, .tabela-compacta th { padding-top: 7px; padding-bottom: 7px; }
+.tabela tr.total td { font-weight: 700; border-top: 1px solid var(--borda-forte); }
+.tabela tr.total.destaque td { color: var(--marca-600, var(--marca-500)); font-size: 15px; }
+.tabela code, .holerite code { font-size: 12px; color: var(--texto-2); background: var(--cinza-bg); padding: 2px 6px; border-radius: 6px; }
+.linha-clicavel { cursor: pointer; }
+.linha-clicavel:hover td { background: var(--fundo); }
+.bases { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
+.bases > div { background: var(--fundo); border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; }
+.bases small { color: var(--texto-2); font-size: 12px; }
+.alerta-folha { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; margin-bottom: 18px; border-color: var(--ambar); background: var(--ambar-bg); }
+.alerta-folha > svg { flex: none; color: var(--ambar); margin-top: 2px; }
+.alerta-folha p { margin: 4px 0 0; color: var(--texto-2); }
+.filtro-texto { margin-left: auto; min-width: 260px; height: 36px; padding: 0 12px; border: 1px solid var(--borda-forte); border-radius: 10px; background: var(--superficie); color: var(--texto); font: inherit; }
+.indicador-icone.pequeno { width: 34px; height: 34px; border-radius: 10px; color: var(--marca-500); background: var(--marca-100); }
+@media (max-width: 720px) { .filtro-texto { min-width: 0; width: 100%; margin-left: 0; } }
+.tabela .num { text-align: right; }
+.cartao-corpo:has(> .tabela) { overflow-x: auto; }
+@media (max-width: 720px) {
+  .col-opcional { display: none; }
+  .tabela-compacta td, .tabela-compacta th { padding-left: 8px; padding-right: 8px; }
+  .tabela-compacta code { font-size: 11px; padding: 2px 4px; }
+}
+.grade-folha { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 18px; align-items: start; }

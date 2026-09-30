@@ -9,6 +9,7 @@
  */
 import { icone } from "./icones.js";
 import { api, sessao } from "./sessao.js";
+import { paginaFolhaResumo, paginaHolerites, paginaFolhaTomadores, paginaVerbas, ligarEventosFolha, limparFolha } from "./folha-telas.js";
 import { esc, moeda, dataHora, avatar, etiqueta, diasDesde, quando, aviso, abrirPainel, fecharPainel, matiz } from "./ui.js";
 import {
   ICONE_MODULO,
@@ -32,6 +33,12 @@ const PAGINAS = {
     { id: "vagas", nome: "Vagas", icone: "vagas", contador: () => estado.vagas.filter((v) => v.status === "ABERTA").length },
     { id: "pipeline", nome: "Processo seletivo", icone: "pipeline" },
     { id: "candidatos", nome: "Banco de talentos", icone: "candidatos", contador: () => estado.candidatos.length },
+  ],
+  folha: [
+    { id: "resumo", nome: "Resumo da competência", icone: "folha" },
+    { id: "holerites", nome: "Holerites", icone: "pessoas" },
+    { id: "tomadores", nome: "Custo por tomador", icone: "tomadores" },
+    { id: "verbas", nome: "Catálogo de verbas", icone: "dinheiro" },
   ],
   administracao: [
     { id: "usuarios", nome: "Usuários", icone: "pessoas" },
@@ -241,6 +248,7 @@ let recrutamentoCarregado = false;
 
 function limparDados() {
   recrutamentoCarregado = false;
+  limparFolha();
   Object.assign(estado, { vagas: [], candidatos: [], candidaturas: [], resumo: null, origens: [], busca: "" });
 }
 
@@ -285,6 +293,10 @@ async function renderizar() {
       else if (pagina.id === "pipeline") conteudo.innerHTML = telaPipeline(param);
       else if (pagina.id === "candidatos") conteudo.innerHTML = telaCandidatos();
       else conteudo.innerHTML = telaInicio();
+    } else if (moduloId === "folha") {
+      conteudo.innerHTML = carregando;
+      const telas = { resumo: paginaFolhaResumo, holerites: paginaHolerites, tomadores: paginaFolhaTomadores, verbas: paginaVerbas };
+      conteudo.innerHTML = await telas[pagina.id]();
     } else if (moduloId === "administracao") {
       conteudo.innerHTML = carregando;
       const telas = { usuarios: paginaUsuarios, perfis: paginaPerfis, externos: paginaContasExternas, auditoria: paginaAuditoria };
@@ -856,6 +868,7 @@ document.getElementById("abrir-menu").addEventListener("click", () => document.g
 document.getElementById("sidebar-fundo").addEventListener("click", () => document.getElementById("sidebar").classList.remove("aberta"));
 
 ligarEventosAcesso({ aoAlterar: renderizar });
+ligarEventosFolha({ aoAlterar: renderizar });
 sessao.aoSair((motivo) => {
   limparDados();
   history.replaceState(null, "", "#/");

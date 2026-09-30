@@ -64,8 +64,9 @@ convenções → eSocial → ponto, contábil e portal → SST, benefícios e an
 vigência começam antes, logo depois do recrutamento, porque a folha é o módulo de maior
 risco e precisa da suíte de regressão com casos reais o quanto antes.
 
-- ⬜ `tabelas-legais` — INSS, IRRF, feriados, convenções, versionadas por vigência
-- ⬜ `folha` — cálculo, férias, 13º, encargos, holerite, pagamento em lote
+- 🚧 `folha` — ✅ motor mensal (tabelas com vigência, INSS, IRRF 2026, FGTS, salário-família, DSR,
+  adicionais, encargos por regime, custo por tomador) e tela da competência de setembro/2026;
+  ⬜ convenções, férias, 13º, pagamento em lote
 - ⏸ `esocial` — tabelas, S-2200/2206/2230/2299, S-1200/1210/1299, SST; FGTS Digital, DCTFWeb
 - ⬜ `rescisao` — verbas por modalidade, TRCT, prazos
 - Rodar em paralelo com o sistema atual do cliente por 2–3 competências antes de virar

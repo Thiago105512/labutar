@@ -1,0 +1,111 @@
+/**
+ * Holerite mensal de um colaborador. Folha mensal de quem trabalhou na competência;
+ * desligamento no mês vai para a rescisão (pacote próprio), não para cá.
+ *
+ * Regras (mês comercial de 30 dias, CLT):
+ * - Salário proporcional aos dias de contrato quando a admissão cai no mês.
+ * - Valor-hora = (salário + periculosidade + insalubridade) / jornada mensal: os adicionais
+ *   integram a base das horas extras (Súmula 132 e OJ 47 da SDI-1 do TST).
+ * - DSR sobre horas extras e adicional noturno = variáveis / dias úteis × domingos e feriados.
+ * - Insalubridade sobre o salário mínimo; periculosidade de 30% sobre o salário-base.
+ * - Vale-transporte: até 6% do salário-base, limitado ao custo do benefício.
+ */
+import { VERBAS, TIPO_VERBA, efeitoNaBase } from "./verbas.js";
+import { calcularINSS, calcularIRRF, calcularSalarioFamilia } from "./impostos.js";
+import { calendarioDaCompetencia } from "./calendario.js";
+import { tabelaDaCompetencia, ARREDONDAMENTO_INSS } from "./tabelas.js";
+import { formatarDataBR } from "../../core/src/datas.js";
+
+const r = Math.round;
+const JORNADA_PADRAO = 220;
+
+function diasDeContrato(colaborador, competencia) {
+  const adm = colaborador.admissao;
+  if (!adm || adm.slice(0, 7) < competencia) return 30;
+  if (adm.slice(0, 7) > competencia) return 0;
+  return Math.max(0, 30 - Number(adm.slice(8, 10)) + 1);
+}
+
+/**
+ * @param colaborador { matricula, nome, vinculo, salario, jornadaMensal?, admissao, desligamento?,
+ *   dependentesIR?, filhosSalarioFamilia?, insalubridadeGrau? (10|20|40), periculosidade?, lotacao }
+ * @param lancamentos { horasExtras50?, horasExtras100?, horasNoturnas?, faltasDias?, dsrPerdidos?,
+ *   adiantamento?, custoValeTransporte?, pensao? }
+ * @param opcoes { local?, arredondamentoINSS?, tabela? }
+ */
+export function calcularHolerite(colaborador, competencia, lancamentos = {}, opcoes = {}) {
+  const tabela = opcoes.tabela ?? tabelaDaCompetencia(competencia);
+  const avisos = [];
+  if (colaborador.desligamento && colaborador.desligamento.slice(0, 7) <= competencia) {
+    throw new Error(`desligamento em ${formatarDataBR(colaborador.desligamento)}: o cálculo é feito na rescisão, não na folha mensal`);
+  }
+  const dias = diasDeContrato(colaborador, competencia);
+  if (dias === 0) throw new Error(`admissão em ${formatarDataBR(colaborador.admissao)}, depois da competência`);
+
+  const cal = calendarioDaCompetencia(competencia, opcoes.local);
+  const itens = [];
+  const lanca = (verba, valor, referencia = null) => {
+    if (valor > 0) itens.push({ codigo: verba.codigo, nome: verba.nome, tipo: verba.tipo, referencia, valor, verba });
+  };
+  const L = lancamentos;
+
+  const salario = colaborador.salario;
+  const salarioMes = r((salario * dias) / 30);
+  lanca(VERBAS.SALARIO, salarioMes, `${dias} dias`);
+
+  const periculosidadeMensal = colaborador.periculosidade ? r(salario * 0.3) : 0;
+  const insalubridadeMensal = colaborador.insalubridadeGrau ? r((tabela.salarioMinimo * colaborador.insalubridadeGrau) / 100) : 0;
+  lanca(VERBAS.PERICULOSIDADE, r((periculosidadeMensal * dias) / 30), colaborador.periculosidade ? "30%" : null);
+  lanca(VERBAS.INSALUBRIDADE, r((insalubridadeMensal * dias) / 30), colaborador.insalubridadeGrau ? `${colaborador.insalubridadeGrau}% do mínimo` : null);
+
+  const jornada = colaborador.jornadaMensal ?? JORNADA_PADRAO;
+  const valorHora = (salario + periculosidadeMensal + insalubridadeMensal) / jornada;
+  const he50 = r((L.horasExtras50 ?? 0) * valorHora * 1.5);
+  const he100 = r((L.horasExtras100 ?? 0) * valorHora * 2);
+  const noturno = r((L.horasNoturnas ?? 0) * valorHora * 0.2);
+  lanca(VERBAS.HORA_EXTRA_50, he50, L.horasExtras50 ? `${L.horasExtras50}h` : null);
+  lanca(VERBAS.HORA_EXTRA_100, he100, L.horasExtras100 ? `${L.horasExtras100}h` : null);
+  lanca(VERBAS.ADICIONAL_NOTURNO, noturno, L.horasNoturnas ? `${L.horasNoturnas}h` : null);
+  const variaveis = he50 + he100 + noturno;
+  if (variaveis > 0) lanca(VERBAS.DSR_VARIAVEIS, r((variaveis / cal.uteis) * cal.descanso), `${cal.descanso}/${cal.uteis} dias`);
+
+  const diaria = salario / 30;
+  lanca(VERBAS.FALTAS, r((L.faltasDias ?? 0) * diaria), L.faltasDias ? `${L.faltasDias} dias` : null);
+  lanca(VERBAS.DSR_FALTAS, r((L.dsrPerdidos ?? 0) * diaria), L.dsrPerdidos ? `${L.dsrPerdidos} dias` : null);
+
+  // Bases a partir das incidências de cada verba.
+  const base = (b) => itens.reduce((s, i) => s + efeitoNaBase(i.verba, i.valor, b), 0);
+  const baseINSS = Math.max(0, base("inss"));
+  const baseFGTS = Math.max(0, base("fgts"));
+  const rendimentosIR = Math.max(0, base("irrf"));
+
+  const sf = calcularSalarioFamilia({ remuneracao: baseINSS, filhos: colaborador.filhosSalarioFamilia ?? 0, diasNoMes: dias }, tabela);
+  lanca(VERBAS.SALARIO_FAMILIA, sf.valor, sf.cotas ? `${sf.cotas} cota(s)` : null);
+
+  const inss = calcularINSS(baseINSS, tabela, { arredondamento: opcoes.arredondamentoINSS ?? ARREDONDAMENTO_INSS.POR_FAIXA });
+  lanca(VERBAS.INSS, inss.valor, inss.faixas.length ? `até ${inss.faixas.at(-1).aliquota}%` : null);
+  const irrf = calcularIRRF({ rendimentos: rendimentosIR, inss: inss.valor, dependentes: colaborador.dependentesIR ?? 0, pensao: L.pensao ?? 0 }, tabela);
+  lanca(VERBAS.IRRF, irrf.valor, irrf.valor ? `${irrf.aliquota}%` : null);
+  if (irrf.dispensado) avisos.push("IRRF de até R$ 10,00 dispensado de retenção.");
+
+  lanca(VERBAS.ADIANTAMENTO, L.adiantamento ?? 0);
+  if (L.custoValeTransporte) lanca(VERBAS.VALE_TRANSPORTE, Math.min(L.custoValeTransporte, r(salarioMes * 0.06)), "6%");
+
+  const proventos = itens.filter((i) => i.tipo === TIPO_VERBA.PROVENTO).reduce((s, i) => s + i.valor, 0);
+  const descontos = itens.filter((i) => i.tipo === TIPO_VERBA.DESCONTO).reduce((s, i) => s + i.valor, 0);
+  const liquido = proventos - descontos;
+  if (liquido < 0) avisos.push("Líquido negativo: descontos maiores que os proventos — revisar lançamentos.");
+
+  return {
+    competencia,
+    colaborador: { matricula: colaborador.matricula, nome: colaborador.nome, vinculo: colaborador.vinculo, cargo: colaborador.cargo ?? null, lotacao: colaborador.lotacao ?? null },
+    itens: itens.map(({ verba, ...i }) => i),
+    proventos,
+    descontos,
+    liquido,
+    bases: { inss: inss.base, fgts: baseFGTS, irrf: irrf.base, rendimentosIR },
+    fgts: r((baseFGTS * tabela.fgts.aliquota) / 100),
+    detalhe: { inss, irrf, salarioFamilia: sf, calendario: cal, diasDeContrato: dias, valorHora: r(valorHora) },
+    avisos,
+  };
+}

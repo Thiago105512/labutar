@@ -20,15 +20,15 @@ ou especialista em DP antes de implementar (ver seção 16).
 
 | Item | Prio | Compl. | Status | Onde / observação |
 |---|---|---|---|---|
-| Rubricas parametrizáveis (proventos, descontos, bases) com fórmulas e incidências | E | A | 📋 | `folha` |
-| Modelo temporal: toda regra e tabela com vigência por competência | E | A | 📋 | `tabelas-legais`; o padrão de parâmetro com vigência já existe em `mao-de-obra` (`PARAMETROS_LEGAIS`) e na tabela salarial do tomador |
+| Rubricas parametrizáveis (proventos, descontos, bases) com fórmulas e incidências | E | A | 🟡 | `folha/verbas`: catálogo `NNNN.VV` com incidências do eSocial; fórmulas configuráveis pelo usuário ⬜ |
+| Modelo temporal: toda regra e tabela com vigência por competência | E | A | ✅ | `folha/tabelas`: competência sem tabela é recusada; 2020 e 2026 cadastrados (2021–2025 a cadastrar) |
 | Recálculo retroativo e reprodução exata de competências passadas | E | A | ⬜ | Exige guardar a versão das regras usada em cada cálculo |
-| Tabelas: INSS, IRRF, salário mínimo, salário-família, pisos | E | M | 📋 | IRRF 2026 pela Lei 15.270/2025 — **verificar** |
-| Folha mensal, adiantamento, complementar | E | M | 📋 | Mensal prevista; adiantamento e complementar entram com este escopo |
+| Tabelas: INSS, IRRF, salário mínimo, salário-família, pisos | E | M | 🟡 | 2026 ✅ (Portaria Interministerial MPS/MF 13/2026; IRRF com simplificado e redução da Lei 15.270/2025); pisos ⬜ |
+| Folha mensal, adiantamento, complementar | E | M | 🟡 | Mensal ✅ (setembro/2026 no painel); desconto do adiantamento ✅; folha de adiantamento e complementar ⬜ |
 | 13º salário (1ª e 2ª parcelas, médias) | E | M | 📋 | |
 | Férias (gozadas, indenizadas, abono, fracionamento, 1/3) | E | M | 📋 | |
 | Rescisão em todas as modalidades, incluindo acordo (art. 484-A CLT) | E | A | 🟡 | Aviso prévio proporcional pronto em `core`; verbas em `rescisao` |
-| Horas extras, adicional noturno, DSR, insalubridade, periculosidade, comissões | E | M | 📋 | Insalubridade/periculosidade pelo **local do posto** (docs/11); comissões ⬜ |
+| Horas extras, adicional noturno, DSR, insalubridade, periculosidade, comissões | E | M | 🟡 | ✅ com DSR pelo calendário do local (feriados do AM e de Manaus); comissões ⬜ |
 | Médias e reflexos (férias, 13º, rescisão) | E | A | ⬜ | |
 | Pensão alimentícia (desconto e repasse, incidência em férias e 13º) | E | M | ⬜ | |
 | Consignado, vale-transporte, plano de saúde, coparticipação | E | M | 🟡 | VT e plano previstos em benefícios; consignado e coparticipação ⬜ |
@@ -165,7 +165,7 @@ colaborador, por dia e por assunto.
 
 | Item | Prio | Compl. | Status | Onde / observação |
 |---|---|---|---|---|
-| Custo de pessoal por área, cargo, centro de custo | E | M | 🟡 | Rateio por centro de custo pronto; relatório ⬜ |
+| Custo de pessoal por área, cargo, centro de custo | E | M | 🟡 | Custo por lotação (tomador ou setor) com encargos na folha ✅; por cargo ⬜ |
 | Turnover, absenteísmo, headcount, tempo de casa | D | M | ⬜ | |
 | Projeção orçamentária e simulação de cenários | D | A | ⬜ | Planilha de custos do comercial cobre a formação de preço |
 | Dashboards e relatórios configuráveis | D | M | 🟡 | Painel do recrutamento pronto |
