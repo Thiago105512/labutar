@@ -41,15 +41,40 @@ export function validarCPF(valor) {
   return { valido: true, motivo: null, digitos: cpf };
 }
 
-export function validarCNPJ(valor) {
-  const cnpj = somenteDigitos(valor);
-  if (cnpj.length !== 14) return { valido: false, motivo: "CNPJ deve ter 14 dígitos" };
-  if (todosIguais(cnpj)) return { valido: false, motivo: "CNPJ com dígitos repetidos" };
+/**
+ * CNPJ com só os caracteres que contam, em maiúsculas. Serve para o formato numérico e
+ * para o alfanumérico (IN RFB 2.229/2024, emitido desde julho de 2026): 12 posições com
+ * letras ou números + 2 dígitos verificadores. Os dois formatos convivem para sempre.
+ */
+export function normalizarCNPJ(valor) {
+  if (valor === null || valor === undefined) return "";
+  return String(valor).toUpperCase().replace(/[^0-9A-Z]/g, "");
+}
 
-  const dv1 = digitoMod11Padrao(cnpj, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+/** Raiz do CNPJ (8 primeiros caracteres): identifica a empresa, com todas as filiais. */
+export function raizCNPJ(valor) {
+  const cnpj = normalizarCNPJ(valor);
+  return cnpj.length === 14 ? cnpj.slice(0, 8) : null;
+}
+
+// Valor de cada caractere no cálculo do dígito: código ASCII − 48 (0–9 valem 0–9, A vale 17…).
+function digitoCNPJ(base, pesos) {
+  let soma = 0;
+  for (let i = 0; i < pesos.length; i++) soma += (base.charCodeAt(i) - 48) * pesos[i];
+  const resto = soma % 11;
+  return resto < 2 ? 0 : 11 - resto;
+}
+
+export function validarCNPJ(valor) {
+  const cnpj = normalizarCNPJ(valor);
+  if (cnpj.length !== 14) return { valido: false, motivo: "CNPJ deve ter 14 caracteres" };
+  if (!/^[0-9A-Z]{12}\d{2}$/.test(cnpj)) return { valido: false, motivo: "Os 2 últimos caracteres do CNPJ devem ser números" };
+  if (todosIguais(cnpj)) return { valido: false, motivo: "CNPJ com caracteres repetidos" };
+
+  const dv1 = digitoCNPJ(cnpj, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
   if (dv1 !== Number(cnpj[12])) return { valido: false, motivo: "Dígito verificador inválido" };
 
-  const dv2 = digitoMod11Padrao(cnpj, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  const dv2 = digitoCNPJ(cnpj, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
   if (dv2 !== Number(cnpj[13])) return { valido: false, motivo: "Dígito verificador inválido" };
 
   return { valido: true, motivo: null, digitos: cnpj };
@@ -167,7 +192,7 @@ export function formatarCPF(valor) {
 }
 
 export function formatarCNPJ(valor) {
-  const c = somenteDigitos(valor).padStart(14, "0").slice(0, 14);
+  const c = normalizarCNPJ(valor).padStart(14, "0").slice(0, 14);
   return `${c.slice(0, 2)}.${c.slice(2, 5)}.${c.slice(5, 8)}/${c.slice(8, 12)}-${c.slice(12)}`;
 }
 

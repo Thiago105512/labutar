@@ -7,3 +7,4 @@ export * from "./temporario.js";
 export * from "./terceirizacao.js";
 export * from "./alocacoes.js";
 export * from "./rateio.js";
+export * from "./matricula.js";

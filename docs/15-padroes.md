@@ -85,7 +85,57 @@ Na interface, **só** as funções de `web/app/ui.js` formatam: `moeda()`, `data
 Sempre pelo mesmo nome: **Lei 6.019/1974**, **Portaria MTP 671/2021**, **CLT, art. N**,
 **NR-N**, **Lei 13.709/2018 (LGPD)**. Eventos do eSocial pelo código: **S-2200**.
 
-## 7. Telas
+## 7. Códigos
+
+Um código identifica **uma coisa só, para sempre**: nunca é reaproveitado, nunca é renumerado
+e **nunca é montado com dado pessoal**.
+
+### 7.1 Matrícula do colaborador
+
+| Regra | Por quê |
+|---|---|
+| Uma matrícula **por vínculo**, não por pessoa | O temporário que volta depois da quarentena abre vínculo novo; o eSocial não aceita a mesma matrícula em dois vínculos do mesmo empregador |
+| **Não** derivar do CPF | Pessoas diferentes coincidem nos últimos dígitos (com 1.000 colaboradores e 6 dígitos, a chance de repetição passa de 30%); os 2 últimos do CPF são dígitos verificadores; e a matrícula aparece em crachá, holerite e relatórios, onde CPF não deve aparecer (LGPD) |
+| Formato **V-NNNNNN-D**: 1 dígito do vínculo, 6 de sequência, 1 verificador | Lê-se o vínculo de relance; o verificador pega erro de digitação em planilha e relógio; só números, compatível com relógio, banco e eSocial |
+
+Dígito do vínculo: **1** próprio · **2** temporário · **3** terceirizado. Exemplo: `2-004821-7`
+(temporário). Na API e no eSocial, sem separadores: `20048217`. A pessoa é sempre achada
+pelo CPF ou pelo nome; a matrícula identifica o vínculo.
+Geração e validação só por `gerarMatricula`, `proximaMatricula`, `validarMatricula` e
+`formatarMatricula` (`packages/mao-de-obra/src/matricula.js`).
+
+### 7.2 Empresa e tomador
+
+| Código | Formato | Exemplo |
+|---|---|---|
+| Empresa (grupo, todas as filiais) | Raiz do CNPJ, 8 caracteres | `11.222.333` |
+| Estabelecimento (filial) | CNPJ completo | `11.222.333/0002-62` |
+
+CNPJ é dado público e já é o identificador do eSocial e da regra dos 180 dias (que conta pela
+raiz). Aceita os dois formatos: numérico e **alfanumérico** (IN RFB 2.229/2024, emitido desde
+julho de 2026, ex.: `12.ABC.345/01DE-35`). Tomador pessoa física usa o CPF ou o CAEPF.
+
+### 7.3 Verbas: o código é o do eSocial
+
+O eSocial **não tem código fixo de verba**: cada empresa cria o seu (campo `codRubr` do evento
+S-1010) e liga cada verba a uma **natureza** da Tabela 03 do eSocial (4 dígitos; ex.: 1000,
+salário). Para não haver confusão, o código da verba no Labutar é:
+
+**NNNN.VV** = natureza da Tabela 03 + variante de 2 dígitos
+
+| Faixa da variante | Uso |
+|---|---|
+| `01`–`49` | Catálogo padrão do Labutar: o **mesmo código em todas as empresas** que usam o sistema |
+| `50`–`99` | Verbas próprias da empresa (acordos coletivos, benefícios específicos) |
+
+- Duas verbas com a mesma natureza (hora extra a 50% e a 100%) diferem só na variante.
+- O código é exatamente o enviado ao eSocial (`codRubr`) e o impresso no holerite: um número
+  só na tela, no holerite, no eSocial e na contabilidade.
+- Mudou a incidência ou a natureza? Nova **vigência** da mesma verba, código mantido.
+- Os códigos das naturezas são conferidos contra a Tabela 03 do leiaute vigente ao montar o
+  catálogo padrão (docs/13, seção 16).
+
+## 8. Telas
 
 **Lista** (usuários, vagas, colaboradores, tomadores…): título e ação principal ("Novo …") no
 topo à direita → filtros → tabela → estado vazio com frase explicando e a mesma ação.
@@ -112,7 +162,7 @@ esse perfil ficarão sem acesso ao módulo."
 **Ícones**: um ícone por conceito, todos em `web/app/icones.js`; o mesmo conceito usa o mesmo
 ícone no painel e nos portais.
 
-## 8. Mensagens
+## 9. Mensagens
 
 - **Sucesso**: o que foi feito, no passado: "Usuário criado."
 - **Erro**: o que aconteceu e o que fazer: "O CPF já está cadastrado para Maria Costa. Abra o
@@ -121,7 +171,7 @@ esse perfil ficarão sem acesso ao módulo."
   nesta tomadora em 12/08/2026 e só pode voltar após 10/11/2026 (Lei 6.019/1974, art. 10, § 5º)."
 - Tratamento por "você"; frases curtas; sem ponto de exclamação.
 
-## 9. API e código
+## 10. API e código
 
 - Resposta sempre `{ ok: true, dados }` ou `{ ok: false, erro, codigo, detalhes }`.
 - Rotas em português, no plural: `/api/colaboradores/:id`.
@@ -130,7 +180,7 @@ esse perfil ficarão sem acesso ao módulo."
   (`NOME_…`), nunca texto solto na tela.
 - Regra de negócio em pacote puro (`packages/*`) com teste; a tela só exibe.
 
-## 10. Como mudar um padrão
+## 11. Como mudar um padrão
 
 Padrão muda por decisão explícita, registrada aqui, com o teste de padrões atualizado no
 mesmo PR — nunca com exceção pontual.
