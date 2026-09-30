@@ -1,5 +1,8 @@
 # Labutar — Modelo de dados
 
+> Tomadores, contratos, postos, vínculos e alocações: ver
+> [`11-dominio-mao-de-obra.md`](11-dominio-mao-de-obra.md), seção 3.
+
 Convenções: datas civis em `AAAA-MM-DD`, timestamps em ISO-8601 UTC, dinheiro em
 **centavos (inteiro)**, IDs com prefixo por entidade (`VAGA_`, `CAND_`, `CTDA_`).
 

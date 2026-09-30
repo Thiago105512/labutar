@@ -1,6 +1,7 @@
 # Labutar — Mapa de módulos
 
-Visão aprovada em 2026-09-30. O Labutar é um **SaaS multiempresa para empresas de
+Visão aprovada em 2026-09-30. O domínio central — os três vínculos, tomadores, postos e
+alocação — está em [`11-dominio-mao-de-obra.md`](11-dominio-mao-de-obra.md). O Labutar é um **SaaS multiempresa para empresas de
 recrutamento e seleção e de mão de obra temporária e terceirizada**. Cobre o ciclo do
 trabalhador (vaga → admissão → ponto → folha → rescisão), o ciclo do cliente tomador
 (proposta → contrato → medição → fatura) e a gestão da própria empresa.
@@ -36,8 +37,9 @@ interface pública do pacote ou reage a eventos (ex.: `admissao.concluida`).
 
 | Pacote | Conteúdo | Estado |
 |---|---|---|
-| `tomadores` | Clientes tomadores, unidades, contratos comerciais, postos, preços, medição | ⬜ |
-| `alocacao` | Quem está em qual posto, escala, reposição de faltas | ⬜ |
+| `mao-de-obra` | **Núcleo do domínio** ([`11-dominio-mao-de-obra.md`](11-dominio-mao-de-obra.md)): vínculos temporário/terceirizado/próprio, prazos e quarentenas legais, alocação por dia, centro de custo, rateio, desmobilização | ✅ regras |
+| `tomadores` | Clientes tomadores, unidades, contratos comerciais, postos, preços, medição (cadastro e telas; regras em `mao-de-obra`) | ⬜ |
+| `alocacao` | Escala, quadro de postos descobertos, reposição de faltas (telas; regras em `mao-de-obra`) | ⬜ |
 | `ponto` | Marcações (REP-P, Portaria MTE 671/2021), offline, banco de horas, espelho, AFD/AEJ | ⬜ |
 | `compliance` | Certidões, guias pagas e documentos exibidos ao tomador (responsabilidade subsidiária) | ⬜ |
 

@@ -9,7 +9,8 @@ e treinamentos.
 Inspiração no recrutamento: [Selecty](https://selecty.com.br) 4.0, Gupy, Recrutei, Bizneo HR.
 Diferencial: **ATS, gestão de temporários/terceirizados e folha no mesmo cadastro**.
 
-Mapa de módulos em [`docs/09-modulos.md`](docs/09-modulos.md) ·
+**Comece por [`docs/11-dominio-mao-de-obra.md`](docs/11-dominio-mao-de-obra.md)** — o domínio que
+diferencia o produto. Mapa de módulos em [`docs/09-modulos.md`](docs/09-modulos.md) ·
 roadmap em [`docs/03-roadmap.md`](docs/03-roadmap.md).
 
 ## Estado atual
@@ -21,13 +22,14 @@ roadmap em [`docs/03-roadmap.md`](docs/03-roadmap.md).
 | `@labutar/avaliacoes` | DISC, testes, cursos, laudos, benchmark com guardrails | ✅ |
 | `@labutar/comunica` | templates, canais, avisos, lembretes (sem entrega) | ✅ |
 | `@labutar/ia` | prompts, desidentificação, rubricas | ✅ |
+| `@labutar/mao-de-obra` | **núcleo do domínio**: vínculos, prazos legais, alocação, rateio | ✅ |
 | `@labutar/admissao` | checklist, ASO, contrato, prazos do temporário | ⏸ contrato reservado |
 | `@labutar/esocial` | eventos eSocial | ⏸ contrato reservado |
 | `server` | API + repositório multi-tenant com fronteira de escopo | 🚧 |
 | `web/app` | painel do recrutador | 🚧 |
 | ponto, folha, tomadores, faturamento, comercial e demais | ver `docs/09-modulos.md` | ⬜ |
 
-**525 testes passando** (1 pulado sem `firebase-admin`), e mais 14 com PostgreSQL; o CI roda os dois modos em todo push.
+**560 testes passando** (1 pulado sem `firebase-admin`), e mais 14 com PostgreSQL; o CI roda os dois modos em todo push.
 Nada em produção.
 
 O backend roda **sem `npm install`**: o driver padrão é memória. O banco principal passa a

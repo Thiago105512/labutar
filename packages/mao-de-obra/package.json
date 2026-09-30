@@ -1,0 +1,11 @@
+{
+  "name": "@labutar/mao-de-obra",
+  "version": "0.1.0",
+  "description": "Núcleo do domínio de mão de obra: vínculos temporário, terceirizado e próprio, contratos com tomadores, alocação em postos, quarentenas legais e rateio de custo por centro de custo. JS puro, roda no Node e no navegador.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "sideEffects": false
+}
