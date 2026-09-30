@@ -9,6 +9,7 @@
  */
 import { icone } from "./icones.js";
 import { api, sessao } from "./sessao.js";
+import { paginaColaboradores, paginaImportacao, paginaTomadores, ligarEventosCadastro, limparCadastro } from "./cadastro-telas.js";
 import { paginaFolhaResumo, paginaHolerites, paginaFolhaTomadores, paginaVerbas, ligarEventosFolha, limparFolha } from "./folha-telas.js";
 import { esc, moeda, dataHora, avatar, etiqueta, diasDesde, quando, aviso, abrirPainel, fecharPainel, matiz } from "./ui.js";
 import {
@@ -33,6 +34,13 @@ const PAGINAS = {
     { id: "vagas", nome: "Vagas", icone: "vagas", contador: () => estado.vagas.filter((v) => v.status === "ABERTA").length },
     { id: "pipeline", nome: "Processo seletivo", icone: "pipeline" },
     { id: "candidatos", nome: "Banco de talentos", icone: "candidatos", contador: () => estado.candidatos.length },
+  ],
+  colaboradores: [
+    { id: "lista", nome: "Colaboradores", icone: "cracha" },
+    { id: "importar", nome: "Importar planilha", icone: "seta" },
+  ],
+  tomadores: [
+    { id: "lista", nome: "Tomadores e postos", icone: "tomadores" },
   ],
   folha: [
     { id: "resumo", nome: "Resumo da competência", icone: "folha" },
@@ -253,6 +261,7 @@ let recrutamentoCarregado = false;
 function limparDados() {
   recrutamentoCarregado = false;
   limparFolha();
+  limparCadastro();
   Object.assign(estado, { vagas: [], candidatos: [], candidaturas: [], resumo: null, origens: [], busca: "" });
 }
 
@@ -297,6 +306,12 @@ async function renderizar() {
       else if (pagina.id === "pipeline") conteudo.innerHTML = telaPipeline(param);
       else if (pagina.id === "candidatos") conteudo.innerHTML = telaCandidatos();
       else conteudo.innerHTML = telaInicio();
+    } else if (moduloId === "colaboradores") {
+      conteudo.innerHTML = carregando;
+      conteudo.innerHTML = pagina.id === "importar" ? await paginaImportacao() : await paginaColaboradores();
+    } else if (moduloId === "tomadores") {
+      conteudo.innerHTML = carregando;
+      conteudo.innerHTML = await paginaTomadores();
     } else if (moduloId === "folha") {
       conteudo.innerHTML = carregando;
       const telas = { resumo: paginaFolhaResumo, holerites: paginaHolerites, tomadores: paginaFolhaTomadores, verbas: paginaVerbas };
@@ -873,6 +888,7 @@ document.getElementById("sidebar-fundo").addEventListener("click", () => documen
 
 ligarEventosAcesso({ aoAlterar: renderizar });
 ligarEventosFolha({ aoAlterar: renderizar });
+ligarEventosCadastro({ aoAlterar: renderizar });
 sessao.aoSair((motivo) => {
   limparDados();
   history.replaceState(null, "", "#/");

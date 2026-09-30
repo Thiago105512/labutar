@@ -1,0 +1,11 @@
+{
+  "name": "@labutar/cadastro",
+  "version": "0.1.0",
+  "description": "Cadastro único: pessoas (CPF, dependentes, banco), tomadores, contratos, postos e vínculos com histórico salarial; adaptador para a folha e importação de planilha. JS puro, roda no Node e no navegador.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "sideEffects": false
+}

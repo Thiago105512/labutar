@@ -24,6 +24,15 @@ export const EMPRESAS_DEMO = Object.freeze([
   }),
 ]);
 
+/** Tomadores fictícios do Polo Industrial de Manaus (CNPJs fictícios com dígito válido). */
+export const TOMADORES_DEMO = Object.freeze({
+  "TOM:T1": { id: "TOM_ELETRONICA_AMAZONIA", cnpj: "04567891000113", razaoSocial: "Eletrônica Amazônia S.A.", municipio: "Manaus", uf: "AM" },
+  "TOM:T2": { id: "TOM_MOTOS_NORTE", cnpj: "07891234000115", razaoSocial: "Motos do Norte Ltda", municipio: "Manaus", uf: "AM" },
+  "TOM:T3": { id: "TOM_AMAZON_INFORMATICA", cnpj: "09123456000113", razaoSocial: "Amazon Informática S.A.", municipio: "Manaus", uf: "AM" },
+  "TOM:T4": { id: "TOM_PLASTICOS_TARUMA", cnpj: "03456789000188", razaoSocial: "Plásticos Tarumã Ltda", municipio: "Manaus", uf: "AM" },
+});
+export const SETORES_DEMO = Object.freeze([{ id: "ADM", nome: "Administrativo próprio" }]);
+
 export const EMPRESA_FOLHA_DEMO = Object.freeze({
   id: "empresa",
   cnpj: EMPRESAS_DEMO[0].cnpj,
@@ -35,15 +44,8 @@ export const EMPRESA_FOLHA_DEMO = Object.freeze({
   fpas: "515 (conferir)",
   arredondamentoINSS: "POR_FAIXA",
   local: { uf: "AM", municipio: "Manaus" },
+  setores: SETORES_DEMO,
 });
-
-export const LOTACOES_DEMO = Object.freeze([
-  { id: "TOM:T1", nome: "Eletrônica Amazônia S.A.", tipo: "TOMADOR" },
-  { id: "TOM:T2", nome: "Motos do Norte Ltda", tipo: "TOMADOR" },
-  { id: "TOM:T3", nome: "Amazon Informática S.A.", tipo: "TOMADOR" },
-  { id: "TOM:T4", nome: "Plásticos Tarumã Ltda", tipo: "TOMADOR" },
-  { id: "SET:ADM", nome: "Administrativo próprio", tipo: "SETOR" },
-]);
 
 const T = TIPO_VINCULO.TEMPORARIO, S = TIPO_VINCULO.TERCEIRIZADO, P = TIPO_VINCULO.PROPRIO;
 const seq = { [T]: 0, [S]: 0, [P]: 0 };
@@ -82,15 +84,67 @@ export function folhaDemo() {
   ].map((p, i) => (i === 22 ? { ...p, colaborador: { ...p.colaborador, desligamento: "2026-09-18" } } : p));
 }
 
+const CONTRATO_DEMO = {
+  TEMPORARIO: { tipo: "TRABALHO_TEMPORARIO", inicio: "2026-01-01", fim: "2026-12-31", hipotese: "DEMANDA_COMPLEMENTAR", justificativa: "Acréscimo extraordinário de produção do segundo semestre" },
+  TERCEIRIZADO: { tipo: "PRESTACAO_SERVICOS", inicio: "2023-01-02", fim: null },
+};
+
+/**
+ * Semeia o cadastro (tomadores, contratos, postos, pessoas e vínculos) e os lançamentos de
+ * setembro/2026 a partir da lista de demonstração. CPF em branco de propósito.
+ */
 export async function semearFolha(repo, tenantId) {
-  if (await repo.contar(tenantId, "folhaColaboradores")) return { semeado: false };
+  if (await repo.contar(tenantId, "vinculos")) return { semeado: false };
   for (const e of EMPRESAS_DEMO) await repo.inserir(tenantId, "empresas", { ...e });
   await repo.inserir(tenantId, "folhaParametros", { ...EMPRESA_FOLHA_DEMO });
-  for (const l of LOTACOES_DEMO) await repo.inserir(tenantId, "folhaLotacoes", { ...l });
+  for (const t of Object.values(TOMADORES_DEMO)) await repo.inserir(tenantId, "tomadores", { ...t });
+
+  const contratos = new Map();
+  const postos = new Map();
   const dados = folhaDemo();
-  for (const { colaborador, lancamentos } of dados) {
-    await repo.inserir(tenantId, "folhaColaboradores", { id: colaborador.matricula, ...colaborador });
-    await repo.inserir(tenantId, "folhaLancamentos", { id: `${COMPETENCIA_DEMO}:${colaborador.matricula}`, competencia: COMPETENCIA_DEMO, matricula: colaborador.matricula, ...lancamentos });
+  let nPessoa = 0;
+  for (const { colaborador: c, lancamentos } of dados) {
+    const tomador = TOMADORES_DEMO[c.lotacao] ?? null;
+    let contrato = null;
+    let posto = null;
+    if (tomador) {
+      const chaveContrato = `${tomador.id}:${c.vinculo}`;
+      if (!contratos.has(chaveContrato)) {
+        contrato = { id: `CTR_${tomador.id.slice(4)}_${c.vinculo === "TEMPORARIO" ? "TEMP" : "SERV"}`, tomadorId: tomador.id, tomadorCnpj: tomador.cnpj, ...CONTRATO_DEMO[c.vinculo] };
+        contratos.set(chaveContrato, contrato);
+        await repo.inserir(tenantId, "contratosTomador", contrato);
+      }
+      contrato = contratos.get(chaveContrato);
+      const chavePosto = `${contrato.id}:${c.cargo}`;
+      if (!postos.has(chavePosto)) {
+        posto = {
+          id: `POS_${postos.size + 1}`, contratoId: contrato.id, tomadorId: tomador.id, funcao: c.cargo, vagas: 2, // o contrato pede mais do que já está ocupado: sobram vagas para admitir
+          jornadaMensal: 220, insalubridadeGrau: c.insalubridadeGrau ?? null, periculosidade: Boolean(c.periculosidade),
+          salarioReferencia: c.vinculo === "TEMPORARIO" ? c.salario : null, local: { uf: tomador.uf, municipio: tomador.municipio },
+        };
+        postos.set(chavePosto, posto);
+      }
+      posto = postos.get(chavePosto);
+      posto.vagas += 1;
+    }
+
+    const filhos = c.filhosSalarioFamilia ?? 0;
+    const depIR = c.dependentesIR ?? 0;
+    const dependentes = Array.from({ length: Math.max(filhos, depIR) }, (_, i) => ({
+      nome: `Dependente ${i + 1} de ${c.nome.split(" ")[0]}`, parentesco: "FILHO", nascimento: "2018-05-10",
+      cpf: null, deduzIR: i < depIR, salarioFamilia: i < filhos, invalido: false,
+    }));
+    const pessoaId = `PES_${String(++nPessoa).padStart(4, "0")}`;
+    await repo.inserir(tenantId, "pessoas", { id: pessoaId, cpf: null, nome: c.nome, dependentes, banco: null });
+    await repo.inserir(tenantId, "vinculos", {
+      id: c.matricula, matricula: c.matricula, pessoaId, tipo: c.vinculo, admissao: c.admissao, desligamento: c.desligamento ?? null,
+      cargo: c.cargo, salario: c.salario, historicoSalarial: [{ desde: c.admissao, valor: c.salario, motivo: "Admissão" }],
+      tomadorId: tomador?.id ?? null, tomadorCnpj: tomador?.cnpj ?? null, contratoId: contrato?.id ?? null, postoId: posto?.id ?? null,
+      setor: tomador ? null : "ADM",
+      temporario: c.vinculo === "TEMPORARIO" ? { fimPrevisto: null } : null,
+    });
+    await repo.inserir(tenantId, "folhaLancamentos", { id: `${COMPETENCIA_DEMO}:${c.matricula}`, competencia: COMPETENCIA_DEMO, matricula: c.matricula, ...lancamentos });
   }
+  for (const p of postos.values()) await repo.inserir(tenantId, "postos", p);
   return { semeado: true, colaboradores: dados.length };
 }

@@ -46,13 +46,15 @@ ou especialista em DP antes de implementar (ver seção 16).
 |---|---|---|---|---|
 | Admissão (checklist documental, exame admissional) | E | M | 🟡 | `admissao` com contrato reservado; modelo em docs/02 |
 | Vínculos: CLT, aprendiz, estagiário, intermitente, temporário, autônomo (RPA), pró-labore, doméstico, avulso | E | M | 🟡 | Temporário, terceirizado e próprio com regras legais prontas (`mao-de-obra`); demais ⬜ |
-| Dependentes, dados bancários, documentos, histórico contratual | E | B | 📋 | |
-| Alterações de cargo, salário, lotação, jornada, centro de custo, com histórico | E | M | 🟡 | Lotação/alocação com histórico e centro de custo prontos; cargo, salário e jornada ⬜ |
+| Dependentes, dados bancários, documentos, histórico contratual | E | B | 🟡 | Pessoa por CPF com dependentes (IR e salário-família) e vínculos por matrícula prontos (`cadastro`); dados bancários e documentos ⬜ |
+| Alterações de cargo, salário, lotação, jornada, centro de custo, com histórico | E | M | 🟡 | Lotação/alocação e salário com vigência e histórico prontos (`cadastro`); cargo e jornada ⬜ |
 | Afastamentos (doença, acidente, maternidade, licenças), retorno, estabilidades | E | M | 📋 | Estabilidades ⬜ |
 | Férias: períodos aquisitivo e concessivo, alertas de vencimento | E | M | 📋 | |
 | Contrato de experiência e prorrogações, com alertas | E | M | ⬜ | Prazo do temporário (180 + 90) já tem alerta |
 | Plano de cargos e salários, organograma | D | B | ⬜ | |
 | Transferência entre empresas do grupo | D | M | ⬜ | |
+| Tomadores, contratos (temporário e prestação de serviços) e postos com vagas, adicionais e salário da tomadora | E | M | ✅ | `cadastro`; posto cheio impede admissão; remuneração equivalente (art. 12) e quarentena de 18 meses (art. 5-D) checadas |
+| Importação da planilha do sistema anterior (prévia antes de gravar) | E | M | ✅ | Colunas em `cadastro/importacao.js`; CPF pode vir vazio e fica pendente |
 | Admissão digital com reconhecimento de documentos por IA | F | M | 📋 | OCR previsto na admissão |
 
 ## 3. Obrigações legais — `esocial` e obrigações acessórias
