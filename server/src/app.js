@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 import { registrarRotas } from "./rotas.js";
 import { registrarRotasPublicas } from "./rotas-publicas.js";
 import { resolverContexto } from "./middleware/contexto.js";
+import { registrarRotasAcesso } from "./rotas-acesso.js";
+import { criarServicoAcesso } from "./auth/servico.js";
 import { cabecalhosCors, lerCorpo } from "./http/corpo.js";
 import { responderErro, falha, CODIGOS } from "./http/resposta.js";
 
@@ -80,8 +82,10 @@ async function servirEstatico(req, res, caminhoUrl) {
   }
 }
 
-export async function criarAplicacao({ config, repo, log = () => {}, limiteCorpoBytes } = {}) {
+export async function criarAplicacao({ config = {}, repo, log = () => {}, limiteCorpoBytes, acesso } = {}) {
+  const servicoAcesso = acesso ?? criarServicoAcesso({ repo });
   const internas = registrarRotas({ repo, log });
+  registrarRotasAcesso(internas, { acesso: servicoAcesso });
   const publicas = registrarRotasPublicas({ repo, log });
 
   async function handler(req, res) {
@@ -120,7 +124,8 @@ export async function criarAplicacao({ config, repo, log = () => {}, limiteCorpo
         return undefined;
       }
 
-      const ctx = resolverContexto(req);
+      const ctx = await resolverContexto(req, { acesso: servicoAcesso, config });
+      ctx.userAgent = req.headers["user-agent"] ?? null;
       ctx.params = rota.params;
       ctx.ip = (req.headers["x-forwarded-for"] ?? "").split(",")[0].trim() || req.socket?.remoteAddress || null;
 
@@ -139,5 +144,5 @@ export async function criarAplicacao({ config, repo, log = () => {}, limiteCorpo
     }
   }
 
-  return { handler, internas, publicas, repo, config };
+  return { handler, internas, publicas, repo, config, acesso: servicoAcesso };
 }

@@ -1,5 +1,5 @@
 import { iniciar } from "./index.js";
-import { semear, TENANT_DEMO } from "./seed/dados.js";
+import { semear, semearUsuarios, SENHA_DEMO, USUARIOS_DEMO, TENANT_DEMO } from "./seed/dados.js";
 
 /**
  * Sobe com dados de demonstração e força driver de memória: desenvolvimento
@@ -32,7 +32,15 @@ async function principal() {
   } else {
     console.log(`  seed pulado: ${resultado.motivo}`);
   }
-  console.log(`\n  curl -H "X-Labutar-Tenant: ${TENANT_DEMO}" ${contexto.url}/api/vagas\n`);
+  const usuarios = await semearUsuarios(contexto.acesso);
+  if (usuarios.semeado) {
+    console.log(`\n  Usuários de demonstração (senha "${SENHA_DEMO}", empresa "${TENANT_DEMO}"):`);
+    for (const u of USUARIOS_DEMO) console.log(`    ${u.email.padEnd(26)} ${u.perfilId}`);
+  }
+  console.log(`\n  Painel: ${contexto.url}/web/app/index.html`);
+  console.log(`
+  API: POST ${contexto.url}/api/auth/entrar {"empresa":"${TENANT_DEMO}","email":"admin@demo.com.br","senha":"${SENHA_DEMO}"}
+`);
 }
 
 principal().catch((erro) => {

@@ -12,13 +12,14 @@ export async function iniciar({ config = carregarConfig(process.env), log = cons
   await new Promise((resolver) => servidor.listen(config.porta, resolver));
   const endereco = servidor.address();
 
-  const avisos = [...avisosDeRisco(config), ...avisosDeSeguranca()];
+  const avisos = [...avisosDeRisco(config), ...avisosDeSeguranca(config)];
   for (const aviso of avisos) log(`[labutar] AVISO: ${aviso}`);
 
   return {
     servidor,
     repo,
     config,
+    acesso: app.acesso,
     url: `http://localhost:${endereco.port}`,
     porta: endereco.port,
     avisos,
@@ -38,7 +39,7 @@ if (ehEntradaDireta) {
     if (config.driver === "firestore") {
       console.log(`  projeto: ${config.projetoFirebase}/${config.databaseId}  raiz: ${config.raizColecao}`);
     }
-    console.log(`  ⚠ autenticação por cabeçalho é STUB de desenvolvimento`);
+    if (config.permitirIdentidadePorCabecalho) console.log(`  ⚠ identidade por cabeçalho ativa (desenvolvimento)`);
   }).catch((erro) => {
     console.error("Falha ao subir o Labutar:", erro);
     process.exit(1);

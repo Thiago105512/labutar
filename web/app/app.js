@@ -1,88 +1,94 @@
 /**
  * Painel da empresa no Labutar.
  *
- * SPA sem bundler: cada tela é uma função que devolve HTML a partir do estado
- * carregado da API. Todo texto vindo da API passa por `esc()` antes de entrar
- * no HTML — nome de candidato é dado digitado por terceiros.
+ * Fluxo: login → escolha do módulo → páginas do módulo. Rotas:
+ *   #/                         escolha de módulo
+ *   #/<modulo>/<pagina>/<param>
+ * A tela só mostra o que o perfil permite; quem decide é sempre o servidor.
+ * Todo texto vindo da API passa por `esc()` antes de entrar no HTML.
  */
 import { icone } from "./icones.js";
+import { api, sessao } from "./sessao.js";
+import { esc, avatar, etiqueta, diasDesde, quando, aviso, abrirPainel, fecharPainel, matiz } from "./ui.js";
+import {
+  ICONE_MODULO,
+  esconderTelaCheia,
+  ligarEventosAcesso,
+  paginaAuditoria,
+  paginaPerfis,
+  paginaUsuarios,
+  telaLogin,
+  telaModulos,
+  telaTrocarSenhaObrigatoria,
+} from "./acesso-telas.js";
 
-const API = "/api";
-const TENANT = "demo-industrial";
-// Identidade ainda é STUB de desenvolvimento (ver server/src/middleware/contexto.js).
-const USUARIO = "U_RECRUTADORA";
+// ---------------------------------------------------------------- módulos e páginas
 
-const cabecalhos = (extra = {}) => ({
-  "X-Labutar-Tenant": TENANT,
-  "X-Labutar-Usuario": USUARIO,
-  "X-Labutar-Papel": "admin",
-  ...extra,
-});
-
-async function api(caminho, { metodo = "GET", corpo } = {}) {
-  const resposta = await fetch(`${API}${caminho}`, {
-    method: metodo,
-    headers: cabecalhos(corpo ? { "Content-Type": "application/json" } : {}),
-    body: corpo ? JSON.stringify(corpo) : undefined,
-  });
-  const json = await resposta.json().catch(() => ({}));
-  if (!resposta.ok || json.ok === false) {
-    throw new Error(json.erro || `Falha na requisição (${resposta.status})`);
-  }
-  return json.dados;
-}
-
-// ---------------------------------------------------------------- módulos
-
-const MODULOS = [
-  { grupo: "Recrutamento", itens: [
+/** Páginas dos módulos já construídos. Os demais abrem a página "em desenvolvimento". */
+const PAGINAS = {
+  recrutamento: [
     { id: "inicio", nome: "Início", icone: "inicio" },
     { id: "vagas", nome: "Vagas", icone: "vagas", contador: () => estado.vagas.filter((v) => v.status === "ABERTA").length },
     { id: "pipeline", nome: "Processo seletivo", icone: "pipeline" },
     { id: "candidatos", nome: "Banco de talentos", icone: "candidatos", contador: () => estado.candidatos.length },
-  ]},
-  { grupo: "Mão de obra", itens: [
-    { id: "colaboradores", nome: "Colaboradores", icone: "cracha", breve: true,
-      resumo: "Temporários, terceirizados e próprios no mesmo cadastro, cada um com suas regras: onde está alocado hoje, prazo do contrato temporário, quarentenas legais e para qual cliente vai o custo de cada dia.",
-      recursos: ["Temporário, terceirizado e próprio", "Alocação por tomador, posto ou setor", "Prazo de 180 + 90 dias com alerta", "Quarentenas legais bloqueadas", "Coberturas de folguistas e feristas", "Plano de desmobilização por contrato"] },
-    { id: "admissao", nome: "Admissão", titulo: "Admissão digital", icone: "admissao", breve: true,
-      resumo: "Do candidato aprovado ao trabalhador registrado, sem papel: documentos pelo celular, exame admissional, contrato assinado eletronicamente e envio ao eSocial.",
-      recursos: ["Documentos pelo celular com OCR", "Agendamento e validade do ASO", "Contrato eletrônico (CLT e temporário)", "Prazos da Lei 6.019/1974", "Envio do S-2200 ao eSocial", "Bloqueio de início sem pendências"] },
-    { id: "tomadores", nome: "Tomadores", titulo: "Tomadores e postos", icone: "tomadores", breve: true,
-      resumo: "Clientes tomadores, contratos, postos de trabalho e quem está alocado em cada um, com reposição rápida de faltas.",
-      recursos: ["Contratos e postos por cliente", "Alocação e escala", "Reposição de faltas", "Portal do tomador", "Medição aprovada pelo cliente", "Compliance da terceirização"] },
-    { id: "ponto", nome: "Ponto", titulo: "Ponto eletrônico", icone: "ponto", breve: true,
-      resumo: "Registro de ponto pelo app do trabalhador, com foto e localização, funcionando mesmo sem internet.",
-      recursos: ["REP-P (Portaria MTE 671/2021)", "Foto e geolocalização", "Registro offline", "Banco de horas", "Espelho de ponto", "Arquivos AFD e AEJ"] },
-    { id: "folha", nome: "Folha", titulo: "Folha de pagamento", icone: "folha", breve: true,
-      resumo: "Cálculo mensal a partir do ponto, com convenções coletivas, férias, 13º, rescisão e eventos do eSocial.",
-      recursos: ["Cálculo por convenção coletiva", "Férias, 13º e rescisão", "Holerite no app", "Pagamento em lote e PIX", "eSocial, FGTS Digital e DCTFWeb", "Tabelas legais por vigência"] },
-    { id: "sst", nome: "SST", titulo: "Saúde e segurança", icone: "sst", breve: true,
-      resumo: "PGR, PCMSO, ASO periódico, entrega de EPI e comunicação de acidentes.",
-      recursos: ["ASO e exames periódicos", "Entrega de EPI com assinatura", "CAT", "S-2220 e S-2240", "Alertas de vencimento", "Treinamentos NR"] },
-  ]},
-  { grupo: "Gestão", itens: [
-    { id: "comercial", nome: "Comercial", icone: "comercial", breve: true,
-      resumo: "Clientes, possíveis clientes, concorrentes e processos BID, com planilha de custos e formação de preço por posto.",
-      recursos: ["Mapa de clientes e prospects", "Cadastro de concorrentes", "BIDs em andamento e encerrados", "Planilha de custos (Excel e PDF)", "Propostas e contratos", "Relatórios de funil e carteira"] },
-    { id: "financeiro", nome: "Financeiro", icone: "financeiro", breve: true,
-      resumo: "Faturamento por medição, notas fiscais, cobrança e contas a pagar e receber.",
-      recursos: ["Fatura por medição", "NFS-e e retenções", "Boleto e PIX", "Contas a pagar e receber", "Conciliação bancária", "Centros de custo"] },
-    { id: "contabil", nome: "Contábil", icone: "contabil", breve: true,
-      resumo: "Lançamentos automáticos da folha e do faturamento, DRE e exportação para o contador.",
-      recursos: ["Plano de contas", "Lançamentos automáticos", "DRE gerencial", "Exportação ao contador"] },
-    { id: "treinamentos", nome: "Treinamentos", icone: "treinamentos", breve: true,
-      resumo: "Cursos, trilhas e certificados com validade, que bloqueiam alocação quando vencem.",
-      recursos: ["Cursos e trilhas", "Certificados", "Validade de NRs", "Bloqueio de alocação"] },
-    { id: "juridico", nome: "Jurídico", icone: "juridico", breve: true,
-      resumo: "Contratos, processos trabalhistas, prazos e provisões.",
-      recursos: ["Modelos de contrato", "Processos e audiências", "Prazos com alerta", "Provisões"] },
-    { id: "estoque", nome: "Estoque", titulo: "Estoque e compras", icone: "estoque", breve: true,
-      resumo: "Almoxarifado de EPI e uniformes, requisições, cotações e pedidos de compra.",
-      recursos: ["EPI e uniformes", "Validade do CA", "Requisição e cotação", "Pedidos e fornecedores"] },
-  ]},
-];
-const TODOS_MODULOS = MODULOS.flatMap((g) => g.itens.map((i) => ({ ...i, grupo: g.grupo })));
+  ],
+  administracao: [
+    { id: "usuarios", nome: "Usuários", icone: "pessoas" },
+    { id: "perfis", nome: "Perfis de acesso", icone: "cadeado" },
+    { id: "auditoria", nome: "Auditoria", icone: "relogio" },
+  ],
+};
+
+const EM_BREVE = {
+  colaboradores: {
+    resumo: "Temporários, terceirizados e próprios no mesmo cadastro, cada um com suas regras: onde está alocado hoje, prazo do contrato temporário, quarentenas legais e para qual cliente vai o custo de cada dia.",
+    recursos: ["Temporário, terceirizado e próprio", "Alocação por tomador, posto ou setor", "Prazo de 180 + 90 dias com alerta", "Quarentenas legais bloqueadas", "Coberturas de folguistas e feristas", "Plano de desmobilização por contrato"],
+  },
+  admissao: {
+    resumo: "Do candidato aprovado ao trabalhador registrado, sem papel: documentos pelo celular, exame admissional, contrato assinado eletronicamente e envio ao eSocial.",
+    recursos: ["Documentos pelo celular com OCR", "Agendamento e validade do ASO", "Contrato eletrônico (CLT e temporário)", "Prazos da Lei 6.019/1974", "Envio do S-2200 ao eSocial", "Bloqueio de início sem pendências"],
+  },
+  tomadores: {
+    resumo: "Clientes tomadores, contratos, postos de trabalho e quem está alocado em cada um, com reposição rápida de faltas.",
+    recursos: ["Contratos e postos por cliente", "Alocação e escala", "Reposição de faltas", "Portal do tomador", "Medição aprovada pelo cliente", "Compliance da terceirização"],
+  },
+  ponto: {
+    resumo: "Registro de ponto pelo app do trabalhador, com foto e localização, funcionando mesmo sem internet.",
+    recursos: ["REP-P (Portaria MTE 671/2021)", "Foto e geolocalização", "Registro offline", "Banco de horas", "Espelho de ponto", "Arquivos AFD e AEJ"],
+  },
+  folha: {
+    resumo: "Cálculo mensal a partir do ponto, com convenções coletivas, férias, 13º, rescisão e eventos do eSocial.",
+    recursos: ["Cálculo por convenção coletiva", "Férias, 13º e rescisão", "Holerite no app", "Pagamento em lote e PIX", "eSocial, FGTS Digital e DCTFWeb", "Tabelas legais por vigência"],
+  },
+  sst: {
+    resumo: "PGR, PCMSO, ASO periódico, entrega de EPI e comunicação de acidentes.",
+    recursos: ["ASO e exames periódicos", "Entrega de EPI com assinatura", "CAT", "S-2220 e S-2240", "Alertas de vencimento", "Treinamentos NR"],
+  },
+  comercial: {
+    resumo: "Clientes, possíveis clientes, concorrentes e processos BID, com planilha de custos e formação de preço por posto.",
+    recursos: ["Mapa de clientes e prospects", "Cadastro de concorrentes", "BIDs em andamento e encerrados", "Planilha de custos (Excel e PDF)", "Propostas e contratos", "Relatórios de funil e carteira"],
+  },
+  financeiro: {
+    resumo: "Faturamento por medição, notas fiscais, cobrança e contas a pagar e receber.",
+    recursos: ["Fatura por medição", "NFS-e e retenções", "Boleto e PIX", "Contas a pagar e receber", "Conciliação bancária", "Centros de custo"],
+  },
+  contabil: {
+    resumo: "Lançamentos automáticos da folha e do faturamento, DRE e exportação para o contador.",
+    recursos: ["Plano de contas", "Lançamentos automáticos", "DRE gerencial", "Exportação ao contador"],
+  },
+  treinamentos: {
+    resumo: "Cursos, trilhas e certificados com validade, que bloqueiam alocação quando vencem.",
+    recursos: ["Cursos e trilhas", "Certificados", "Validade de NRs", "Bloqueio de alocação"],
+  },
+  juridico: {
+    resumo: "Contratos, processos trabalhistas, prazos e provisões.",
+    recursos: ["Modelos de contrato", "Processos e audiências", "Prazos com alerta", "Provisões"],
+  },
+  estoque: {
+    resumo: "Almoxarifado de EPI e uniformes, requisições, cotações e pedidos de compra.",
+    recursos: ["EPI e uniformes", "Validade do CA", "Requisição e cotação", "Pedidos e fornecedores"],
+  },
+};
 
 // ---------------------------------------------------------------- estado
 
@@ -119,20 +125,6 @@ async function carregar() {
 }
 
 // ---------------------------------------------------------------- utilidades
-
-const esc = (valor) =>
-  String(valor ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-
-const iniciais = (nome = "?") =>
-  nome.trim().split(/\s+/).filter((p) => p.length > 2 || p === p.toUpperCase()).slice(0, 2).map((p) => p[0]).join("").toUpperCase() || "?";
-
-function matiz(texto = "") {
-  let h = 0;
-  for (const c of texto) h = (h * 31 + c.charCodeAt(0)) % 360;
-  return h;
-}
-
-const avatar = (nome, classe = "") => `<span class="avatar ${classe}" style="--h:${matiz(nome)}">${esc(iniciais(nome))}</span>`;
 
 const reais = (centavos) =>
   (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -171,10 +163,6 @@ const DECISAO = {
   REPROVADO_AUTOMATICO: "Abaixo da nota de corte",
   REPROVADO_KNOCKOUT: "Não atendeu pergunta eliminatória",
 };
-const etiqueta = (mapa, chave) => {
-  const [texto, cor] = mapa[chave] ?? [chave ?? "—", "e-cinza"];
-  return `<span class="etiqueta ${cor}">${esc(texto)}</span>`;
-};
 
 const CONTRATO = { CLT: "CLT", TEMPORARIO: "Temporário", PJ: "PJ", ESTAGIO: "Estágio", APRENDIZ: "Aprendiz" };
 
@@ -198,18 +186,6 @@ const anel = (v, classe = "") => {
   return `<span class="anel ${classe}" style="--v:${valor};--cor:${corScore(valor)}"><svg viewBox="0 0 36 36"><circle class="trilho" cx="18" cy="18" r="15.9155"/><circle class="valor" cx="18" cy="18" r="15.9155" pathLength="100"/></svg><b>${valor}</b></span>`;
 };
 
-function diasDesde(iso) {
-  if (!iso) return null;
-  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000));
-}
-const quando = (iso) => {
-  const d = diasDesde(iso);
-  if (d === null) return "";
-  if (d === 0) return "hoje";
-  if (d === 1) return "há 1 dia";
-  return `há ${d} dias`;
-};
-
 function cargoAtual(candidato) {
   const atual = candidato.experiencias?.find((e) => e.atual) ?? candidato.experiencias?.[0];
   return atual ? `${atual.cargo} · ${atual.empresa}` : candidato.formacao?.[0]?.curso ?? "Sem experiência registrada";
@@ -220,40 +196,107 @@ const casaBusca = (...textos) => {
   return !termo || textos.some((t) => String(t ?? "").toLowerCase().includes(termo));
 };
 
-// ---------------------------------------------------------------- menu e rotas
-
-function desenharMenu(rotaAtual) {
-  document.getElementById("menu").innerHTML = MODULOS.map((g) => `
-    <div class="menu-grupo">${g.grupo}</div>
-    ${g.itens.map((m) => {
-      const n = m.contador?.();
-      return `<a class="menu-item ${m.id === rotaAtual ? "ativo" : ""} ${m.breve ? "em-breve" : ""}" href="#/${m.id}">
-        ${icone(m.icone)}<span>${m.nome}</span>
-        ${m.breve ? '<span class="breve">em breve</span>' : n ? `<span class="contador">${n}</span>` : ""}
-      </a>`;
-    }).join("")}
-  `).join("");
-}
+// ---------------------------------------------------------------- navegação
 
 function rotaAtual() {
-  const [rota, param] = location.hash.replace(/^#\/?/, "").split("/");
-  return { rota: rota || "inicio", param: param ? decodeURIComponent(param) : null };
+  const [modulo, pagina, param] = location.hash.replace(/^#\/?/, "").split("/").map((p) => (p ? decodeURIComponent(p) : null));
+  return { modulo, pagina, param };
 }
 
-function renderizar() {
-  const { rota, param } = rotaAtual();
-  const modulo = TODOS_MODULOS.find((m) => m.id === rota) ?? TODOS_MODULOS[0];
-  desenharMenu(modulo.id);
-  document.getElementById("titulo-pagina").textContent = modulo.titulo ?? modulo.nome;
-  document.getElementById("migalha").textContent = modulo.grupo;
-  document.getElementById("sidebar").classList.remove("aberta");
+const paginasDe = (moduloId) => PAGINAS[moduloId] ?? [{ id: "visao", nome: "Visão geral", icone: ICONE_MODULO[moduloId] }];
 
+function desenharMenu(modulo, paginaId) {
+  document.getElementById("menu").innerHTML = `
+    <a class="modulo-atual" href="#/" title="Trocar de módulo">
+      <span class="modulo-atual-icone">${icone(ICONE_MODULO[modulo.id])}</span>
+      <span class="modulo-atual-texto"><small>Módulo</small><strong>${esc(modulo.nome)}</strong></span>
+      <span class="modulo-atual-trocar">Trocar</span>
+    </a>
+    <div class="menu-grupo">Páginas</div>
+    ${paginasDe(modulo.id).map((p) => {
+      const n = p.contador?.();
+      return `<a class="menu-item ${p.id === paginaId ? "ativo" : ""}" href="#/${modulo.id}/${p.id}">
+        ${icone(p.icone)}<span>${esc(p.nome)}</span>${n ? `<span class="contador">${n}</span>` : ""}
+      </a>`;
+    }).join("")}
+    <div class="menu-nivel">${icone("cadeado")}<span>Seu nível aqui: <b>${esc(modulo.nomeNivel)}</b></span></div>`;
+}
+
+function desenharMoldura(modulo, pagina) {
+  document.getElementById("titulo-pagina").textContent = pagina?.nome ?? modulo.nome;
+  document.getElementById("migalha").textContent = modulo.nome;
+  document.getElementById("sidebar").classList.remove("aberta");
+  const noRecrutamento = modulo.id === "recrutamento";
+  document.getElementById("botao-nova-vaga").hidden = !(noRecrutamento && sessao.pode("recrutamento", "criar"));
+  document.querySelector(".busca").hidden = !noRecrutamento;
+  const u = sessao.usuario;
+  document.getElementById("topo-usuario").innerHTML =
+    `${avatar(u?.nome, "avatar-sm")}<span class="usuario-texto"><strong>${esc(u?.nome)}</strong><small>${esc(sessao.perfil?.nome ?? "")}</small></span>`;
+  document.getElementById("empresa-nome").textContent = sessao.empresa ?? "";
+  document.getElementById("empresa-sigla").textContent = String(sessao.empresa ?? "?").slice(0, 2).toUpperCase();
+}
+
+const carregando = '<div class="carregando"><span class="spinner"></span>Carregando…</div>';
+let recrutamentoCarregado = false;
+
+function limparDados() {
+  recrutamentoCarregado = false;
+  Object.assign(estado, { vagas: [], candidatos: [], candidaturas: [], resumo: null, origens: [], busca: "" });
+}
+
+function irPara(hash) {
+  if (location.hash === hash) renderizar();
+  else location.hash = hash;
+}
+
+async function renderizar() {
+  fecharPainel();
+  if (!sessao.ativa) {
+    return telaLogin({ aoEntrar: () => { limparDados(); irPara("#/"); } });
+  }
+  if (sessao.usuario?.trocarSenha) {
+    return telaTrocarSenhaObrigatoria({ aoConcluir: () => irPara("#/") });
+  }
+
+  const { modulo: moduloId, pagina: paginaId, param } = rotaAtual();
+  if (!moduloId) return telaModulos();
+
+  const modulo = sessao.modulo(moduloId);
+  if (!modulo?.liberado) {
+    aviso("Seu perfil não tem acesso a esse módulo.", "erro");
+    return irPara("#/");
+  }
+
+  esconderTelaCheia();
+  const pagina = paginasDe(moduloId).find((p) => p.id === paginaId) ?? paginasDe(moduloId)[0];
+  desenharMenu(modulo, pagina.id);
+  desenharMoldura(modulo, pagina);
   const conteudo = document.getElementById("conteudo");
-  if (modulo.breve) conteudo.innerHTML = telaEmBreve(modulo);
-  else if (modulo.id === "vagas") conteudo.innerHTML = telaVagas();
-  else if (modulo.id === "pipeline") conteudo.innerHTML = telaPipeline(param);
-  else if (modulo.id === "candidatos") conteudo.innerHTML = telaCandidatos();
-  else conteudo.innerHTML = telaInicio();
+
+  try {
+    if (moduloId === "recrutamento") {
+      if (!recrutamentoCarregado) {
+        conteudo.innerHTML = carregando;
+        await carregar();
+        recrutamentoCarregado = true;
+        desenharMenu(modulo, pagina.id);
+      }
+      if (pagina.id === "vagas") conteudo.innerHTML = telaVagas();
+      else if (pagina.id === "pipeline") conteudo.innerHTML = telaPipeline(param);
+      else if (pagina.id === "candidatos") conteudo.innerHTML = telaCandidatos();
+      else conteudo.innerHTML = telaInicio();
+    } else if (moduloId === "administracao") {
+      conteudo.innerHTML = carregando;
+      const telas = { usuarios: paginaUsuarios, perfis: paginaPerfis, auditoria: paginaAuditoria };
+      conteudo.innerHTML = await telas[pagina.id]();
+    } else {
+      conteudo.innerHTML = telaEmBreve({ nome: modulo.nome, icone: ICONE_MODULO[moduloId], ...EM_BREVE[moduloId] });
+    }
+  } catch (erro) {
+    if (!sessao.ativa) return undefined;
+    conteudo.innerHTML = `<div class="cartao vazio"><strong>Não foi possível carregar.</strong><p class="dica">${esc(erro.message)}</p></div>`;
+  }
+  return undefined;
 }
 
 // ---------------------------------------------------------------- telas
@@ -307,8 +350,8 @@ function telaInicio() {
         <h2>${saudacao}! Seu processo seletivo em um só lugar.</h2>
         <p>${r.vagas.abertas ?? 0} vagas abertas e ${emAndamento.length} candidatos em andamento. A triagem automática já ordenou todos pelo score de aderência.</p>
         <div class="acoes">
-          <button class="botao botao-claro" data-acao="nova-vaga">${icone("mais")}Publicar vaga</button>
-          <a class="botao botao-vidro" href="#/pipeline">${icone("pipeline")}Ver processo seletivo</a>
+          ${sessao.pode("recrutamento", "criar") ? `<button class="botao botao-claro" data-acao="nova-vaga">${icone("mais")}Publicar vaga</button>` : ""}
+          <a class="botao botao-vidro" href="#/recrutamento/pipeline">${icone("pipeline")}Ver processo seletivo</a>
         </div>
       </div>
       ${ILUSTRACAO}
@@ -334,7 +377,7 @@ function telaInicio() {
       </div>
 
       <div class="cartao">
-        <div class="cartao-cabecalho"><div><h3>Melhores candidatos</h3><p>Maior aderência entre os que estão em andamento</p></div><a class="botao botao-fantasma botao-sm" href="#/pipeline">Ver todos</a></div>
+        <div class="cartao-cabecalho"><div><h3>Melhores candidatos</h3><p>Maior aderência entre os que estão em andamento</p></div><a class="botao botao-fantasma botao-sm" href="#/recrutamento/pipeline">Ver todos</a></div>
         <div class="cartao-corpo lista">
           ${destaques.map((c) => {
             const cand = candidatoPorId(c.candidatoId);
@@ -348,12 +391,12 @@ function telaInicio() {
       </div>
 
       <div class="cartao">
-        <div class="cartao-cabecalho"><div><h3>Vagas recentes</h3><p>Acompanhe as últimas publicações</p></div><a class="botao botao-fantasma botao-sm" href="#/vagas">Ver vagas</a></div>
+        <div class="cartao-cabecalho"><div><h3>Vagas recentes</h3><p>Acompanhe as últimas publicações</p></div><a class="botao botao-fantasma botao-sm" href="#/recrutamento/vagas">Ver vagas</a></div>
         <div class="cartao-corpo lista">
           ${vagasRecentes.map((v) => {
             const va = visualArea(v.area);
             const n = estado.candidaturas.filter((c) => c.vagaId === v.id).length;
-            return `<a class="lista-item" href="#/pipeline/${encodeURIComponent(v.id)}">
+            return `<a class="lista-item" href="#/recrutamento/pipeline/${encodeURIComponent(v.id)}">
               <span class="indicador-icone" style="width:38px;height:38px;color:hsl(${va.h} 60% 40%);background:hsl(${va.h} 80% 94%)">${icone(va.icone)}</span>
               <div class="texto"><strong>${esc(v.titulo)}</strong><small>${esc(local(v))} · ${n} candidato${n === 1 ? "" : "s"}</small></div>
               ${etiqueta(STATUS_VAGA, v.status)}
@@ -440,9 +483,9 @@ function cartaoVaga(v) {
           ${pessoas.map((n) => avatar(n)).join("")}
           <small>${candidaturas.length ? `${candidaturas.length} candidato${candidaturas.length === 1 ? "" : "s"}` : "Sem candidatos ainda"}</small>
         </div>
-        ${v.status === "RASCUNHO"
+        ${v.status === "RASCUNHO" && sessao.pode("recrutamento", "editar")
           ? `<button class="botao botao-secundario botao-sm" data-abrir-vaga="${esc(v.id)}">Publicar</button>`
-          : `<a class="botao botao-secundario botao-sm" href="#/pipeline/${encodeURIComponent(v.id)}">Processo ${icone("seta")}</a>`}
+          : `<a class="botao botao-secundario botao-sm" href="#/recrutamento/pipeline/${encodeURIComponent(v.id)}">Processo ${icone("seta")}</a>`}
       </div>
     </article>`;
 }
@@ -541,18 +584,6 @@ function telaEmBreve(m) {
 
 // ---------------------------------------------------------------- painel lateral
 
-function abrirPainel(html) {
-  document.getElementById("painel").innerHTML = html;
-  const el = document.getElementById("painel-lateral");
-  el.classList.add("aberto");
-  el.setAttribute("aria-hidden", "false");
-}
-function fecharPainel() {
-  const el = document.getElementById("painel-lateral");
-  el.classList.remove("aberto");
-  el.setAttribute("aria-hidden", "true");
-}
-
 const NOME_COMPONENTE = { competencias: "Competências", experiencia: "Experiência", formacao: "Formação", idiomas: "Idiomas", localizacao: "Localização" };
 
 function painelCandidatura(id) {
@@ -633,7 +664,7 @@ function painelCandidatura(id) {
     </div>
     <footer class="painel-rodape">
       <button class="botao botao-secundario" data-fechar>Fechar</button>
-      ${proxima && c.status === "EM_ANDAMENTO"
+      ${proxima && c.status === "EM_ANDAMENTO" && sessao.pode("recrutamento", "editar")
         ? `<button class="botao botao-primario" data-mover="${esc(c.id)}" data-para="${esc(proxima.id)}">Avançar para ${esc(proxima.nome)} ${icone("seta")}</button>`
         : ""}
     </footer>`);
@@ -715,14 +746,6 @@ function painelNovaVaga() {
 
 // ---------------------------------------------------------------- ações
 
-function aviso(texto, tipo = "ok") {
-  const el = document.createElement("div");
-  el.className = `aviso ${tipo === "erro" ? "erro" : ""}`;
-  el.innerHTML = `${icone(tipo === "erro" ? "fechar" : "ok")}<span>${esc(texto)}</span>`;
-  document.getElementById("avisos").appendChild(el);
-  setTimeout(() => el.remove(), 4200);
-}
-
 async function criarVaga(form) {
   const f = Object.fromEntries(new FormData(form));
   const centavos = (v) => (v ? Math.round(Number(v) * 100) : 0);
@@ -742,8 +765,7 @@ async function criarVaga(form) {
     estado.vagas.unshift(dados.vaga);
     fecharPainel();
     estado.filtroVagas = "TODAS";
-    location.hash = "#/vagas";
-    renderizar();
+    irPara("#/recrutamento/vagas");
     aviso("Rascunho criado. Complete e publique quando quiser.");
   } catch (erro) {
     aviso(erro.message, "erro");
@@ -799,7 +821,7 @@ document.addEventListener("click", (evento) => {
 });
 
 document.addEventListener("change", (evento) => {
-  if (evento.target.id === "seletor-vaga") location.hash = `#/pipeline/${encodeURIComponent(evento.target.value)}`;
+  if (evento.target.id === "seletor-vaga") location.hash = `#/recrutamento/pipeline/${encodeURIComponent(evento.target.value)}`;
 });
 
 document.addEventListener("submit", (evento) => {
@@ -815,8 +837,9 @@ document.addEventListener("keydown", (evento) => {
 
 document.getElementById("busca").addEventListener("input", (evento) => {
   estado.busca = evento.target.value;
-  const { rota } = rotaAtual();
-  if (!["vagas", "candidatos", "pipeline"].includes(rota)) location.hash = "#/candidatos";
+  const { modulo, pagina } = rotaAtual();
+  if (modulo !== "recrutamento") return;
+  if (!["vagas", "candidatos", "pipeline"].includes(pagina)) location.hash = "#/recrutamento/candidatos";
   else renderizar();
 });
 
@@ -828,12 +851,14 @@ document.getElementById("botao-sino").innerHTML = `${icone("sino")}<span class="
 document.getElementById("botao-nova-vaga").innerHTML = `${icone("mais")}<span>Nova vaga</span>`;
 document.getElementById("botao-nova-vaga").dataset.acao = "nova-vaga";
 document.getElementById("abrir-menu").innerHTML = icone("menu");
+document.getElementById("botao-sair").innerHTML = icone("sair");
 document.getElementById("abrir-menu").addEventListener("click", () => document.getElementById("sidebar").classList.toggle("aberta"));
 document.getElementById("sidebar-fundo").addEventListener("click", () => document.getElementById("sidebar").classList.remove("aberta"));
 
-carregar()
-  .then(renderizar)
-  .catch((erro) => {
-    document.getElementById("conteudo").innerHTML =
-      `<div class="cartao vazio"><strong>Não foi possível carregar os dados.</strong><p class="dica">${esc(erro.message)}</p></div>`;
-  });
+ligarEventosAcesso({ aoAlterar: renderizar });
+sessao.aoSair((motivo) => {
+  limparDados();
+  history.replaceState(null, "", "#/");
+  telaLogin({ motivo, aoEntrar: () => { limparDados(); irPara("#/"); } });
+});
+renderizar();

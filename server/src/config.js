@@ -7,10 +7,22 @@ export function carregarConfig(ambiente = {}) {
     throw new Error("LABUTAR_DB_DRIVER=postgres exige LABUTAR_DATABASE_URL");
   }
 
+  const nomeAmbiente = ambiente.NODE_ENV ?? "development";
+  const flagCabecalho = ambiente.LABUTAR_IDENTIDADE_POR_CABECALHO;
+  if (flagCabecalho !== undefined && !["0", "1"].includes(flagCabecalho)) {
+    throw new Error('LABUTAR_IDENTIDADE_POR_CABECALHO deve ser "0" ou "1"');
+  }
+
   return {
     porta: Number(ambiente.PORT ?? 8080),
-    ambiente: ambiente.NODE_ENV ?? "development",
+    ambiente: nomeAmbiente,
     driver,
+
+    /**
+     * Identidade declarada em cabeçalho (X-Labutar-Usuario/Papel), sem login.
+     * Só para desenvolvimento e testes: desligada por padrão em produção.
+     */
+    permitirIdentidadePorCabecalho: flagCabecalho !== undefined ? flagCabecalho === "1" : nomeAmbiente !== "production",
 
     /**
      * Coleção raiz do Labutar dentro do banco. Tudo vive sob

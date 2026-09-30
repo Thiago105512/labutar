@@ -22,6 +22,7 @@ roadmap em [`docs/03-roadmap.md`](docs/03-roadmap.md).
 | `@labutar/avaliacoes` | DISC, testes, cursos, laudos, benchmark com guardrails | ✅ |
 | `@labutar/comunica` | templates, canais, avisos, lembretes (sem entrega) | ✅ |
 | `@labutar/ia` | prompts, desidentificação, rubricas | ✅ |
+| `@labutar/acesso` | login, módulos, níveis, perfis, permissões e política de senha ([`docs/12-acesso.md`](docs/12-acesso.md)) | ✅ |
 | `@labutar/mao-de-obra` | **núcleo do domínio**: vínculos, prazos legais, alocação, rateio | ✅ |
 | `@labutar/admissao` | checklist, ASO, contrato, prazos do temporário | ⏸ contrato reservado |
 | `@labutar/esocial` | eventos eSocial | ⏸ contrato reservado |
@@ -29,7 +30,7 @@ roadmap em [`docs/03-roadmap.md`](docs/03-roadmap.md).
 | `web/app` | painel do recrutador | 🚧 |
 | ponto, folha, tomadores, faturamento, comercial e demais | ver `docs/09-modulos.md` | ⬜ |
 
-**560 testes passando** (1 pulado sem `firebase-admin`), e mais 14 com PostgreSQL; o CI roda os dois modos em todo push.
+**589 testes passando** (1 pulado sem `firebase-admin`), e mais 14 com PostgreSQL; o CI roda os dois modos em todo push.
 Nada em produção.
 
 O backend roda **sem `npm install`**: o driver padrão é memória. O banco principal passa a

@@ -11,6 +11,7 @@
     "packages/comunica",
     "packages/ia",
     "packages/mao-de-obra",
+    "packages/acesso",
     "packages/admissao",
     "packages/esocial",
     "server"

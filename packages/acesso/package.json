@@ -1,0 +1,11 @@
+{
+  "name": "@labutar/acesso",
+  "version": "0.1.0",
+  "description": "Controle de acesso do Labutar: módulos, níveis de acesso, perfis, permissões por ação, política de senha e proteção contra escalada de privilégio. JS puro, roda no Node e no navegador.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "sideEffects": false
+}
