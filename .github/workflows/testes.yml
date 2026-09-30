@@ -14,3 +14,37 @@ jobs:
           node-version: 22
       # Sem npm install: os pacotes de domínio não têm dependência externa.
       - run: npm test
+
+  # Mesma suíte sobre PostgreSQL real, incluindo os testes de Row-Level Security.
+  # O usuário da aplicação é criado sem SUPERUSER/BYPASSRLS: com eles o RLS
+  # seria ignorado e os testes de isolamento passariam sem provar nada.
+  testes-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      LABUTAR_TESTE_PG_URL: postgres://labutar_app:labutar@localhost:5432/labutar_teste
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Cria usuário da aplicação e banco de teste
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres \
+            -c "CREATE ROLE labutar_app LOGIN PASSWORD 'labutar' NOSUPERUSER NOBYPASSRLS;" \
+            -c "CREATE DATABASE labutar_teste OWNER labutar_app;"
+      - run: npm ci
+      - run: npm test

@@ -24,6 +24,7 @@ export async function iniciar({ config = carregarConfig(process.env), log = cons
     avisos,
     async encerrar() {
       await new Promise((resolver) => servidor.close(resolver));
+      await repo.encerrar?.();
     },
   };
 }
@@ -34,7 +35,9 @@ if (ehEntradaDireta) {
   iniciar().then(({ url, repo, config }) => {
     console.log(`Labutar no ar: ${url}`);
     console.log(`  driver:  ${repo.nome} (persistente: ${repo.persistente})`);
-    console.log(`  projeto: ${config.projetoFirebase}/${config.databaseId}  raiz: ${config.raizColecao}`);
+    if (config.driver === "firestore") {
+      console.log(`  projeto: ${config.projetoFirebase}/${config.databaseId}  raiz: ${config.raizColecao}`);
+    }
     console.log(`  ⚠ autenticação por cabeçalho é STUB de desenvolvimento`);
   }).catch((erro) => {
     console.error("Falha ao subir o Labutar:", erro);

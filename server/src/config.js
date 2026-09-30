@@ -1,7 +1,10 @@
 export function carregarConfig(ambiente = {}) {
   const driver = ambiente.LABUTAR_DB_DRIVER ?? "memoria";
-  if (!["memoria", "firestore"].includes(driver)) {
-    throw new Error(`LABUTAR_DB_DRIVER inválido: "${driver}" (use "memoria" ou "firestore")`);
+  if (!["memoria", "postgres", "firestore"].includes(driver)) {
+    throw new Error(`LABUTAR_DB_DRIVER inválido: "${driver}" (use "memoria", "postgres" ou "firestore")`);
+  }
+  if (driver === "postgres" && !ambiente.LABUTAR_DATABASE_URL) {
+    throw new Error("LABUTAR_DB_DRIVER=postgres exige LABUTAR_DATABASE_URL");
   }
 
   return {
@@ -15,6 +18,9 @@ export function carregarConfig(ambiente = {}) {
      * (`match /<raiz>/{document=**}`) e nenhum caminho sem o tenant no meio.
      */
     raizColecao: ambiente.LABUTAR_COLECAO_RAIZ ?? "labutar",
+
+    /** URL de conexão do driver postgres. Contém senha: nunca logar. */
+    urlBanco: ambiente.LABUTAR_DATABASE_URL ?? null,
 
     projetoFirebase: ambiente.LABUTAR_FIREBASE_PROJECT ?? "labutar",
     databaseId: ambiente.LABUTAR_FIREBASE_DATABASE ?? "(default)",

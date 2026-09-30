@@ -17,7 +17,7 @@ Cada fase termina num produto utilizável e vendável sozinho. Primeiro cliente 
 - ✅ `packages/core` — validações, datas, dinheiro, IDs, máscaras LGPD
 - ✅ Estrutura multi-tenant no `server` com fronteira de escopo (`db/guard.js`)
 - ✅ CI rodando todos os testes em cada push (`.github/workflows/testes.yml`)
-- ⬜ Driver PostgreSQL + migrações (`docs/10-decisao-postgresql.md`)
+- ✅ Driver PostgreSQL + migrações + Row-Level Security (`docs/10-decisao-postgresql.md`)
 - ⬜ `packages/plataforma` — login, perfis por módulo, auditoria, planos do SaaS
 - ⬜ Backoffice do SaaS — clientes, planos, cobrança, suporte
 

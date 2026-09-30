@@ -123,6 +123,9 @@ export function criarRepositorioMemoria({ raiz = "labutar" } = {}) {
       return { tenantId, colecoesRemovidas: removidas };
     },
 
+    /** Paridade com o driver postgres, que fecha o pool de conexões. */
+    async encerrar() {},
+
     /** Só para teste e seed: enumera tenants com dado gravado, sem expor conteúdo. */
     tenants() {
       const encontrados = new Set();
