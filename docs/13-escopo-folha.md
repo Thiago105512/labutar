@@ -31,7 +31,8 @@ ou especialista em DP antes de implementar (ver seção 16).
 | Horas extras, adicional noturno, DSR, insalubridade, periculosidade, comissões | E | M | 🟡 | ✅ com DSR pelo calendário do local (feriados do AM e de Manaus); comissões ⬜ |
 | Médias e reflexos (férias, 13º, rescisão) | E | A | ⬜ | |
 | Pensão alimentícia (desconto e repasse, incidência em férias e 13º) | E | M | ⬜ | |
-| Consignado, vale-transporte, plano de saúde, coparticipação | E | M | 🟡 | VT e plano previstos em benefícios; consignado e coparticipação ⬜ |
+| Consignado, vale-transporte, plano de saúde, coparticipação | E | M | 🟡 | VT ✅ no holerite; **Crédito do Trabalhador (eConsignado)** ✅ verba 9253.01, importação do arquivo mensal ⬜; plano e coparticipação ⬜ |
+| Salário-paternidade e estabilidade (Lei 15.371/2026) | E | M | ⬜ | Vigência 01/01/2027 (10 dias; 15 em 2028; 20 em 2029), pago pelo INSS; estabilidade até 30 dias após o retorno |
 | Aritmética decimal com regras de arredondamento explícitas | E | B | ✅ | `core/dinheiro` (centavos inteiros, faixas progressivas, arredondamento) e `mao-de-obra/rateio` (maior resto, fecha no centavo) |
 | Simulação de folha e de rescisão antes do fechamento | D | M | ⬜ | |
 | Críticas automáticas e comparação com a folha anterior | D | M | ⬜ | |

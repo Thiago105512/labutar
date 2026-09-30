@@ -89,3 +89,4 @@ export function statusIntegracao() {
     pendencias: { ...PENDENCIAS },
   };
 }
+export { ESQUEMAS_ESOCIAL, esquemaVigente } from "./esquemas.js";

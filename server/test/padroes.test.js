@@ -58,6 +58,9 @@ const ACOES = [
   [/(?<![\p{L}])(Apagar|Remover|Deletar)(?![\p{L}])/u, "Excluir"],
 ];
 
+/** Nomes oficiais (programas, leis) ficam como o governo escreve — docs/15, seção 2. */
+const NOMES_OFICIAIS = [/Crédito do Trabalhador/g];
+
 // Fontes de texto que o usuário lê: telas e rótulos do catálogo de acesso.
 const FONTES_DE_TELA = [
   ...arquivos("web", [".js", ".html"]),
@@ -67,7 +70,8 @@ const FONTES_DE_TELA = [
 test("textos de tela usam só os termos do glossário", () => {
   const achados = [];
   for (const caminho of FONTES_DE_TELA) {
-    for (const { n, t } of linhasDeCodigo(caminho)) {
+    for (const { n, t: bruto } of linhasDeCodigo(caminho)) {
+      const t = NOMES_OFICIAIS.reduce((s, nome) => s.replace(nome, ""), bruto);
       for (const [regra, certo] of [...GLOSSARIO, ...ACOES]) {
         const m = regra.exec(t);
         if (m) achados.push(`${relative(RAIZ, caminho)}:${n} usa "${m[0]}" — use "${certo}"`);

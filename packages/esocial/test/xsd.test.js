@@ -8,7 +8,9 @@ import { readFileSync, readdirSync } from "node:fs";
 import { validarCNPJ, raizCNPJ, validarCPF } from "../../core/src/validacao.js";
 import { TIPO_VINCULO, gerarMatricula } from "../../mao-de-obra/src/index.js";
 
-const PASTA = new URL("../xsd/v_S_01_03_00/", import.meta.url);
+import { ESQUEMAS_ESOCIAL, esquemaVigente } from "../src/esquemas.js";
+
+const PASTA = new URL(`../xsd/${ESQUEMAS_ESOCIAL.at(-1).pasta}/`, import.meta.url);
 const TIPOS = readFileSync(new URL("tipos.xsd", PASTA), "utf8");
 
 function tipo(nome) {
@@ -24,12 +26,29 @@ function tipo(nome) {
   };
 }
 
-test("todos os eventos são do leiaute S-1.3", () => {
-  const eventos = readdirSync(PASTA).filter((n) => n.startsWith("evt"));
-  assert.equal(eventos.length, 50);
-  for (const n of eventos) {
-    assert.match(readFileSync(new URL(n, PASTA), "utf8"), /targetNamespace="http:\/\/www\.esocial\.gov\.br\/schema\/evt\/\w+\/v_S_01_03_00"/, n);
+test("cada pacote guardado tem os 50 eventos do leiaute S-1.3", () => {
+  for (const esquema of ESQUEMAS_ESOCIAL) {
+    const pasta = new URL(`../xsd/${esquema.pasta}/`, import.meta.url);
+    const eventos = readdirSync(pasta).filter((n) => n.startsWith("evt"));
+    assert.equal(eventos.length, 50, esquema.pasta);
+    for (const n of eventos) {
+      assert.match(readFileSync(new URL(n, pasta), "utf8"), /targetNamespace="http:\/\/www\.esocial\.gov\.br\/schema\/evt\/\w+\/v_S_01_03_00"/, n);
+    }
   }
+});
+
+test("evento é validado pelo esquema vigente na data do envio", () => {
+  assert.equal(esquemaVigente("2026-11-23").pasta, "S-1.3-2026-11-23");
+  assert.equal(esquemaVigente("2026-12-13").pasta, "S-1.3-2026-11-23");
+  assert.equal(esquemaVigente("2026-12-14").pasta, "S-1.3-2026-12-14");
+  assert.equal(esquemaVigente("2027-03-01").pasta, "S-1.3-2026-12-14");
+  assert.throws(() => esquemaVigente("2026-09-30"), /nenhum esquema/);
+});
+
+test("o pacote de 14/12/2026 traz o salário-paternidade (Lei 15.371/2026) que o de 23/11 não tem", () => {
+  const rubrica = (pasta) => readFileSync(new URL(`../xsd/${pasta}/evtTabRubrica.xsd`, import.meta.url), "utf8");
+  assert.doesNotMatch(rubrica("S-1.3-2026-11-23"), /Salário-paternidade mensal, pago pelo INSS/);
+  assert.match(rubrica("S-1.3-2026-12-14"), /Salário-paternidade mensal, pago pelo INSS/);
 });
 
 test("CNPJ: o eSocial aceita os dois formatos que o core valida", () => {

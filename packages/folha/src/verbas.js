@@ -30,6 +30,9 @@ export const VERBAS = Object.freeze({
   FALTAS: v("9207.01", "Faltas", D, { inss: "11", fgts: "11", irrf: true }),
   DSR_FALTAS: v("9209.01", "DSR perdido por faltas", D, { inss: "11", fgts: "11", irrf: true, conferida: false }),
   VALE_TRANSPORTE: v("9216.01", "Vale-transporte", D, { inss: "00", fgts: "00", irrf: false }),
+  // Crédito do Trabalhador (eConsignado): natureza 9253, codIncFGTS 31, sem INSS; IRRF código 09 (Tabela 21).
+  // O valor de cada mês vem do arquivo de empréstimos do Portal Emprega Brasil.
+  ECONSIGNADO: v("9253.01", "Crédito do Trabalhador (eConsignado)", D, { inss: "00", fgts: "31", irrf: false }),
   OUTROS_DESCONTOS: v("9299.01", "Outros descontos", D, { inss: "00", fgts: "00", irrf: false, conferida: false }),
 });
 

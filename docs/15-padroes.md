@@ -35,7 +35,8 @@
 | **Módulo**, **nível**, **perfil** | — | Controle de acesso (docs/12) |
 
 Os textos legais citados nos documentos mantêm as palavras da lei ("empregado",
-"trabalhador temporário"); a regra vale para o que o usuário lê nas telas.
+"trabalhador temporário"); a regra vale para o que o usuário lê nas telas. **Nomes oficiais**
+de programas e normas também ficam como o governo escreve (ex.: "Crédito do Trabalhador").
 
 ## 3. Ações 🔒
 
