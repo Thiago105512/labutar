@@ -195,7 +195,7 @@ colaborador, por dia e por assunto.
 | Trilha de auditoria de cálculo e de acesso | E | A | 🟡 | Auditoria de acesso pronta; de cálculo ⬜ |
 | LGPD: base legal, criptografia, log, retenção, descarte, dados sensíveis | E | A | 🟡 | Consentimento, anonimização, senhas com scrypt, tokens só em hash; criptografia em repouso e política de retenção ⬜ |
 | Backup, alta disponibilidade, recuperação de desastres | E | M | ⬜ | Depende do provedor escolhido (docs/10) |
-| Suíte de regressão com casos reais de cálculo | E | A | 🟡 | CI com 600+ testes, inclusive sobre PostgreSQL; casos reais de folha ⬜ |
+| Suíte de regressão com casos reais de cálculo | E | A | 🟡 | Folha real de 12/2020 (38 colaboradores, anonimizada): INSS, IRRF, FGTS, encargos e os 11 holerites mensais no centavo; rescisão, férias e 13º a cobrir quando o motor tiver esses cálculos |
 | Ambiente de homologação separado | E | M | ⬜ | |
 | API aberta e webhooks | D | M | 📋 | |
 | Workflow de aprovação | D | M | ⬜ | |

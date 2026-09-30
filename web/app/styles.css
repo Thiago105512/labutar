@@ -675,3 +675,5 @@ a.modulo-cartao:hover { transform: translateY(-3px); box-shadow: var(--sombra-2)
   .tabela-compacta code { font-size: 11px; padding: 2px 4px; }
 }
 .grade-folha { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 18px; align-items: start; }
+.linha-cpf { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.linha-cpf input { flex: 1; min-width: 160px; height: 34px; padding: 0 10px; border: 1px solid var(--borda-forte); border-radius: 8px; font: inherit; background: var(--superficie); color: var(--texto); }

@@ -47,7 +47,8 @@ export const LOTACOES_DEMO = Object.freeze([
 const T = TIPO_VINCULO.TEMPORARIO, S = TIPO_VINCULO.TERCEIRIZADO, P = TIPO_VINCULO.PROPRIO;
 const seq = { [T]: 0, [S]: 0, [P]: 0 };
 const pessoa = (vinculo, nome, cargo, lotacao, salario, admissao, extra = {}, lancamentos = {}) => ({
-  colaborador: { matricula: gerarMatricula(vinculo, ++seq[vinculo] + 4800), nome, vinculo, cargo, lotacao, salario, admissao, ...extra },
+  // CPF em branco de propósito: é o código da pessoa e vem do cadastro real.
+  colaborador: { cpf: null, matricula: gerarMatricula(vinculo, ++seq[vinculo] + 4800), nome, vinculo, cargo, lotacao, salario, admissao, ...extra },
   lancamentos,
 });
 

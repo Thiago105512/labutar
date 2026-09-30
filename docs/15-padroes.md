@@ -90,7 +90,16 @@ Sempre pelo mesmo nome: **Lei 6.019/1974**, **Portaria MTP 671/2021**, **CLT, ar
 Um código identifica **uma coisa só, para sempre**: nunca é reaproveitado, nunca é renumerado
 e **nunca é montado com dado pessoal**.
 
-### 7.1 Matrícula do colaborador
+### 7.1 Pessoa e matrícula
+
+**A pessoa é identificada pelo CPF**, como no eSocial (`cpfTrab`): é o código do trabalhador
+em todo o Labutar — cadastro, folha, portal, clínica. Uma pessoa tem um CPF só, a vida inteira,
+em todos os vínculos. Sem CPF o cálculo da folha sai, mas o colaborador fica com a pendência
+"CPF não informado" e nada dele vai ao eSocial. CPF de outra pessoa é recusado.
+
+A **matrícula identifica o vínculo** (cada contratação), porque a mesma pessoa pode ter vários
+vínculos ao longo do tempo — e o eSocial exige matrícula diferente em cada um. O código do
+sistema anterior (ex.: `005328`) fica guardado como **matrícula anterior**, só para consulta.
 
 | Regra | Por quê |
 |---|---|

@@ -39,6 +39,8 @@ export function calcularFolha({ empresa = {}, competencia, colaboradores = [], l
           tabela,
           local: c.local ?? empresa.local,
           arredondamentoINSS: empresa.arredondamentoINSS,
+          arredondamentoFGTS: empresa.arredondamentoFGTS,
+          dispensarIRRFAte10: empresa.dispensarIRRFAte10,
         })
       );
     } catch (erro) {
@@ -91,6 +93,7 @@ export function calcularFolha({ empresa = {}, competencia, colaboradores = [], l
     pendencias,
     resumo: {
       colaboradores: holerites.length,
+      semCPF: holerites.filter((h) => h.pendencias.length).length,
       ...totais,
       encargos,
       custoTotal: totais.proventos + totais.fgts + encargos.total,
