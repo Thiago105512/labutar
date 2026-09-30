@@ -19,6 +19,7 @@ export const EMPRESAS_DEMO = Object.freeze([
     municipio: "Manaus",
     uf: "AM",
     cnaePrincipal: "8630-5/99",
+    regimeTributario: "LUCRO_REAL",
     papeis: ["EMPRESA_RH", "CLINICA_SST"],
   }),
 ]);
