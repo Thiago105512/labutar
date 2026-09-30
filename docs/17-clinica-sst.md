@@ -27,11 +27,12 @@ cadastro único de pessoas, usuários e perfis, padrões.
 |---|---|---|
 | Médico(a) do trabalho | Gestor | Sim — só ele assina ASO e acessa prontuário |
 | Equipe da clínica (recepção, técnico de segurança) | Operador | Não: vê agenda, situação (apto/inapto) e laudos técnicos |
-| RH / DP da empresa de RH | Consulta (via módulo SST) | Não: recebe só apto, inapto ou apto com restrição |
+| RH / DP da empresa de RH | Consulta (via módulo SST) | Não: recebe só a conclusão do ASO (apto ou inapto, com as restrições escritas) |
 | Administrador geral | Total | Sim |
 
 Diagnóstico e resultado de exame são dado sensível (LGPD, art. 11) e sigilo médico: a empresa de
-RH **nunca** recebe o prontuário, só a conclusão do ASO. A permissão "dados de saúde"
+RH **nunca** recebe o prontuário, só a conclusão do ASO (no eSocial, apto ou inapto; restrições
+ficam escritas no próprio ASO). A permissão "dados de saúde"
 (`dadosSensiveis`) já existe no controle de acesso.
 
 ## 3. O que o módulo faz
@@ -51,7 +52,33 @@ RH **nunca** recebe o prontuário, só a conclusão do ASO. A permissão "dados 
 O laudo decide o adicional: quando a clínica conclui insalubridade de grau 20% num posto, todo
 colaborador alocado nele recebe o adicional na folha a partir da data do laudo — sem digitação.
 
-## 4. Ordem de construção
+## 4. Exames ocupacionais (NR-7)
+
+Regras em `packages/clinica/src/exames.js`, com o código do eSocial conferido no XSD do S-2220.
+
+| Código eSocial | Exame | Quando |
+|---|---|---|
+| 0 | Admissional | Antes de começar a trabalhar |
+| 1 | Periódico | Anual para exposto a risco do PGR ou com doença crônica; a cada 2 anos nos demais (ou menos, a critério do médico) |
+| 2 | Retorno ao trabalho | Antes de reassumir, após 30 dias ou mais afastado por doença ou acidente (ocupacional ou não) |
+| 3 | Mudança de risco ocupacional | Antes da mudança de função, posto ou local que altere a exposição |
+| 4 | Monitoração pontual | Casos fora dos demais, a critério do médico |
+| 9 | Demissional | Até 10 dias após o fim do contrato; dispensável se o último exame clínico tiver menos de 135 dias (grau de risco 1–2) ou 90 dias (grau 3–4) |
+
+Complementares, conforme o risco do posto no PGR: audiometria para exposição a ruído
+(admissão, 6 meses, anual e demissão — NR-7, Anexo II), raio-X de tórax para poeiras, indicadores
+biológicos para agentes químicos (Anexo I), entre outros definidos pelo médico no PCMSO.
+
+**Toxicológico** do motorista profissional (CNH C, D ou E): antes da admissão e no desligamento
+(CLT, art. 168, § 6º), com evento próprio no eSocial (S-2221).
+
+**Proibidos:** teste de gravidez ou de esterilização (Lei 9.029/1995) e teste de HIV
+(Portaria MTE 1.246/2010).
+
+**Temporário e terceirizado:** o exame é da empresa de RH (a empregadora), pelo PCMSO dela, mas os
+riscos são os do posto no tomador — por isso o PCMSO é por posto.
+
+## 5. Ordem de construção
 
 1. Empresas do grupo (CNPJs e papéis) e a CRQ como empresa de teste. ✅ iniciado
 2. Agenda de exames e ASO com liberação da admissão.
@@ -59,7 +86,7 @@ colaborador alocado nele recebe o adicional na folha a partir da data do laudo �
 4. Eventos S-2220, S-2221, S-2240 e S-2210 gerados para o empregador.
 5. Faturamento entre as empresas do grupo.
 
-## 5. Pontos a confirmar
+## 6. Pontos a confirmar
 
 1. A clínica atende só a empresa de RH ou também outras empresas? (Muda o faturamento e o cadastro de clientes.)
 2. Quem é o médico responsável pelo PCMSO e qual o CRM? (Vai no ASO e no S-2220.)
