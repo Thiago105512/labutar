@@ -11,7 +11,9 @@ Diferencial: **ATS, gestão de temporários/terceirizados e folha no mesmo cadas
 
 **Comece por [`docs/11-dominio-mao-de-obra.md`](docs/11-dominio-mao-de-obra.md)** — o domínio que
 diferencia o produto. Mapa de módulos em [`docs/09-modulos.md`](docs/09-modulos.md) ·
-roadmap em [`docs/03-roadmap.md`](docs/03-roadmap.md).
+roadmap em [`docs/03-roadmap.md`](docs/03-roadmap.md) ·
+escopo da folha, item a item, em [`docs/13-escopo-folha.md`](docs/13-escopo-folha.md) ·
+cenário de teste (1.000 trabalhadores) em [`docs/14-cenario-de-teste.md`](docs/14-cenario-de-teste.md).
 
 ## Estado atual
 

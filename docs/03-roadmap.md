@@ -10,7 +10,8 @@ Duas mudanças em relação ao roadmap anterior:
 - **Ponto vem antes da folha**, porque a folha calcula a partir das marcações.
 
 Cada fase termina num produto utilizável e vendável sozinho. Primeiro cliente piloto:
-100 trabalhadores ativos.
+100 trabalhadores ativos. Cenário padrão de teste: 1.000 trabalhadores (600 temporários,
+300 terceirizados, 100 próprios) em 4 tomadores (`docs/14-cenario-de-teste.md`).
 
 ## Fase 0 — Fundação 🚧
 
@@ -30,7 +31,8 @@ Cada fase termina num produto utilizável e vendável sozinho. Primeiro cliente 
 - ✅ `avaliacoes` — DISC, testes, cursos, laudos
 - ✅ `comunica` — templates, avisos, lembretes (entrega real ⬜)
 - 🚧 Painel do recrutador (`web/app`)
-- ⬜ Portal do candidato — vagas, candidatura, acompanhamento
+- ✅ Portal do candidato — cadastro, candidatura, acompanhamento; acessos de colaborador e
+  de cliente (tomador) com dados isolados (`docs/12-acesso.md`, seção 7)
 - ⬜ Entrevistas — agenda, vídeo ao vivo e gravado, scorecard
 - ⬜ Área do psicólogo — testes homologados SATEPSI, laudo restrito
 
@@ -49,11 +51,18 @@ Detalhe dos entregáveis em `docs/04-fase-1-checklist.md`.
 
 ## Fase 3 — Ponto e app do trabalhador
 
-- ⬜ `ponto` — REP-P (Portaria MTE 671/2021), foto, geolocalização, offline,
+- ⬜ `ponto` — importação do AFD dos relógios instalados nos tomadores (REP-C, caso principal),
+  tratamento e AEJ; REP-P (Portaria MTE 671/2021), foto, geolocalização, offline,
   banco de horas, espelho, AFD/AEJ, atestado técnico do desenvolvedor
 - ⬜ App do trabalhador (PWA) — ponto, holerite, documentos, férias, chamados
 
 ## Fase 4 — Folha e eSocial
+
+Escopo completo, status item a item e ordem interna de construção (motor → cadastro e
+convenções → eSocial → ponto, contábil e portal → SST, benefícios e analytics):
+[`docs/13-escopo-folha.md`](13-escopo-folha.md). O motor de cálculo e as tabelas com
+vigência começam antes, logo depois do recrutamento, porque a folha é o módulo de maior
+risco e precisa da suíte de regressão com casos reais o quanto antes.
 
 - ⬜ `tabelas-legais` — INSS, IRRF, feriados, convenções, versionadas por vigência
 - ⬜ `folha` — cálculo, férias, 13º, encargos, holerite, pagamento em lote
