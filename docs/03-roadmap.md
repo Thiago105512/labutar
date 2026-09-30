@@ -55,6 +55,12 @@ Detalhe dos entregáveis em `docs/04-fase-1-checklist.md`.
 
 ## Fase 4 — Folha e eSocial
 
+Escopo completo, status item a item e ordem interna de construção (motor → cadastro e
+convenções → eSocial → ponto, contábil e portal → SST, benefícios e analytics):
+[`docs/13-escopo-folha.md`](13-escopo-folha.md). O motor de cálculo e as tabelas com
+vigência começam antes, logo depois do recrutamento, porque a folha é o módulo de maior
+risco e precisa da suíte de regressão com casos reais o quanto antes.
+
 - ⬜ `tabelas-legais` — INSS, IRRF, feriados, convenções, versionadas por vigência
 - ⬜ `folha` — cálculo, férias, 13º, encargos, holerite, pagamento em lote
 - ⏸ `esocial` — tabelas, S-2200/2206/2230/2299, S-1200/1210/1299, SST; FGTS Digital, DCTFWeb
