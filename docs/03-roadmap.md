@@ -10,7 +10,8 @@ Duas mudanças em relação ao roadmap anterior:
 - **Ponto vem antes da folha**, porque a folha calcula a partir das marcações.
 
 Cada fase termina num produto utilizável e vendável sozinho. Primeiro cliente piloto:
-100 trabalhadores ativos.
+100 trabalhadores ativos. Cenário padrão de teste: 1.000 trabalhadores (600 temporários,
+300 terceirizados, 100 próprios) em 4 tomadores (`docs/14-cenario-de-teste.md`).
 
 ## Fase 0 — Fundação 🚧
 
@@ -30,7 +31,8 @@ Cada fase termina num produto utilizável e vendável sozinho. Primeiro cliente 
 - ✅ `avaliacoes` — DISC, testes, cursos, laudos
 - ✅ `comunica` — templates, avisos, lembretes (entrega real ⬜)
 - 🚧 Painel do recrutador (`web/app`)
-- ⬜ Portal do candidato — vagas, candidatura, acompanhamento
+- ✅ Portal do candidato — cadastro, candidatura, acompanhamento; acessos de colaborador e
+  de cliente (tomador) com dados isolados (`docs/12-acesso.md`, seção 7)
 - ⬜ Entrevistas — agenda, vídeo ao vivo e gravado, scorecard
 - ⬜ Área do psicólogo — testes homologados SATEPSI, laudo restrito
 
