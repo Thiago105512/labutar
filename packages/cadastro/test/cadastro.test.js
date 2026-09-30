@@ -109,3 +109,35 @@ test("posto cheio impede a admissão", async () => {
   assert.equal(r.ok, false);
   assert.match(r.erros.join(), /sem vaga livre \(1 de 1/);
 });
+
+test("origens: puxa do recrutamento e do cadastro, completa sem sobrescrever", async () => {
+  const { buscarOrigens, pessoaDoCandidato, completarPessoa } = await import("../src/origens.js");
+  const candidatos = [
+    { id: "C1", dados: { nome: "João Batista Silva", cpf: "111.444.777-35", nascimento: "1996-04-12" }, contato: { email: "joao@exemplo.com", telefone: "(92) 98811-2233", cidade: "Manaus", uf: "AM" } },
+    { id: "C2", dados: { nome: "Ana Souza Lima" }, contato: {} },
+    { id: "C3", dados: { nome: "Yara Pimentel Costa", cpf: "52998224725" }, contato: {} },
+  ];
+  const candidaturas = [{ id: "K1", candidatoId: "C1", vagaId: "V1", etapaAtualId: "aprovado" }, { id: "K2", candidatoId: "C2", vagaId: "V1", etapaAtualId: "triagem" }];
+  const vagas = [{ id: "V1", titulo: "Operador de Produção I", cbo: "784205", salario: { min: 200_000 } }];
+  const pessoas = [{ id: "P1", nome: "Yara Pimentel Costa", cpf: "52998224725" }];
+  const vinculos = [{ pessoaId: "P1", matricula: "20048122", tipo: "TEMPORARIO", admissao: "2026-03-02", desligamento: "2026-09-18", cargo: "Montadora" }];
+  const fontes = { pessoas, vinculos, candidatos, candidaturas, vagas };
+
+  const prontos = buscarOrigens(fontes);
+  assert.deepEqual(prontos.map((o) => o.nome), ["João Batista Silva"]);
+  assert.equal(prontos[0].vaga.titulo, "Operador de Produção I");
+  assert.equal(prontos[0].cpf, "11144477735");
+  assert.equal(prontos[0].telefone, "92988112233");
+
+  const yara = buscarOrigens(fontes, "yara");
+  assert.equal(yara.length, 1, "mesmo CPF no cadastro e no recrutamento aparece uma vez");
+  assert.equal(yara[0].origem, "CADASTRO");
+  assert.equal(yara[0].ultimoVinculo.desligamento, "2026-09-18");
+  assert.equal(buscarOrigens(fontes, "529982")[0].pessoaId, "P1");
+  assert.equal(buscarOrigens(fontes, "Ána")[0].nome, "Ana Souza Lima"); // sem acento
+
+  const r = completarPessoa({ nome: "João Batista Silva", email: "novo@exemplo.com" }, pessoaDoCandidato(candidatos[0]));
+  assert.equal(r.pessoa.email, "novo@exemplo.com"); // o formulário prevalece
+  assert.equal(r.pessoa.nascimento, "1996-04-12");
+  assert.ok(r.preenchidos.includes("cpf") && r.divergentes.includes("email"));
+});

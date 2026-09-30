@@ -4,6 +4,7 @@
  */
 import { TIPO_VINCULO, gerarMatricula } from "../../../packages/mao-de-obra/src/index.js";
 import { somarDias } from "../../../packages/core/src/datas.js";
+import * as ats from "../../../packages/ats/src/index.js";
 
 export const COMPETENCIA_DEMO = "2026-09";
 
@@ -105,6 +106,23 @@ function prazoDoTemporario(admissao) {
     : { fimPrevisto: somarDias(admissao, 269), prorrogado: true };
 }
 
+/** Candidatos do recrutamento demo prontos para admitir: a admissão puxa os dados deles. */
+const PRONTOS_PARA_ADMITIR = { "João Batista Silva": "aprovado", "Carlos Eduardo Ramos": "proposta" };
+
+async function adiantarProcessoSeletivo(repo, tenantId) {
+  const [candidatos, candidaturas, vagas] = await Promise.all(
+    ["candidatos", "candidaturas", "vagas"].map((c) => repo.listar(tenantId, c, {}, { limite: 1000 }).then((r) => r.itens))
+  );
+  for (const [nome, etapa] of Object.entries(PRONTOS_PARA_ADMITIR)) {
+    const candidato = candidatos.find((c) => c.dados?.nome === nome);
+    const candidatura = candidato && candidaturas.find((c) => c.candidatoId === candidato.id);
+    const vaga = candidatura && vagas.find((v) => v.id === candidatura.vagaId);
+    if (!vaga) continue;
+    const r = ats.moverEtapa(candidatura, { vaga, paraEtapaId: etapa, observacao: "Demonstração" });
+    if (r.ok) await repo.atualizar(tenantId, "candidaturas", candidatura.id, r.candidatura);
+  }
+}
+
 export async function semearFolha(repo, tenantId) {
   if (await repo.contar(tenantId, "vinculos")) return { semeado: false };
   for (const e of EMPRESAS_DEMO) await repo.inserir(tenantId, "empresas", { ...e });
@@ -158,5 +176,6 @@ export async function semearFolha(repo, tenantId) {
     await repo.inserir(tenantId, "folhaLancamentos", { id: `${COMPETENCIA_DEMO}:${c.matricula}`, competencia: COMPETENCIA_DEMO, matricula: c.matricula, ...lancamentos });
   }
   for (const p of postos.values()) await repo.inserir(tenantId, "postos", p);
+  await adiantarProcessoSeletivo(repo, tenantId);
   return { semeado: true, colaboradores: dados.length };
 }
