@@ -114,3 +114,20 @@ test("somenteDigitos descarta qualquer separador", () => {
   assert.equal(somenteDigitos(null), "");
   assert.equal(somenteDigitos("abc"), "");
 });
+
+import { normalizarCNPJ, raizCNPJ } from "../src/validacao.js";
+
+test("CNPJ alfanumérico (IN RFB 2.229/2024): valida o exemplo oficial da Receita", () => {
+  assert.equal(validarCNPJ("12.ABC.345/01DE-35").valido, true);
+  assert.equal(validarCNPJ("12abc34501de35").valido, true); // minúsculas são normalizadas
+  assert.equal(validarCNPJ("12.ABC.345/01DE-36").valido, false);
+  assert.equal(validarCNPJ("12.ABC.345/01DE-3A").valido, false); // dígitos verificadores são sempre números
+  assert.equal(formatarCNPJ("12abc34501de35"), "12.ABC.345/01DE-35");
+});
+
+test("CNPJ: raiz identifica a empresa nos dois formatos", () => {
+  assert.equal(normalizarCNPJ(" 12.abc.345/01de-35 "), "12ABC34501DE35");
+  assert.equal(raizCNPJ("11.222.333/0001-81"), "11222333");
+  assert.equal(raizCNPJ("12.ABC.345/01DE-35"), "12ABC345");
+  assert.equal(raizCNPJ("123"), null);
+});

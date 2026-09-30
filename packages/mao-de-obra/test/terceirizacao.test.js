@@ -16,7 +16,7 @@ test("ex-empregado da tomadora fica bloqueado por 18 meses como terceirizado (ar
 });
 
 test("emprego anterior em outra empresa não bloqueia", () => {
-  const r = verificarQuarentenaExEmpregado([{ cnpj: "44555666000199", desligamento: "2026-09-01" }], {
+  const r = verificarQuarentenaExEmpregado([{ cnpj: "44555666000181", desligamento: "2026-09-01" }], {
     tomadorCnpj: TOMADORA,
     inicio: "2026-10-01",
   });

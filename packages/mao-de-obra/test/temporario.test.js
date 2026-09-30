@@ -11,7 +11,7 @@ import {
 
 const TOMADORA = "11222333000181";
 const FILIAL_DA_TOMADORA = "11222333000262";
-const OUTRA = "44555666000199";
+const OUTRA = "44555666000181";
 
 const proposta = (extra = {}) => ({
   tomadorCnpj: TOMADORA,
@@ -163,4 +163,11 @@ test("remuneração do temporário não pode ficar abaixo da praticada pela toma
 
   const abaixoDoMinimo = verificarRemuneracaoEquivalente({ funcao: "Conferente", salarioHoraCentavos: 500, data: "2026-06-01", salarioMinimoHoraCentavos: 700 });
   assert.match(abaixoDoMinimo.erros.join(" "), /salário mínimo/);
+});
+
+test("mesma tomadora também com CNPJ alfanumérico", () => {
+  assert.equal(mesmaTomadora("12.ABC.345/01DE-35", "12abc34500"+"0000"), true);
+  assert.equal(mesmaTomadora("12.ABC.345/01DE-35", TOMADORA), false);
+  const contrato = validarContratoTemporario(proposta({ tomadorCnpj: "12.ABC.345/01DE-35" }), []);
+  assert.equal(contrato.ok, true, contrato.erros.join("; "));
 });

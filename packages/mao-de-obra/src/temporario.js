@@ -1,5 +1,5 @@
 import { diferencaDias, somarDias } from "../../core/src/datas.js";
-import { validarDataISO, somenteDigitos } from "../../core/src/validacao.js";
+import { validarCNPJ, validarDataISO, raizCNPJ } from "../../core/src/validacao.js";
 import { normalizar } from "../../core/src/texto.js";
 import { HIPOTESE_TEMPORARIO, PARAMETROS_LEGAIS } from "./constantes.js";
 
@@ -21,14 +21,14 @@ export function duracaoEmDias(inicio, fim) {
 }
 
 /**
- * "Mesma tomadora" é comparada pela raiz do CNPJ (8 primeiros dígitos):
+ * "Mesma tomadora" é comparada pela raiz do CNPJ (8 primeiros caracteres, numérico ou alfanumérico):
  * contrato numa filial conta para o limite da empresa. Leitura
  * conservadora — separar por estabelecimento aumentaria o risco de vínculo.
  */
 export function mesmaTomadora(cnpjA, cnpjB) {
-  const a = somenteDigitos(cnpjA ?? "");
-  const b = somenteDigitos(cnpjB ?? "");
-  return a.length >= 8 && b.length >= 8 && a.slice(0, 8) === b.slice(0, 8);
+  const a = raizCNPJ(cnpjA);
+  const b = raizCNPJ(cnpjB);
+  return a !== null && a === b;
 }
 
 /**
@@ -72,7 +72,7 @@ export function validarContratoTemporario(proposta = {}, historico = [], { param
   if (proposta.fimPrevisto < proposta.inicio) {
     return { ok: false, erros: ["fimPrevisto anterior ao inicio"], avisos };
   }
-  if (somenteDigitos(proposta.tomadorCnpj ?? "").length !== 14) erros.push("tomadorCnpj deve ter 14 dígitos");
+  if (!validarCNPJ(proposta.tomadorCnpj).valido) erros.push("tomadorCnpj inválido");
 
   // Motivo justificador — art. 2º e art. 9º, II.
   if (!Object.values(HIPOTESE_TEMPORARIO).includes(proposta.hipotese)) {

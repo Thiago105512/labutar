@@ -36,7 +36,7 @@ const DETECTORES = [
   },
   {
     tipo: TIPO_VIOLACAO.CNPJ,
-    regex: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g,
+    regex: /\b[0-9A-Z]{2}\.?[0-9A-Z]{3}\.?[0-9A-Z]{3}\/?[0-9A-Z]{4}-?\d{2}\b/gi, // numérico ou alfanumérico
     confirmar: (trecho) => validarCNPJ(trecho).valido,
   },
   {

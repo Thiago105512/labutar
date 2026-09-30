@@ -42,7 +42,7 @@ test("temporário só entra em contrato de trabalho temporário da mesma tomador
   const emServicos = validarAlocacao(principal({ vinculoId: "V2", postoId: "POS_1" }), { vinculo: temporario, posto: postoServicos, contrato: contratoServicos });
   assert.match(emServicos.erros.join(" "), /trabalho temporário/);
 
-  const outraTomadora = { ...contratoTemporario, id: "CTR_T2", tomadorCnpj: "44555666000199" };
+  const outraTomadora = { ...contratoTemporario, id: "CTR_T2", tomadorCnpj: "44555666000181" };
   const r = validarAlocacao(principal({ vinculoId: "V2", postoId: "POS_9" }), {
     vinculo: temporario, posto: { ...postoTemporario, id: "POS_9", contratoId: "CTR_T2" }, contrato: outraTomadora,
   });
