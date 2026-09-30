@@ -65,6 +65,10 @@ export const VERBAS = Object.freeze({
   AVISO_NAO_CUMPRIDO: v("9213.01", "Aviso prévio não cumprido (art. 487, § 2º)", D, { inss: "00", fgts: "00", irrf: false, conferida: false }),
   FERIAS_ADIANTAMENTO: v("9299.02", "Férias pagas no recibo de férias", D, { inss: "00", fgts: "00", irrf: false, conferida: false }),
   VALE_TRANSPORTE: v("9216.01", "Vale-transporte", D, { inss: "00", fgts: "00", irrf: false }),
+  // Convenção coletiva: descontos com direito de oposição (contribuições) ou limitados pela norma (VR).
+  DESCONTO_VALE_REFEICAO: v("9220.01", "Vale-refeição", D, { inss: "00", fgts: "00", irrf: false, conferida: false }),
+  MENSALIDADE_SINDICAL: v("9231.01", "Mensalidade associativa sindical", D, { inss: "00", fgts: "00", irrf: false, conferida: false }),
+  CONTRIBUICAO_ASSISTENCIAL: v("9232.01", "Contribuição assistencial sindical", D, { inss: "00", fgts: "00", irrf: false, conferida: false }),
   // Crédito do Trabalhador (eConsignado): natureza 9253, codIncFGTS 31, sem INSS; IRRF código 09 (Tabela 21).
   // O valor de cada mês vem do arquivo de empréstimos do Portal Emprega Brasil.
   ECONSIGNADO: v("9253.01", "Crédito do Trabalhador (eConsignado)", D, { inss: "00", fgts: "31", irrf: false }),

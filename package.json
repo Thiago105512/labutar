@@ -17,7 +17,8 @@
     "packages/acesso",
     "packages/admissao",
     "packages/esocial",
-    "server"
+    "server",
+    "packages/convencoes"
   ],
   "scripts": {
     "test": "node --test --test-reporter=spec \"packages/*/test/*.test.js\" \"server/test/*.test.js\"",

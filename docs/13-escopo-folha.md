@@ -84,12 +84,12 @@ colaborador, por dia e por assunto.
 
 | Item | Prio | Compl. | Status | Onde / observação |
 |---|---|---|---|---|
-| Cadastro de sindicatos, categorias, datas-base | E | M | 📋 | Entidade Convenção em docs/11 |
-| Acordos coletivos por tomador ou para toda a empresa, com prevalência sobre a convenção | E | A | ⬜ | Abrangência: empresa, tomador, contrato ou posto |
-| Pisos, reajustes e adicionais por convenção | E | A | 📋 | |
-| Regras de jornada e benefícios por convenção | E | A | 📋 | |
-| Contribuições sindicais e assistenciais, com regras de oposição | E | M | ⬜ | |
-| Aplicação automática por colaborador | E | A | 📋 | Por vínculo e, no terceirizado, pela categoria da prestadora |
+| Cadastro de sindicatos, categorias, datas-base | E | M | 🟡 | `convencoes`: instrumento com registro no MTE, sindicatos (CNPJ), vigência, data-base e abrangência; 1ª CCT: AM000038/2026 (docs/18). Cadastro pela tela ⬜ |
+| Acordos coletivos por tomador ou para toda a empresa, com prevalência sobre a convenção | E | A | 🟡 | Regra de prevalência pronta (ACT do posto > tomador > empresa > CCT); aguardando os ACTs |
+| Pisos, reajustes e adicionais por convenção | E | A | ✅ | Piso por função enquadrada no posto (piso geral fora da tabela), conformidade na folha, reajuste da data-base, insalubridade mínima e gratificações |
+| Regras de jornada e benefícios por convenção | E | A | 🟡 | 12x36 (divisor 192, VT 3%), VR por dia com refeitório, cesta básica com as condições, custos por colaborador no custo do tomador ✅; banco de horas ⬜ (depende do ponto) |
+| Contribuições sindicais e assistenciais, com regras de oposição | E | M | ✅ | Mensalidade associativa (2%, mínimo), assistencial no mês fixado, oposição na pessoa; negocial patronal por faixa |
+| Aplicação automática por colaborador | E | A | ✅ | Enquadramento sindical da empresa por tipo de vínculo; cada holerite mostra instrumento, função e piso |
 | Reajuste retroativo (dissídio) com recálculo de competências | E | A | ⬜ | Depende do recálculo retroativo (seção 1) |
 | Leitura de convenção em PDF com sugestão de parametrização por IA | F | A | ⬜ | |
 

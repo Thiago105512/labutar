@@ -5,6 +5,7 @@
 import { TIPO_VINCULO, gerarMatricula } from "../../../packages/mao-de-obra/src/index.js";
 import { somarDias } from "../../../packages/core/src/datas.js";
 import * as ats from "../../../packages/ats/src/index.js";
+import { INSTRUMENTOS } from "../../../packages/convencoes/src/index.js";
 
 export const COMPETENCIA_DEMO = "2026-09";
 
@@ -28,10 +29,10 @@ export const EMPRESAS_DEMO = Object.freeze([
 
 /** Tomadores fictícios do Polo Industrial de Manaus (CNPJs fictícios com dígito válido). */
 export const TOMADORES_DEMO = Object.freeze({
-  "TOM:T1": { id: "TOM_ELETRONICA_AMAZONIA", cnpj: "04567891000113", razaoSocial: "Eletrônica Amazônia S.A.", municipio: "Manaus", uf: "AM" },
-  "TOM:T2": { id: "TOM_MOTOS_NORTE", cnpj: "07891234000115", razaoSocial: "Motos do Norte Ltda", municipio: "Manaus", uf: "AM" },
-  "TOM:T3": { id: "TOM_AMAZON_INFORMATICA", cnpj: "09123456000113", razaoSocial: "Amazon Informática S.A.", municipio: "Manaus", uf: "AM" },
-  "TOM:T4": { id: "TOM_PLASTICOS_TARUMA", cnpj: "03456789000188", razaoSocial: "Plásticos Tarumã Ltda", municipio: "Manaus", uf: "AM" },
+  "TOM:T1": { id: "TOM_ELETRONICA_AMAZONIA", cnpj: "04567891000113", razaoSocial: "Eletrônica Amazônia S.A.", municipio: "Manaus", uf: "AM", refeitorio: true },
+  "TOM:T2": { id: "TOM_MOTOS_NORTE", cnpj: "07891234000115", razaoSocial: "Motos do Norte Ltda", municipio: "Manaus", uf: "AM", refeitorio: true },
+  "TOM:T3": { id: "TOM_AMAZON_INFORMATICA", cnpj: "09123456000113", razaoSocial: "Amazon Informática S.A.", municipio: "Manaus", uf: "AM", refeitorio: true },
+  "TOM:T4": { id: "TOM_PLASTICOS_TARUMA", cnpj: "03456789000188", razaoSocial: "Plásticos Tarumã Ltda", municipio: "Manaus", uf: "AM", refeitorio: true },
 });
 export const SETORES_DEMO = Object.freeze([{ id: "ADM", nome: "Administrativo próprio" }]);
 
@@ -47,6 +48,18 @@ export const EMPRESA_FOLHA_DEMO = Object.freeze({
   arredondamentoINSS: "POR_FAIXA",
   local: { uf: "AM", municipio: "Manaus" },
   setores: SETORES_DEMO,
+  // Convenção da categoria da empresa. Temporários fora até a confirmação do enquadramento deles
+  // (remuneração equivalente à do tomador, Lei 6.019/1974, art. 12).
+  enquadramentoSindical: [{ instrumentoId: "AM000038-2026", tiposVinculo: ["TERCEIRIZADO", "PROPRIO"] }],
+  // Desconto do vale-refeição pela empresa (a CCT permite até 10%).
+  descontoVRPercentual: 0,
+});
+
+/** Função da tabela de pisos da CCT para os cargos do demo (os demais ficam para o DP enquadrar). */
+const ENQUADRAMENTO_DEMO = Object.freeze({
+  "Auxiliar de limpeza": "Agente de Limpeza",
+  "Auxiliar de logística": "Auxiliar de Apoio Logístico",
+  "Supervisora de operações": "Supervisor Operacional",
 });
 
 const T = TIPO_VINCULO.TEMPORARIO, S = TIPO_VINCULO.TERCEIRIZADO, P = TIPO_VINCULO.PROPRIO;
@@ -128,6 +141,7 @@ export async function semearFolha(repo, tenantId) {
   for (const e of EMPRESAS_DEMO) await repo.inserir(tenantId, "empresas", { ...e });
   await repo.inserir(tenantId, "folhaParametros", { ...EMPRESA_FOLHA_DEMO });
   for (const t of Object.values(TOMADORES_DEMO)) await repo.inserir(tenantId, "tomadores", { ...t });
+  for (const i of INSTRUMENTOS) await repo.inserir(tenantId, "convencoes", structuredClone(i));
 
   const contratos = new Map();
   const postos = new Map();
@@ -149,6 +163,7 @@ export async function semearFolha(repo, tenantId) {
       if (!postos.has(chavePosto)) {
         posto = {
           id: `POS_${postos.size + 1}`, contratoId: contrato.id, tomadorId: tomador.id, funcao: c.cargo, vagas: 2, // o contrato pede mais do que já está ocupado: sobram vagas para admitir
+          funcaoConvencao: ENQUADRAMENTO_DEMO[c.cargo] ?? null,
           jornadaMensal: 220, insalubridadeGrau: c.insalubridadeGrau ?? null, periculosidade: Boolean(c.periculosidade),
           salarioReferencia: c.vinculo === "TEMPORARIO" ? c.salario : null, local: { uf: tomador.uf, municipio: tomador.municipio },
         };
@@ -165,12 +180,14 @@ export async function semearFolha(repo, tenantId) {
       cpf: null, deduzIR: i < depIR, salarioFamilia: i < filhos, invalido: false,
     }));
     const pessoaId = `PES_${String(++nPessoa).padStart(4, "0")}`;
-    await repo.inserir(tenantId, "pessoas", { id: pessoaId, cpf: null, nome: c.nome, dependentes, banco: null });
+    // Associados ao sindicato laboral no demo: um a cada três (cesta básica da CCT).
+    await repo.inserir(tenantId, "pessoas", { id: pessoaId, cpf: null, nome: c.nome, dependentes, banco: null, associadoSindicato: nPessoa % 3 === 0 });
     await repo.inserir(tenantId, "vinculos", {
       id: c.matricula, matricula: c.matricula, pessoaId, tipo: c.vinculo, admissao: c.admissao, desligamento: c.desligamento ?? null,
       cargo: c.cargo, salario: c.salario, historicoSalarial: [{ desde: c.admissao, valor: c.salario, motivo: "Admissão" }],
       tomadorId: tomador?.id ?? null, tomadorCnpj: tomador?.cnpj ?? null, contratoId: contrato?.id ?? null, postoId: posto?.id ?? null,
       setor: tomador ? null : "ADM",
+      funcaoConvencao: tomador ? null : ENQUADRAMENTO_DEMO[c.cargo] ?? null,
       temporario: c.vinculo === "TEMPORARIO" ? prazoDoTemporario(c.admissao) : null,
     });
     await repo.inserir(tenantId, "folhaLancamentos", { id: `${COMPETENCIA_DEMO}:${c.matricula}`, competencia: COMPETENCIA_DEMO, matricula: c.matricula, ...lancamentos });
