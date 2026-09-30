@@ -240,6 +240,8 @@ e o rateio por centro de custo (8) — são o diferencial e alimentam a folha de
 4. NR-1 — gestão de riscos psicossociais.
 5. Consignado — regras da plataforma oficial vigentes.
 6. Leiautes vigentes do eSocial, DCTFWeb, EFD-Reinf e FGTS Digital (validar contra XSD).
+   eSocial S-1.3 ✅ versionado em `packages/esocial/xsd/`, com teste que confere os padrões
+   do Labutar (CNPJ, matrícula, código de verba) contra `tipos.xsd`.
 7. Os pontos de interpretação da Lei 6.019/1974 listados em docs/11, seção 6.
 8. Uso do relógio do tomador para registrar o ponto de empregados da prestadora: requisitos
    da Portaria MTP 671/2021 (identificação do empregador no AFD, acesso aos arquivos).
