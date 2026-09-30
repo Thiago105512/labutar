@@ -35,7 +35,7 @@ prevista é dado de saúde (ASO, laudos), que a LGPD trata como sensível.
 
 ## 3. Perfis
 
-Perfil = um nível em cada um dos 14 módulos. Os perfis **padrão** vêm com toda empresa e
+Perfil = um nível em cada um dos 15 módulos. Os perfis **padrão** vêm com toda empresa e
 não mudam (dá para duplicar e personalizar):
 
 | Perfil | Resumo |
@@ -49,6 +49,8 @@ não mudam (dá para duplicar e personalizar):
 | Comercial | Gestor no comercial; consulta tomadores |
 | Financeiro | Gestor no financeiro; operador no contábil; consulta folha e tomadores |
 | Contador(a) | Gestor no contábil; consulta financeiro e folha |
+| Médico(a) do trabalho | Gestor na Clínica de SST (com dados de saúde); consulta SST e colaboradores |
+| Equipe da clínica | Operador na Clínica de SST, sem prontuário; consulta SST e colaboradores |
 | Somente consulta | Consulta em todos os módulos de negócio |
 
 **Ajustes individuais**: além do perfil, um usuário pode ter um nível diferente em algum

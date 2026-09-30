@@ -3,7 +3,8 @@
  * Todo texto de origem externa passa por `esc()` antes de virar HTML.
  */
 import { icone } from "./icones.js";
-import { FUSO_PADRAO, formatarBRL, formatarDataBR } from "/packages/core/src/index.js";
+import { FUSO_PADRAO, formatarBRL, formatarCNPJ, formatarDataBR } from "/packages/core/src/index.js";
+import { formatarMatricula } from "/packages/mao-de-obra/src/matricula.js";
 
 export const esc = (valor) =>
   String(valor ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -41,6 +42,10 @@ export const quando = (iso) => {
 // Formatos únicos da interface (docs/15-padroes.md): toda tela usa estes, nunca um próprio.
 /** Valor em centavos → "R$ 1.234,56". */
 export const moeda = (centavos) => (centavos == null ? "—" : formatarBRL(centavos));
+/** CNPJ só com os caracteres → "42.288.454/0001-50" (também alfanumérico). */
+export const cnpj = (valor) => (valor ? formatarCNPJ(valor) : "—");
+/** Matrícula "20048217" → "2-004821-7". */
+export const matricula = (valor) => formatarMatricula(valor);
 /** Data civil AAAA-MM-DD → "30/09/2026". */
 export const data = (iso) => (iso ? formatarDataBR(iso) : "—");
 /** Instante → "30/09/2026 14:05", no fuso da empresa (não no do navegador). */

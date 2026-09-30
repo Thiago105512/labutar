@@ -153,3 +153,13 @@ test("papéis do tomador: consulta vê, gestor aprova, financeiro vê faturas", 
   assert.equal(podeNoTomador("FINANCEIRO", "verAlocados"), false);
   assert.equal(podeNoTomador("INVENTADO", "verAlocados"), false);
 });
+
+import { pode as podeNaClinica, perfilPadrao as perfilDaClinica } from "../src/index.js";
+
+test("clínica de SST: só o médico vê dados de saúde; a equipe opera sem prontuário", () => {
+  const acessoDe = (id) => ({ niveis: perfilDaClinica(id).niveis, acessoTotal: false });
+  assert.equal(podeNaClinica(acessoDe("MEDICO_TRABALHO"), "clinica", "dadosSensiveis"), true);
+  assert.equal(podeNaClinica(acessoDe("EQUIPE_CLINICA"), "clinica", "criar"), true);
+  assert.equal(podeNaClinica(acessoDe("EQUIPE_CLINICA"), "clinica", "dadosSensiveis"), false);
+  assert.equal(podeNaClinica(acessoDe("ANALISTA_DP"), "clinica", "ver"), false);
+});

@@ -69,6 +69,10 @@ const EM_BREVE = {
     resumo: "Cálculo mensal a partir do ponto, com convenções coletivas, férias, 13º, rescisão e eventos do eSocial.",
     recursos: ["Cálculo por convenção coletiva", "Férias, 13º e rescisão", "Holerite no app", "Pagamento em lote e PIX", "eSocial, FGTS Digital e DCTFWeb", "Tabelas legais por vigência"],
   },
+  clinica: {
+    resumo: "A clínica de medicina e segurança do trabalho do grupo, com CNPJ próprio: agenda e resultado dos exames, ASO assinado pelo médico, PCMSO, PGR e laudos. O que ela produz alimenta a admissão, o SST e o eSocial da empresa de RH.",
+    recursos: ["Agenda de exames (NR-7)", "ASO com liberação da admissão", "PCMSO e PGR por posto do tomador", "LTCAT, PPP e laudos", "Prontuário só para o médico", "Faturamento entre as empresas do grupo"],
+  },
   sst: {
     resumo: "PGR, PCMSO, ASO periódico, entrega de EPI e comunicação de acidentes.",
     recursos: ["ASO e exames periódicos", "Entrega de EPI com assinatura", "CAT", "S-2220 e S-2240", "Alertas de vencimento", "Treinamentos NR"],

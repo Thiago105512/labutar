@@ -9,7 +9,7 @@ import { MODULOS, NIVEIS, NIVEL, PAPEIS_TOMADOR, validarSenha } from "/packages/
 
 export const ICONE_MODULO = Object.freeze({
   recrutamento: "candidatos", colaboradores: "cracha", admissao: "admissao", tomadores: "tomadores",
-  ponto: "ponto", folha: "folha", sst: "sst", treinamentos: "treinamentos", comercial: "comercial",
+  ponto: "ponto", folha: "folha", sst: "sst", clinica: "clinica", treinamentos: "treinamentos", comercial: "comercial",
   financeiro: "financeiro", contabil: "contabil", juridico: "juridico", estoque: "estoque", administracao: "cadeado",
 });
 

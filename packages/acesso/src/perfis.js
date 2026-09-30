@@ -85,6 +85,20 @@ export const PERFIS_PADRAO = Object.freeze([
     niveis: niveis({ contabil: GESTOR, financeiro: CONSULTA, folha: CONSULTA }),
   },
   {
+    id: "MEDICO_TRABALHO",
+    nome: "Médico(a) do trabalho",
+    descricao: "Clínica do grupo: exames, ASO, PCMSO e prontuário (dados de saúde).",
+    sistema: true,
+    niveis: niveis({ clinica: GESTOR, sst: CONSULTA, colaboradores: CONSULTA }),
+  },
+  {
+    id: "EQUIPE_CLINICA",
+    nome: "Equipe da clínica",
+    descricao: "Recepção e técnicos de segurança: agenda de exames, PGR e laudos, sem prontuário.",
+    sistema: true,
+    niveis: niveis({ clinica: OPERADOR, sst: CONSULTA, colaboradores: CONSULTA }),
+  },
+  {
     id: "CONSULTA",
     nome: "Somente consulta",
     descricao: "Vê todos os módulos de negócio, sem alterar nada. Útil para auditoria.",

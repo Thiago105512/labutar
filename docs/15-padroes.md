@@ -135,6 +135,29 @@ salário). Para não haver confusão, o código da verba no Labutar é:
 - Os códigos das naturezas são conferidos contra a Tabela 03 do leiaute vigente ao montar o
   catálogo padrão (docs/13, seção 16).
 
+### 7.4 Códigos que são do próprio eSocial
+
+Onde o eSocial tem tabela, **o Labutar usa o código dele, sem código paralelo**. Códigos de
+sistemas antigos (como "05 = término do contrato" no relatório de 12/2020) são convertidos na
+importação e não aparecem mais.
+
+| Informação | Código usado | Origem |
+|---|---|---|
+| Natureza da verba | 4 dígitos, início do código `NNNN.VV` | Tabela 03 |
+| Incidência de INSS e FGTS da verba | `codIncCP`, `codIncFGTS` | XSD do S-1010 (já no sistema) |
+| Incidência de IRRF da verba | código da Tabela 21 | Anexo I (a obter) |
+| Categoria do trabalhador | 106 temporário, 101 empregado | Tabela 01 |
+| Motivo de afastamento | Tabela 18 | Anexo I (a obter) |
+| Motivo de desligamento | Tabela 19 | Anexo I (a obter) |
+| Tipo de lotação (tomador) | Tabela 10 | Anexo I (a obter) |
+| Fatores de risco, exames do ASO | Tabelas 24 e 27 | Anexo I (a obter) |
+| Cargo | CBO | Ministério do Trabalho |
+| Atividade da empresa | CNAE | IBGE/Receita |
+
+Onde o eSocial deixa o código livre, o Labutar tem padrão próprio: **matrícula** (7.1),
+**empresa e tomador** pelo CNPJ (7.2) e **verba** `NNNN.VV` (7.3), sempre dentro dos formatos
+que o XSD aceita — conferido por teste automático.
+
 ## 8. Telas
 
 **Lista** (usuários, vagas, colaboradores, tomadores…): título e ação principal ("Novo …") no

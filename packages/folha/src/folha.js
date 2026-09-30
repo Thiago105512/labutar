@@ -11,6 +11,8 @@ export const REGIME_TRIBUTARIO = Object.freeze({
   NORMAL: "NORMAL",
   /** Simples Nacional com a contribuição patronal dentro do DAS (anexos I a III e V): sem 20% nem terceiros. */
   SIMPLES_CPP_NO_DAS: "SIMPLES_CPP_NO_DAS",
+  /** Simples Nacional, anexo IV (limpeza, vigilância, obras): 20% + RAT fora do DAS; terceiros não. */
+  SIMPLES_ANEXO_IV: "SIMPLES_ANEXO_IV",
 });
 
 /**
@@ -18,10 +20,11 @@ export const REGIME_TRIBUTARIO = Object.freeze({
  */
 export function encargosDaEmpresa(baseINSS, empresa) {
   const r = Math.round;
-  const normal = (empresa.regime ?? REGIME_TRIBUTARIO.NORMAL) === REGIME_TRIBUTARIO.NORMAL;
-  const patronal = normal ? r(baseINSS * 0.2) : 0;
-  const rat = normal ? r((baseINSS * (empresa.ratPercentual ?? 0) * (empresa.fap ?? 1)) / 100) : 0;
-  const terceiros = normal ? r((baseINSS * (empresa.terceirosPercentual ?? 0)) / 100) : 0;
+  const regime = empresa.regime ?? REGIME_TRIBUTARIO.NORMAL;
+  const pagaCPP = regime === REGIME_TRIBUTARIO.NORMAL || regime === REGIME_TRIBUTARIO.SIMPLES_ANEXO_IV;
+  const patronal = pagaCPP ? r(baseINSS * 0.2) : 0;
+  const rat = pagaCPP ? r((baseINSS * (empresa.ratPercentual ?? 0) * (empresa.fap ?? 1)) / 100) : 0;
+  const terceiros = regime === REGIME_TRIBUTARIO.NORMAL ? r((baseINSS * (empresa.terceirosPercentual ?? 0)) / 100) : 0;
   return { patronal, rat, terceiros, total: patronal + rat + terceiros };
 }
 

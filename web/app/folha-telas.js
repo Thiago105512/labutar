@@ -5,7 +5,7 @@
  */
 import { icone } from "./icones.js";
 import { api, sessao } from "./sessao.js";
-import { esc, moeda, avatar, etiqueta, aviso, abrirPainel, fecharPainel } from "./ui.js";
+import { esc, moeda, cnpj, matricula, avatar, etiqueta, aviso, abrirPainel, fecharPainel } from "./ui.js";
 
 export const COMPETENCIA_PADRAO = "2026-09";
 const cache = { competencia: COMPETENCIA_PADRAO, folha: null, parametros: null, busca: "" };
@@ -15,7 +15,6 @@ const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julh
 const nomeCompetencia = (c) => `${MESES[Number(c.slice(5, 7)) - 1]}/${c.slice(0, 4)}`;
 const competenciaTela = (c) => `${c.slice(5, 7)}/${c.slice(0, 4)}`;
 const decimal = (n) => String(n ?? 0).replace(".", ",");
-const matriculaTela = (m) => (String(m).length === 8 ? `${m[0]}-${m.slice(1, 7)}-${m[7]}` : m);
 
 async function carregarFolha({ forcar = false } = {}) {
   if (!cache.folha || forcar || cache.folha.competencia !== cache.competencia) {
@@ -37,7 +36,7 @@ function cabecalhoCompetencia(f, extra = "") {
   return `
     <div class="barra-filtros">
       <span class="etiqueta sem-ponto e-marca">${icone("relogio")}Competência ${competenciaTela(f.competencia)}</span>
-      <span class="dica">Tabelas legais vigentes desde ${competenciaTela(f.tabela.de)}</span>
+      <span class="dica">${f.empresa?.razaoSocial ? `${esc(f.empresa.razaoSocial)} · CNPJ ${esc(cnpj(f.empresa.cnpj))} · ` : ""}Tabelas legais vigentes desde ${competenciaTela(f.tabela.de)}</span>
       ${extra}
     </div>`;
 }
@@ -83,7 +82,7 @@ export async function paginaFolhaResumo() {
       <div class="cartao alerta-folha">
         ${icone("relogio")}
         <div><strong>Fora da folha mensal</strong>
-          ${f.pendencias.map((p) => `<p>${esc(p.nome)} (${esc(matriculaTela(p.matricula))}): ${esc(p.motivo)}</p>`).join("")}</div>
+          ${f.pendencias.map((p) => `<p>${esc(p.nome)} (${esc(matricula(p.matricula))}): ${esc(p.motivo)}</p>`).join("")}</div>
       </div>` : ""}
 
     <section class="grade-folha">
@@ -133,7 +132,7 @@ export async function paginaHolerites() {
         <tbody>
           ${lista.map((h) => `
             <tr class="linha-clicavel" data-folha-holerite="${esc(h.colaborador.matricula)}">
-              <td><div class="pessoa">${avatar(h.colaborador.nome, "avatar-sm")}<div><strong>${esc(h.colaborador.nome)}</strong><small>${esc(matriculaTela(h.colaborador.matricula))} · ${esc(h.colaborador.cargo ?? "")}</small></div></div></td>
+              <td><div class="pessoa">${avatar(h.colaborador.nome, "avatar-sm")}<div><strong>${esc(h.colaborador.nome)}</strong><small>${esc(matricula(h.colaborador.matricula))} · ${esc(h.colaborador.cargo ?? "")}</small></div></div></td>
               <td>${etiqueta(NOME_VINCULO, h.colaborador.vinculo)}</td>
               <td>${esc(nomeLotacao(h.colaborador.lotacao))}</td>
               <td class="num">${moeda(h.proventos)}</td>
@@ -156,10 +155,10 @@ const CAMPOS_LANCAMENTO = [
   ["custoValeTransporte", "Custo do vale-transporte", "R$"],
 ];
 
-function painelHolerite(matricula) {
-  const h = cache.folha.holerites.find((x) => x.colaborador.matricula === matricula);
+function painelHolerite(mat) {
+  const h = cache.folha.holerites.find((x) => x.colaborador.matricula === mat);
   if (!h) return;
-  const lanc = cache.folha.lancamentos?.[matricula] ?? {};
+  const lanc = cache.folha.lancamentos?.[mat] ?? {};
   const podeLancar = sessao.pode("folha", "editar");
   const linhas = (tipo) => h.itens.filter((i) => i.tipo === tipo).map((i) => `
     <tr><td><code>${esc(i.codigo)}</code></td><td>${esc(i.nome)}</td><td class="dica">${esc(i.referencia ?? "")}</td><td class="num">${moeda(i.valor)}</td></tr>`).join("");
@@ -170,7 +169,7 @@ function painelHolerite(matricula) {
     <header class="painel-cabecalho">
       ${avatar(h.colaborador.nome, "avatar-lg")}
       <div class="texto"><h2>${esc(h.colaborador.nome)}</h2>
-        <p>${esc(matriculaTela(h.colaborador.matricula))} · ${esc(h.colaborador.cargo ?? "")} · ${esc(nomeLotacao(h.colaborador.lotacao))}</p>
+        <p>${esc(matricula(h.colaborador.matricula))} · ${esc(h.colaborador.cargo ?? "")} · ${esc(nomeLotacao(h.colaborador.lotacao))}</p>
         <div class="meta" style="margin-top:8px">${etiqueta(NOME_VINCULO, h.colaborador.vinculo)}<span>${icone("relogio")}Competência ${competenciaTela(h.competencia)}</span></div></div>
       <button class="botao-icone" data-fechar aria-label="Fechar">${icone("fechar")}</button>
     </header>
@@ -203,7 +202,7 @@ function painelHolerite(matricula) {
         ${h.avisos.map((a) => `<p class="dica">${icone("relogio")}${esc(a)}</p>`).join("")}
       </div>
       ${podeLancar ? `
-      <form class="secao formulario" id="form-lancamentos" data-matricula="${esc(matricula)}">
+      <form class="secao formulario" id="form-lancamentos" data-matricula="${esc(mat)}">
         <h4>Lançamentos do mês</h4>
         <div class="duas">
           ${CAMPOS_LANCAMENTO.map(([campo, rotulo, unidade]) => `
@@ -227,11 +226,11 @@ function painelHolerite(matricula) {
       corpo[campo] = unidade === "R$" ? Math.round(Number(dados[campo]) * 100) : Number(dados[campo]);
     }
     try {
-      await api(`/folha/${cache.competencia}/lancamentos/${matricula}`, { metodo: "PUT", corpo });
+      await api(`/folha/${cache.competencia}/lancamentos/${mat}`, { metodo: "PUT", corpo });
       await carregarFolha({ forcar: true });
       aviso("Lançamentos salvos e holerite recalculado.");
       cache.aoAlterar?.();
-      painelHolerite(matricula);
+      painelHolerite(mat);
     } catch (erro) {
       aviso(erro.message, "erro");
     }
