@@ -25,9 +25,9 @@
       <nav class="menu" id="menu" aria-label="Módulos"></nav>
       <div class="sidebar-rodape">
         <div class="empresa">
-          <span class="empresa-avatar">DI</span>
+          <span class="empresa-avatar" id="empresa-sigla"></span>
           <span class="empresa-texto">
-            <strong>Demo Industrial</strong>
+            <strong id="empresa-nome"></strong>
             <small>Plano Profissional</small>
           </span>
         </div>
@@ -49,10 +49,8 @@
         <div class="topo-acoes">
           <button class="botao-icone" type="button" aria-label="Notificações" id="botao-sino"></button>
           <button class="botao botao-primario" type="button" id="botao-nova-vaga"></button>
-          <div class="usuario">
-            <span class="avatar avatar-sm" style="--h:262">RC</span>
-            <span class="usuario-texto"><strong>Recrutadora</strong><small>Admin</small></span>
-          </div>
+          <button class="usuario usuario-botao" type="button" id="topo-usuario" data-minha-conta title="Minha conta"></button>
+          <button class="botao-icone" type="button" id="botao-sair" data-sair aria-label="Sair" title="Sair"></button>
         </div>
       </header>
 
@@ -61,6 +59,8 @@
       </main>
     </div>
   </div>
+
+  <div class="tela-cheia" id="tela-cheia" hidden></div>
 
   <div class="painel-lateral" id="painel-lateral" aria-hidden="true">
     <div class="painel-fundo" data-fechar></div>

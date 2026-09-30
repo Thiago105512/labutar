@@ -18,7 +18,10 @@ Cada fase termina num produto utilizável e vendável sozinho. Primeiro cliente 
 - ✅ Estrutura multi-tenant no `server` com fronteira de escopo (`db/guard.js`)
 - ✅ CI rodando todos os testes em cada push (`.github/workflows/testes.yml`)
 - ✅ Driver PostgreSQL + migrações + Row-Level Security (`docs/10-decisao-postgresql.md`)
-- ⬜ `packages/plataforma` — login, perfis por módulo, auditoria, planos do SaaS
+- ✅ `packages/acesso` — login com senha (scrypt), sessões, escolha de módulo, 5 níveis por
+  módulo, 10 perfis padrão com Administrador geral de acesso total, ajustes por usuário,
+  proteção contra escalada, auditoria (`docs/12-acesso.md`)
+- ⬜ `packages/plataforma` — planos do SaaS, onboarding de empresas, 2FA, recuperação de senha
 - ⬜ Backoffice do SaaS — clientes, planos, cobrança, suporte
 
 ## Fase 1 — Recrutamento e seleção 🚧

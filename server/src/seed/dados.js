@@ -215,3 +215,32 @@ export async function semear(repo, { tenantId = TENANT_DEMO } = {}) {
 
   return { tenantId, semeado: true, vagas: vagas.length, candidatos: candidatos.length, candidaturas };
 }
+
+/**
+ * Usuários de demonstração, um por perfil — SÓ para o servidor de
+ * desenvolvimento (src/dev.js). Todos com a mesma senha, conhecida.
+ */
+export const SENHA_DEMO = "Acesso Demo 2026!";
+export const USUARIOS_DEMO = Object.freeze([
+  { nome: "Helena Diretora", email: "admin@demo.com.br", perfilId: "ADMINISTRADOR_GERAL" },
+  { nome: "Marcos Gerente de RH", email: "rh@demo.com.br", perfilId: "GERENTE_RH" },
+  { nome: "Rita Recrutadora", email: "recrutadora@demo.com.br", perfilId: "RECRUTADOR" },
+  { nome: "Paulo Analista DP", email: "dp@demo.com.br", perfilId: "ANALISTA_DP" },
+  { nome: "Sandra Supervisora", email: "supervisor@demo.com.br", perfilId: "SUPERVISOR_OPERACOES" },
+  { nome: "Caio Comercial", email: "comercial@demo.com.br", perfilId: "COMERCIAL" },
+  { nome: "Fernanda Financeiro", email: "financeiro@demo.com.br", perfilId: "FINANCEIRO" },
+]);
+
+export async function semearUsuarios(acesso, { tenantId = TENANT_DEMO } = {}) {
+  const [admin, ...demais] = USUARIOS_DEMO;
+  try {
+    await acesso.criarPrimeiroAdministrador(tenantId, { ...admin, senha: SENHA_DEMO, trocarSenha: false });
+  } catch {
+    return { semeado: false, motivo: "empresa já tem usuários" };
+  }
+  const atorAcesso = { acessoTotal: true, niveis: {} };
+  for (const u of demais) {
+    await acesso.criarUsuario(tenantId, { ...u, senha: SENHA_DEMO, trocarSenha: false }, { atorAcesso, atorId: "SEED" });
+  }
+  return { semeado: true, usuarios: USUARIOS_DEMO.length };
+}

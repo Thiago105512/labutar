@@ -11,7 +11,7 @@ import {
   ErroApi,
   CODIGOS,
 } from "./http/resposta.js";
-import { exigirEscopo, exigirUsuario, exigirPapel } from "./middleware/contexto.js";
+import { exigirPermissao } from "./middleware/contexto.js";
 import { versao, IA_HABILITADA } from "./versao.js";
 
 /**
@@ -65,13 +65,12 @@ export function registrarRotas({ repo, log = () => {} }) {
 
   // ------------------------------------------------------------ modelos de processo
   r.get("/api/modelos-processo", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     sucesso(res, await repo.listar(tenant, COLECOES.modelos, {}, { ordenarPor: "nome" }));
   });
 
   r.post("/api/modelos-processo", async (req, res, ctx, corpo) => {
-    const tenant = exigirEscopo(ctx);
-    exigirUsuario(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "configurar");
     if (!corpo?.nome || !Array.isArray(corpo.etapas)) {
       throw erroValidacao("modelo de processo exige nome e etapas", ["nome", "etapas"]);
     }
@@ -81,7 +80,7 @@ export function registrarRotas({ repo, log = () => {} }) {
 
   // ------------------------------------------------------------ vagas
   r.get("/api/vagas", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     const filtro = {};
     if (ctx.query.status) filtro.status = ctx.query.status;
     if (ctx.query.area) filtro.area = ctx.query.area;
@@ -93,8 +92,7 @@ export function registrarRotas({ repo, log = () => {} }) {
   });
 
   r.post("/api/vagas", async (req, res, ctx, corpo) => {
-    const tenant = exigirEscopo(ctx);
-    exigirUsuario(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "criar");
     if (!corpo?.titulo) throw erroValidacao("titulo é obrigatório", ["titulo"]);
 
     const vaga = ats.criarVaga({ ...corpo, tenantId: tenant });
@@ -105,7 +103,7 @@ export function registrarRotas({ repo, log = () => {} }) {
   });
 
   r.get("/api/vagas/:id", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     const vaga = await obterOu404(repo, tenant, COLECOES.vagas, ctx.params.id, "vaga");
     const candidaturas = await repo.listar(tenant, COLECOES.candidaturas, { vagaId: vaga.id }, {});
     sucesso(res, {
@@ -117,8 +115,7 @@ export function registrarRotas({ repo, log = () => {} }) {
   });
 
   r.patch("/api/vagas/:id", async (req, res, ctx, corpo) => {
-    const tenant = exigirEscopo(ctx);
-    exigirUsuario(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "editar");
     const atual = await obterOu404(repo, tenant, COLECOES.vagas, ctx.params.id, "vaga");
     const patch = { ...corpo };
     delete patch.id;
@@ -132,8 +129,7 @@ export function registrarRotas({ repo, log = () => {} }) {
   });
 
   r.post("/api/vagas/:id/status", async (req, res, ctx, corpo) => {
-    const tenant = exigirEscopo(ctx);
-    exigirUsuario(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "editar");
     const vaga = await obterOu404(repo, tenant, COLECOES.vagas, ctx.params.id, "vaga");
     if (!corpo?.para) throw erroValidacao("campo 'para' é obrigatório", ["para"]);
 
@@ -154,13 +150,13 @@ export function registrarRotas({ repo, log = () => {} }) {
   });
 
   r.get("/api/vagas/:id/etapas", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     const vaga = await obterOu404(repo, tenant, COLECOES.vagas, ctx.params.id, "vaga");
     sucesso(res, { ativas: ats.etapasAtivas(vaga), saidas: ats.etapasDeSaida(vaga) });
   });
 
   r.get("/api/vagas/:id/candidaturas", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     const vaga = await obterOu404(repo, tenant, COLECOES.vagas, ctx.params.id, "vaga");
     sucesso(res, await repo.listar(tenant, COLECOES.candidaturas, { vagaId: vaga.id }, {
       ...paginacao(ctx.query),
@@ -169,26 +165,26 @@ export function registrarRotas({ repo, log = () => {} }) {
   });
 
   r.get("/api/vagas/:id/funil", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     const vaga = await obterOu404(repo, tenant, COLECOES.vagas, ctx.params.id, "vaga");
     const { itens } = await repo.listar(tenant, COLECOES.candidaturas, { vagaId: vaga.id }, { limite: 200 });
     sucesso(res, ats.funil(itens, vaga));
   });
 
   r.get("/api/vagas/:id/publicacoes", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     const vaga = await obterOu404(repo, tenant, COLECOES.vagas, ctx.params.id, "vaga");
     sucesso(res, ats.publicacaoInicial(vaga, { baseUrl: ctx.query.baseUrl, tenantSlug: ctx.query.tenantSlug }));
   });
 
   r.get("/api/vagas/:id/job-posting", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     const vaga = await obterOu404(repo, tenant, COLECOES.vagas, ctx.params.id, "vaga");
     sucesso(res, ats.gerarJobPosting(vaga, { baseUrl: ctx.query.baseUrl, tenantSlug: ctx.query.tenantSlug }));
   });
 
   r.get("/api/vagas/:id/anuncio/:canal", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     const vaga = await obterOu404(repo, tenant, COLECOES.vagas, ctx.params.id, "vaga");
     const plano = ats.planoDePublicacao(ctx.params.canal);
     if (plano.metodo === ats.METODO_PUBLICACAO.INDISPONIVEL) {
@@ -198,14 +194,14 @@ export function registrarRotas({ repo, log = () => {} }) {
   });
 
   r.get("/api/vagas/:id/auditoria", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     const vaga = await obterOu404(repo, tenant, COLECOES.vagas, ctx.params.id, "vaga");
     sucesso(res, ats.auditarAnuncio(vaga));
   });
 
   // ------------------------------------------------------------ candidatos
   r.get("/api/candidatos", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     const filtro = {};
     if (ctx.query.cidade) filtro["contato.cidade"] = ctx.query.cidade;
     if (ctx.query.uf) filtro["contato.uf"] = ctx.query.uf.toUpperCase();
@@ -219,8 +215,7 @@ export function registrarRotas({ repo, log = () => {} }) {
   });
 
   r.post("/api/candidatos", async (req, res, ctx, corpo) => {
-    const tenant = exigirEscopo(ctx);
-    exigirUsuario(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "criar");
     if (!corpo?.dados?.nome) throw erroValidacao("dados.nome é obrigatório", ["dados.nome"]);
 
     let candidato;
@@ -240,7 +235,7 @@ export function registrarRotas({ repo, log = () => {} }) {
   });
 
   r.get("/api/candidatos/:id", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     const candidato = await obterOu404(repo, tenant, COLECOES.candidatos, ctx.params.id, "candidato");
     if (ctx.query.mascarar === "1") {
       return sucesso(res, {
@@ -261,8 +256,7 @@ export function registrarRotas({ repo, log = () => {} }) {
   });
 
   r.patch("/api/candidatos/:id", async (req, res, ctx, corpo) => {
-    const tenant = exigirEscopo(ctx);
-    exigirUsuario(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "editar");
     const atual = await obterOu404(repo, tenant, COLECOES.candidatos, ctx.params.id, "candidato");
     const patch = { ...corpo };
     delete patch.id;
@@ -271,22 +265,20 @@ export function registrarRotas({ repo, log = () => {} }) {
   });
 
   r.get("/api/candidatos/:id/consentimento", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     const candidato = await obterOu404(repo, tenant, COLECOES.candidatos, ctx.params.id, "candidato");
     sucesso(res, ats.validarConsentimento(candidato, { retencaoMeses: numero(ctx.query.retencaoMeses, 24, 1, 240) }));
   });
 
   r.post("/api/candidatos/:id/anonimizar", async (req, res, ctx, corpo) => {
-    const tenant = exigirEscopo(ctx);
-    exigirPapel(ctx, "admin");
+    const tenant = exigirPermissao(ctx, "recrutamento", "excluir");
     const candidato = await obterOu404(repo, tenant, COLECOES.candidatos, ctx.params.id, "candidato");
     const anonimizado = ats.anonimizarCandidato(candidato, { motivo: corpo?.motivo });
     sucesso(res, await repo.atualizar(tenant, COLECOES.candidatos, candidato.id, anonimizado));
   });
 
   r.post("/api/candidatos/:id/fundir", async (req, res, ctx, corpo) => {
-    const tenant = exigirEscopo(ctx);
-    exigirPapel(ctx, "admin");
+    const tenant = exigirPermissao(ctx, "recrutamento", "excluir");
     const base = await obterOu404(repo, tenant, COLECOES.candidatos, ctx.params.id, "candidato");
     const outro = await obterOu404(repo, tenant, COLECOES.candidatos, corpo?.outroId, "candidato a fundir");
     const fundido = ats.mesclarCandidatos(base, outro);
@@ -297,8 +289,7 @@ export function registrarRotas({ repo, log = () => {} }) {
 
   // ------------------------------------------------------------ candidaturas
   r.post("/api/candidaturas", async (req, res, ctx, corpo) => {
-    const tenant = exigirEscopo(ctx);
-    exigirUsuario(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "criar");
     const vaga = await obterOu404(repo, tenant, COLECOES.vagas, corpo?.vagaId, "vaga");
     const candidato = await obterOu404(repo, tenant, COLECOES.candidatos, corpo?.candidatoId, "candidato");
 
@@ -314,7 +305,7 @@ export function registrarRotas({ repo, log = () => {} }) {
   });
 
   r.get("/api/candidaturas/:id", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     const candidatura = await obterOu404(repo, tenant, COLECOES.candidaturas, ctx.params.id, "candidatura");
     const vaga = await obterOu404(repo, tenant, COLECOES.vagas, candidatura.vagaId, "vaga");
     const pessoa = await repo.obter(tenant, COLECOES.candidatos, candidatura.candidatoId);
@@ -322,14 +313,14 @@ export function registrarRotas({ repo, log = () => {} }) {
   });
 
   r.get("/api/candidaturas/:id/triagem", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     const candidatura = await obterOu404(repo, tenant, COLECOES.candidaturas, ctx.params.id, "candidatura");
     sucesso(res, candidatura.triagem ?? null);
   });
 
   r.post("/api/candidaturas/:id/mover", async (req, res, ctx, corpo) => {
-    const tenant = exigirEscopo(ctx);
-    const usuario = exigirUsuario(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "editar");
+    const usuario = ctx.usuario;
     const candidatura = await obterOu404(repo, tenant, COLECOES.candidaturas, ctx.params.id, "candidatura");
     const vaga = await obterOu404(repo, tenant, COLECOES.vagas, candidatura.vagaId, "vaga");
     if (!corpo?.paraEtapaId) throw erroValidacao("paraEtapaId é obrigatório", ["paraEtapaId"]);
@@ -344,8 +335,7 @@ export function registrarRotas({ repo, log = () => {} }) {
   });
 
   r.post("/api/candidaturas/:id/desistir", async (req, res, ctx, corpo) => {
-    const tenant = exigirEscopo(ctx);
-    exigirUsuario(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "editar");
     const candidatura = await obterOu404(repo, tenant, COLECOES.candidaturas, ctx.params.id, "candidatura");
     const vaga = await obterOu404(repo, tenant, COLECOES.vagas, candidatura.vagaId, "vaga");
     const resultado = ats.desistir(candidatura, { vaga, motivo: corpo?.motivo ?? "" });
@@ -354,8 +344,8 @@ export function registrarRotas({ repo, log = () => {} }) {
   });
 
   r.post("/api/candidaturas/:id/avaliacao", async (req, res, ctx, corpo) => {
-    const tenant = exigirEscopo(ctx);
-    const usuario = exigirUsuario(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "editar");
+    const usuario = ctx.usuario;
     const candidatura = await obterOu404(repo, tenant, COLECOES.candidaturas, ctx.params.id, "candidatura");
     let atualizada;
     try {
@@ -369,8 +359,7 @@ export function registrarRotas({ repo, log = () => {} }) {
   });
 
   r.post("/api/candidaturas/:id/anexo", async (req, res, ctx, corpo) => {
-    const tenant = exigirEscopo(ctx);
-    exigirUsuario(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "editar");
     const candidatura = await obterOu404(repo, tenant, COLECOES.candidaturas, ctx.params.id, "candidatura");
     let atualizada;
     try {
@@ -383,28 +372,28 @@ export function registrarRotas({ repo, log = () => {} }) {
 
   // ------------------------------------------------------------ métricas
   r.get("/api/metricas/funil", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     const vaga = await obterOu404(repo, tenant, COLECOES.vagas, ctx.query.vagaId, "vaga");
     const { itens } = await repo.listar(tenant, COLECOES.candidaturas, { vagaId: vaga.id }, { limite: 500 });
     sucesso(res, ats.funil(itens, vaga));
   });
 
   r.get("/api/metricas/origens", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     const filtro = ctx.query.vagaId ? { vagaId: ctx.query.vagaId } : {};
     const { itens } = await repo.listar(tenant, COLECOES.candidaturas, filtro, { limite: 500 });
     sucesso(res, ats.origensDasCandidaturas(itens));
   });
 
   r.get("/api/metricas/tempos", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     const vaga = await obterOu404(repo, tenant, COLECOES.vagas, ctx.query.vagaId, "vaga");
     const { itens } = await repo.listar(tenant, COLECOES.candidaturas, { vagaId: vaga.id }, { limite: 500 });
     sucesso(res, ats.tempoMedioPorEtapa(itens, vaga));
   });
 
   r.get("/api/metricas/resumo", async (req, res, ctx) => {
-    const tenant = exigirEscopo(ctx);
+    const tenant = exigirPermissao(ctx, "recrutamento", "ver");
     const vagas = await repo.listar(tenant, COLECOES.vagas, {}, { limite: 500 });
     const candidaturas = await repo.listar(tenant, COLECOES.candidaturas, {}, { limite: 1000 });
 
