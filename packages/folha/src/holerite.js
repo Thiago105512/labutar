@@ -13,7 +13,8 @@
 import { VERBAS, TIPO_VERBA, efeitoNaBase } from "./verbas.js";
 import { calcularINSS, calcularIRRF, calcularSalarioFamilia } from "./impostos.js";
 import { calendarioDaCompetencia } from "./calendario.js";
-import { tabelaDaCompetencia, ARREDONDAMENTO_INSS } from "./tabelas.js";
+import { tabelaDaCompetencia, ARREDONDAMENTO_INSS, ARREDONDAMENTO_FGTS } from "./tabelas.js";
+import { validarCPF } from "../../core/src/validacao.js";
 import { formatarDataBR } from "../../core/src/datas.js";
 
 const r = Math.round;
@@ -30,8 +31,10 @@ function diasDeContrato(colaborador, competencia) {
  * @param colaborador { matricula, nome, vinculo, salario, jornadaMensal?, admissao, desligamento?,
  *   dependentesIR?, filhosSalarioFamilia?, insalubridadeGrau? (10|20|40), periculosidade?, lotacao }
  * @param lancamentos { horasExtras50?, horasExtras100?, horasNoturnas?, faltasDias?, dsrPerdidos?,
- *   adiantamento?, custoValeTransporte?, pensao? }
- * @param opcoes { local?, arredondamentoINSS?, tabela? }
+ *   adiantamento?, custoValeTransporte?, pensao?, outrosDescontos?,
+ *   outrosRendimentosIRNoMes?, irrfRetidoNoMes? } — os dois últimos para o regime de caixa do IRRF:
+ *   o que outro pagamento do mesmo mês já pagou e reteve (13º, férias, complementar).
+ * @param opcoes { local?, arredondamentoINSS?, arredondamentoFGTS?, dispensarIRRFAte10?, tabela? }
  */
 export function calcularHolerite(colaborador, competencia, lancamentos = {}, opcoes = {}) {
   const tabela = opcoes.tabela ?? tabelaDaCompetencia(competencia);
@@ -84,28 +87,51 @@ export function calcularHolerite(colaborador, competencia, lancamentos = {}, opc
 
   const inss = calcularINSS(baseINSS, tabela, { arredondamento: opcoes.arredondamentoINSS ?? ARREDONDAMENTO_INSS.POR_FAIXA });
   lanca(VERBAS.INSS, inss.valor, inss.faixas.length ? `até ${inss.faixas.at(-1).aliquota}%` : null);
-  const irrf = calcularIRRF({ rendimentos: rendimentosIR, inss: inss.valor, dependentes: colaborador.dependentesIR ?? 0, pensao: L.pensao ?? 0 }, tabela);
+  const irrf = calcularIRRF({
+    rendimentos: rendimentosIR + (L.outrosRendimentosIRNoMes ?? 0),
+    inss: inss.valor,
+    dependentes: colaborador.dependentesIR ?? 0,
+    pensao: L.pensao ?? 0,
+    jaRetido: L.irrfRetidoNoMes ?? 0,
+    dispensarAte10: opcoes.dispensarIRRFAte10 ?? true,
+  }, tabela);
   lanca(VERBAS.IRRF, irrf.valor, irrf.valor ? `${irrf.aliquota}%` : null);
   if (irrf.dispensado) avisos.push("IRRF de até R$ 10,00 dispensado de retenção.");
 
   lanca(VERBAS.ADIANTAMENTO, L.adiantamento ?? 0);
+  lanca(VERBAS.OUTROS_DESCONTOS, L.outrosDescontos ?? 0);
   if (L.custoValeTransporte) lanca(VERBAS.VALE_TRANSPORTE, Math.min(L.custoValeTransporte, r(salarioMes * 0.06)), "6%");
 
   const proventos = itens.filter((i) => i.tipo === TIPO_VERBA.PROVENTO).reduce((s, i) => s + i.valor, 0);
   const descontos = itens.filter((i) => i.tipo === TIPO_VERBA.DESCONTO).reduce((s, i) => s + i.valor, 0);
   const liquido = proventos - descontos;
   if (liquido < 0) avisos.push("Líquido negativo: descontos maiores que os proventos — revisar lançamentos.");
+  // A pessoa é identificada pelo CPF (como no eSocial): sem ele o cálculo sai, mas o envio não.
+  const pendencias = [];
+  if (!colaborador.cpf) pendencias.push("CPF não informado: obrigatório para enviar ao eSocial.");
+  else if (!validarCPF(colaborador.cpf).valido) pendencias.push("CPF inválido: corrija antes de enviar ao eSocial.");
+  const fgtsBruto = (baseFGTS * tabela.fgts.aliquota) / 100;
+  const fgts = opcoes.arredondamentoFGTS === ARREDONDAMENTO_FGTS.TRUNCAR ? Math.floor(fgtsBruto) : r(fgtsBruto);
 
   return {
     competencia,
-    colaborador: { matricula: colaborador.matricula, nome: colaborador.nome, vinculo: colaborador.vinculo, cargo: colaborador.cargo ?? null, lotacao: colaborador.lotacao ?? null },
+    colaborador: {
+      cpf: colaborador.cpf ?? null,
+      matricula: colaborador.matricula,
+      matriculaAnterior: colaborador.matriculaAnterior ?? null,
+      nome: colaborador.nome,
+      vinculo: colaborador.vinculo,
+      cargo: colaborador.cargo ?? null,
+      lotacao: colaborador.lotacao ?? null,
+    },
     itens: itens.map(({ verba, ...i }) => i),
     proventos,
     descontos,
     liquido,
     bases: { inss: inss.base, fgts: baseFGTS, irrf: irrf.base, rendimentosIR },
-    fgts: r((baseFGTS * tabela.fgts.aliquota) / 100),
+    fgts,
     detalhe: { inss, irrf, salarioFamilia: sf, calendario: cal, diasDeContrato: dias, valorHora: r(valorHora) },
     avisos,
+    pendencias,
   };
 }

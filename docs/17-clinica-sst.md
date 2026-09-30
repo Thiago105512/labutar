@@ -63,6 +63,8 @@ colaborador alocado nele recebe o adicional na folha a partir da data do laudo �
 
 1. A clínica atende só a empresa de RH ou também outras empresas? (Muda o faturamento e o cadastro de clientes.)
 2. Quem é o médico responsável pelo PCMSO e qual o CRM? (Vai no ASO e no S-2220.)
-3. Regime tributário de cada CNPJ (define os encargos da folha de cada um).
+3. ~~Regime tributário de cada CNPJ~~ — **respondido: lucro real, todas as empresas do grupo.**
+   Na folha: 20% de INSS da empresa + RAT ajustado pelo FAP + terceiros conforme o FPAS de cada
+   lotação (a confirmar com o contador: no relatório de 12/2020 os terceiros foram de 2,5%).
 4. Na CRQ como empresa de RH: a atividade 78.20-5-00 (trabalho temporário) e o registro no
    Ministério do Trabalho ainda não existem no CNPJ — só para os testes isso não importa.

@@ -76,3 +76,24 @@ test("lançamento recalcula o holerite e valida os limites", async () => {
   const invalido = await chamar(`/api/folha/2026-09/lancamentos/${matricula}`, { metodo: "PUT", token: admin, corpo: { faltasDias: 45 } });
   assert.equal(invalido.status, 400);
 });
+
+test("CPF é o código da pessoa: valida, grava e recusa CPF de outra pessoa", async () => {
+  const [a, b] = folhaDemo().map((p) => p.colaborador.matricula);
+  const antes = (await chamar("/api/folha/2026-09", { token: admin })).json.dados;
+  assert.ok(antes.holerites.every((h) => h.pendencias.some((p) => /CPF não informado/.test(p))));
+  assert.equal(antes.resumo.semCPF, antes.holerites.length);
+
+  const invalido = await chamar(`/api/folha/colaboradores/${a}`, { metodo: "PATCH", token: admin, corpo: { cpf: "111.111.111-11" } });
+  assert.equal(invalido.status, 400);
+  const ok = await chamar(`/api/folha/colaboradores/${a}`, { metodo: "PATCH", token: admin, corpo: { cpf: "529.982.247-25" } });
+  assert.equal(ok.status, 200, JSON.stringify(ok.json));
+  assert.equal(ok.json.dados.cpf, "52998224725");
+  const conflito = await chamar(`/api/folha/colaboradores/${b}`, { metodo: "PATCH", token: admin, corpo: { cpf: "52998224725" } });
+  assert.equal(conflito.status, 409);
+  assert.equal((await chamar(`/api/folha/colaboradores/${b}`, { metodo: "PATCH", token: financeiro, corpo: { cpf: "52998224725" } })).status, 403);
+
+  const depois = (await chamar("/api/folha/2026-09", { token: admin })).json.dados;
+  const h = depois.holerites.find((x) => x.colaborador.matricula === a);
+  assert.equal(h.colaborador.cpf, "52998224725");
+  assert.deepEqual(h.pendencias, []);
+});

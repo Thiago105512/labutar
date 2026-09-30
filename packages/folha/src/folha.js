@@ -7,7 +7,7 @@ import { calcularHolerite } from "./holerite.js";
 import { tabelaDaCompetencia } from "./tabelas.js";
 
 export const REGIME_TRIBUTARIO = Object.freeze({
-  /** Lucro real ou presumido: 20% de INSS patronal + RAT ajustado + terceiros. */
+  /** Lucro real ou presumido: 20% de INSS patronal + RAT ajustado + terceiros. Todas as empresas do grupo são lucro real (2026-09-30). */
   NORMAL: "NORMAL",
   /** Simples Nacional com a contribuição patronal dentro do DAS (anexos I a III e V): sem 20% nem terceiros. */
   SIMPLES_CPP_NO_DAS: "SIMPLES_CPP_NO_DAS",
@@ -39,6 +39,8 @@ export function calcularFolha({ empresa = {}, competencia, colaboradores = [], l
           tabela,
           local: c.local ?? empresa.local,
           arredondamentoINSS: empresa.arredondamentoINSS,
+          arredondamentoFGTS: empresa.arredondamentoFGTS,
+          dispensarIRRFAte10: empresa.dispensarIRRFAte10,
         })
       );
     } catch (erro) {
@@ -91,6 +93,7 @@ export function calcularFolha({ empresa = {}, competencia, colaboradores = [], l
     pendencias,
     resumo: {
       colaboradores: holerites.length,
+      semCPF: holerites.filter((h) => h.pendencias.length).length,
       ...totais,
       encargos,
       custoTotal: totais.proventos + totais.fgts + encargos.total,

@@ -13,6 +13,9 @@ export const ARREDONDAMENTO_INSS = Object.freeze({
   TRUNCA_FAIXA: "TRUNCA_FAIXA",
 });
 
+/** FGTS do mês: arredondado ao centavo ou truncado (como o sistema anterior, conferido em 12/2020). */
+export const ARREDONDAMENTO_FGTS = Object.freeze({ ARREDONDAR: "ARREDONDAR", TRUNCAR: "TRUNCAR" });
+
 export const TABELAS_LEGAIS = Object.freeze([
   Object.freeze({
     de: "2020-03",

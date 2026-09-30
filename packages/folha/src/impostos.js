@@ -34,7 +34,7 @@ function impostoPelaTabela(base, faixas) {
  * simplificado e usa o que der menos imposto; depois aplica a redução da Lei 15.270/2025,
  * calculada sobre os rendimentos tributáveis do mês (antes das deduções).
  */
-export function calcularIRRF({ rendimentos, inss = 0, dependentes = 0, pensao = 0 }, tabela) {
+export function calcularIRRF({ rendimentos, inss = 0, dependentes = 0, pensao = 0, jaRetido = 0, dispensarAte10 = true }, tabela) {
   const t = tabela.irrf;
   const deducoesLegais = inss + dependentes * t.porDependente + pensao;
   const legal = impostoPelaTabela(rendimentos - deducoesLegais, t.faixas);
@@ -51,8 +51,9 @@ export function calcularIRRF({ rendimentos, inss = 0, dependentes = 0, pensao = 
     else if (rendimentos <= r.decrescenteAte) reducao = Math.min(escolhido.valor, Math.max(0, Math.round(r.constante - r.fator * rendimentos)));
   }
 
-  const devido = escolhido.valor - reducao;
-  const dispensado = devido > 0 && devido <= (t.dispensaAte ?? 0);
+  // Regime de caixa: se outro pagamento do mês já reteve imposto, retém só a diferença.
+  const devido = Math.max(0, escolhido.valor - reducao - jaRetido);
+  const dispensado = dispensarAte10 && devido > 0 && devido <= (t.dispensaAte ?? 0);
   return {
     rendimentos,
     modo: escolhido.modo,
@@ -61,6 +62,7 @@ export function calcularIRRF({ rendimentos, inss = 0, dependentes = 0, pensao = 
     aliquota: escolhido.aliquota,
     impostoTabela: escolhido.valor,
     reducao,
+    jaRetido,
     dispensado,
     valor: dispensado ? 0 : devido,
   };

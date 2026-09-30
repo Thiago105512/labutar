@@ -141,3 +141,19 @@ A massa gerada precisa conter, de propósito:
 - Os eventos do eSocial saem com a lotação certa por tomador.
 - Cada tomador recebe fatura coerente com o ponto que aprovou.
 - Os alertas de prazo do temporário disparam no dia certo.
+
+## 9. Caso real de regressão (dezembro/2020)
+
+Folha analítica real de uma empresa de trabalho temporário (38 colaboradores, 27 rescisões),
+guardada **sem nomes, matrículas, cargos nem datas** em `packages/folha/test/casos/`. O motor
+bate no centavo com o sistema anterior quando configurado como ele:
+
+| Parâmetro | Sistema anterior | Padrão do Labutar |
+|---|---|---|
+| Arredondamento do INSS | Trunca cada faixa | Arredonda cada faixa |
+| Arredondamento do FGTS | Trunca | Arredonda |
+| IRRF de até R$ 10,00 | Retém | Dispensa (Lei 9.430/1996, art. 67) |
+| IRRF de quem recebeu outro pagamento no mês | Soma à base (regime de caixa) | Igual |
+
+Qual regra de arredondamento vale é conferido com os totalizadores do eSocial (S-5001 e
+S-5003) antes da produção; até lá, cada empresa escolhe nos parâmetros da folha.

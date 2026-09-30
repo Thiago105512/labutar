@@ -5,7 +5,7 @@
  */
 import { icone } from "./icones.js";
 import { api, sessao } from "./sessao.js";
-import { esc, moeda, cnpj, matricula, avatar, etiqueta, aviso, abrirPainel, fecharPainel } from "./ui.js";
+import { esc, moeda, cnpj, cpf, matricula, avatar, etiqueta, aviso, abrirPainel, fecharPainel } from "./ui.js";
 
 export const COMPETENCIA_PADRAO = "2026-09";
 const cache = { competencia: COMPETENCIA_PADRAO, folha: null, parametros: null, busca: "" };
@@ -78,6 +78,12 @@ export async function paginaFolhaResumo() {
         </div>`).join("")}
     </section>
 
+    ${r.semCPF ? `
+      <div class="cartao alerta-folha">
+        ${icone("cracha")}
+        <div><strong>${r.semCPF} colaborador${r.semCPF === 1 ? "" : "es"} sem CPF</strong>
+          <p>O cálculo sai normalmente, mas o envio ao eSocial exige o CPF de cada pessoa. Informe no holerite de cada um.</p></div>
+      </div>` : ""}
     ${f.pendencias.length ? `
       <div class="cartao alerta-folha">
         ${icone("relogio")}
@@ -132,7 +138,7 @@ export async function paginaHolerites() {
         <tbody>
           ${lista.map((h) => `
             <tr class="linha-clicavel" data-folha-holerite="${esc(h.colaborador.matricula)}">
-              <td><div class="pessoa">${avatar(h.colaborador.nome, "avatar-sm")}<div><strong>${esc(h.colaborador.nome)}</strong><small>${esc(matricula(h.colaborador.matricula))} · ${esc(h.colaborador.cargo ?? "")}</small></div></div></td>
+              <td><div class="pessoa">${avatar(h.colaborador.nome, "avatar-sm")}<div><strong>${esc(h.colaborador.nome)}</strong><small>${h.colaborador.cpf ? `CPF ${esc(cpf(h.colaborador.cpf))}` : '<span class="etiqueta e-ambar">CPF pendente</span>'} · ${esc(matricula(h.colaborador.matricula))} · ${esc(h.colaborador.cargo ?? "")}</small></div></div></td>
               <td>${etiqueta(NOME_VINCULO, h.colaborador.vinculo)}</td>
               <td>${esc(nomeLotacao(h.colaborador.lotacao))}</td>
               <td class="num">${moeda(h.proventos)}</td>
@@ -169,11 +175,19 @@ function painelHolerite(mat) {
     <header class="painel-cabecalho">
       ${avatar(h.colaborador.nome, "avatar-lg")}
       <div class="texto"><h2>${esc(h.colaborador.nome)}</h2>
-        <p>${esc(matricula(h.colaborador.matricula))} · ${esc(h.colaborador.cargo ?? "")} · ${esc(nomeLotacao(h.colaborador.lotacao))}</p>
+        <p>${h.colaborador.cpf ? `CPF ${esc(cpf(h.colaborador.cpf))} · ` : ""}Matrícula ${esc(matricula(h.colaborador.matricula))} · ${esc(h.colaborador.cargo ?? "")} · ${esc(nomeLotacao(h.colaborador.lotacao))}</p>
         <div class="meta" style="margin-top:8px">${etiqueta(NOME_VINCULO, h.colaborador.vinculo)}<span>${icone("relogio")}Competência ${competenciaTela(h.competencia)}</span></div></div>
       <button class="botao-icone" data-fechar aria-label="Fechar">${icone("fechar")}</button>
     </header>
     <div class="painel-corpo">
+      ${h.pendencias.length ? `
+      <div class="secao alerta-folha">
+        ${icone("cracha")}
+        <div><strong>${h.pendencias.map(esc).join(" ")}</strong>
+          <p>O CPF é o código da pessoa no Labutar e no eSocial; a matrícula identifica o vínculo.</p>
+          ${podeLancar ? `<form class="formulario linha-cpf" id="form-cpf"><input name="cpf" inputmode="numeric" placeholder="000.000.000-00" required aria-label="CPF"><button class="botao botao-primario botao-sm" type="submit">Salvar CPF</button></form>` : ""}
+        </div>
+      </div>` : ""}
       <div class="secao">
         <h4>Holerite</h4>
         <table class="tabela tabela-compacta holerite">
@@ -216,6 +230,19 @@ function painelHolerite(mat) {
       <button class="botao botao-secundario" data-fechar type="button">Fechar</button>
       ${podeLancar ? `<button class="botao botao-primario" type="submit" form="form-lancamentos">${icone("ok")}Salvar e recalcular</button>` : ""}
     </footer>`);
+
+  document.getElementById("form-cpf")?.addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+    try {
+      await api(`/folha/colaboradores/${mat}`, { metodo: "PATCH", corpo: { cpf: new FormData(evento.target).get("cpf") } });
+      await carregarFolha({ forcar: true });
+      aviso("CPF salvo.");
+      cache.aoAlterar?.();
+      painelHolerite(mat);
+    } catch (erro) {
+      aviso(erro.message, "erro");
+    }
+  });
 
   document.getElementById("form-lancamentos")?.addEventListener("submit", async (evento) => {
     evento.preventDefault();

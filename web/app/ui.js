@@ -3,7 +3,7 @@
  * Todo texto de origem externa passa por `esc()` antes de virar HTML.
  */
 import { icone } from "./icones.js";
-import { FUSO_PADRAO, formatarBRL, formatarCNPJ, formatarDataBR } from "/packages/core/src/index.js";
+import { FUSO_PADRAO, formatarBRL, formatarCNPJ, formatarCPF, formatarDataBR } from "/packages/core/src/index.js";
 import { formatarMatricula } from "/packages/mao-de-obra/src/matricula.js";
 
 export const esc = (valor) =>
@@ -44,6 +44,8 @@ export const quando = (iso) => {
 export const moeda = (centavos) => (centavos == null ? "—" : formatarBRL(centavos));
 /** CNPJ só com os caracteres → "42.288.454/0001-50" (também alfanumérico). */
 export const cnpj = (valor) => (valor ? formatarCNPJ(valor) : "—");
+/** CPF só com dígitos → "529.982.247-25". */
+export const cpf = (valor) => (valor ? formatarCPF(valor) : "—");
 /** Matrícula "20048217" → "2-004821-7". */
 export const matricula = (valor) => formatarMatricula(valor);
 /** Data civil AAAA-MM-DD → "30/09/2026". */
