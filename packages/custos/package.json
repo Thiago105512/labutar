@@ -1,0 +1,11 @@
+{
+  "name": "@labutar/custos",
+  "version": "0.1.0",
+  "description": "Centro de custos por contrato com o tomador: folha, encargos, provisões, benefícios, custos diretos (uniforme, EPI, crachá, exames, preposto) e rateio dos indiretos; receita, tributos e margem. JS puro.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "sideEffects": false
+}

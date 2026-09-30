@@ -36,7 +36,7 @@ export const PERFIS_PADRAO = Object.freeze([
     sistema: true,
     niveis: niveis({
       recrutamento: ADMINISTRADOR, colaboradores: GESTOR, admissao: GESTOR, ponto: GESTOR,
-      folha: GESTOR, sst: GESTOR, treinamentos: GESTOR, tomadores: CONSULTA,
+      folha: GESTOR, sst: GESTOR, treinamentos: GESTOR, tomadores: CONSULTA, estoque: GESTOR,
     }),
   },
   {
@@ -54,6 +54,8 @@ export const PERFIS_PADRAO = Object.freeze([
     niveis: niveis({
       colaboradores: OPERADOR, admissao: OPERADOR, ponto: OPERADOR, folha: OPERADOR,
       sst: OPERADOR, treinamentos: OPERADOR, recrutamento: CONSULTA, tomadores: CONSULTA,
+      // Entrega crachá, uniforme e EPI na admissão: o custo vai para o contrato do colaborador.
+      estoque: OPERADOR,
     }),
   },
   {
@@ -61,7 +63,7 @@ export const PERFIS_PADRAO = Object.freeze([
     nome: "Supervisor(a) de operações",
     descricao: "Acompanha postos e escalas, aprova ponto e cobre faltas.",
     sistema: true,
-    niveis: niveis({ tomadores: OPERADOR, ponto: GESTOR, colaboradores: CONSULTA, treinamentos: CONSULTA, sst: CONSULTA }),
+    niveis: niveis({ tomadores: OPERADOR, ponto: GESTOR, colaboradores: CONSULTA, treinamentos: CONSULTA, sst: CONSULTA, estoque: OPERADOR }),
   },
   {
     id: "COMERCIAL",
@@ -75,7 +77,7 @@ export const PERFIS_PADRAO = Object.freeze([
     nome: "Financeiro",
     descricao: "Faturamento, cobrança e contas; consulta a folha para conferência.",
     sistema: true,
-    niveis: niveis({ financeiro: GESTOR, contabil: OPERADOR, tomadores: CONSULTA, folha: CONSULTA }),
+    niveis: niveis({ financeiro: GESTOR, contabil: OPERADOR, tomadores: CONSULTA, folha: CONSULTA, colaboradores: CONSULTA }),
   },
   {
     id: "CONTADOR",

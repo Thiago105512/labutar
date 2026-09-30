@@ -44,7 +44,7 @@ function competenciaValida(ctx) {
  * Dados da folha a partir do cadastro, já com a convenção coletiva aplicada: `lancamentos` são os
  * informados pelo DP (o que a tela edita); `calculo` leva as verbas e parâmetros da convenção.
  */
-async function dadosDaFolha(repo, tenant, competencia) {
+export async function dadosDaFolha(repo, tenant, competencia) {
   const [empresa, cad, lancamentos, instrumentos] = await Promise.all([
     repo.obter(tenant, "folhaParametros", "empresa"),
     carregarCadastro(repo, tenant),
@@ -69,7 +69,7 @@ async function dadosDaFolha(repo, tenant, competencia) {
 }
 
 /** Folha calculada e a leitura da convenção de cada holerite (piso, função, avisos). */
-function folhaComConvencoes(d, competencia) {
+export function folhaComConvencoes(d, competencia) {
   const c = d.calculo;
   const folha = calcularFolha({ empresa: d.empresa, competencia, colaboradores: c.colaboradores, lancamentos: c.lancamentos, custosExtras: c.custosExtras });
   for (const h of folha.holerites) {

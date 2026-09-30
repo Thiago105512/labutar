@@ -14,6 +14,8 @@ import { exigirPermissao } from "./middleware/contexto.js";
 import { carregarCadastro } from "./cadastro.js";
 import { gravarCPF } from "./rotas-folha.js";
 import { listarSindicatos, resolverSindicato } from "./sindicatos.js";
+import { gravarLancamentos } from "./rotas-custos.js";
+import { validarLancamentoDeCusto, DESTINO_CUSTO } from "../../packages/custos/src/index.js";
 
 const invalido = (r) => { if (!r.ok) throw erroValidacao(r.erros.join("; "), r.erros); };
 
@@ -38,6 +40,29 @@ async function registrarAdmissaoNaCandidatura(repo, tenant, candidatura, matricu
   }
   await repo.atualizar(tenant, "candidaturas", candidatura.id, { ...atualizada, admissao: { matricula, em: new Date().toISOString() } });
   return avisos;
+}
+
+/**
+ * Kit de admissão da empresa (crachá, uniformes, EPI, exame admissional): cada item vira custo do
+ * colaborador novo, que vai para o contrato dele no centro de custos.
+ */
+async function lancarKitDeAdmissao(repo, tenant, empresa, vinculo, usuario) {
+  const kit = empresa?.kitAdmissao ?? [];
+  if (!kit.length) return [];
+  const lista = [];
+  for (const k of kit) {
+    const item = await repo.obter(tenant, "itensCusto", k.itemId);
+    if (!item) continue;
+    const v = validarLancamentoDeCusto({
+      data: vinculo.admissao, tipo: item.tipo, descricao: item.nome, quantidade: k.quantidade ?? 1, custoUnitario: item.custoUnitario,
+      amortizarMeses: item.amortizarMeses ?? 1, itemId: item.id, destino: { tipo: DESTINO_CUSTO.COLABORADOR, matricula: vinculo.matricula },
+    });
+    if (v.ok) lista.push(v.lancamento);
+  }
+  if (!lista.length) return [];
+  await gravarLancamentos(repo, tenant, lista, { usuario, origem: "ADMISSAO" });
+  const total = lista.reduce((s, l) => s + l.valor, 0);
+  return [`Kit de admissão lançado no centro de custos: ${lista.length} itens, R$ ${(total / 100).toFixed(2).replace(".", ",")}.`];
 }
 
 /** Vínculo com a pessoa, o tomador e o posto, como a tela mostra. */
@@ -185,6 +210,7 @@ export function registrarRotasCadastro(r, { repo }) {
     };
     await repo.inserir(tenant, "vinculos", vinculo);
     const avisos = [...r2.avisos];
+    avisos.push(...await lancarKitDeAdmissao(repo, tenant, empresa, vinculo, ctx.usuario));
     if (candidatura) avisos.push(...await registrarAdmissaoNaCandidatura(repo, tenant, candidatura, matricula, ctx.usuario));
     sucesso(res, { vinculo, pessoa, preenchidos, avisos }, 201);
   });

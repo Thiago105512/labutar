@@ -55,6 +55,11 @@ export const EMPRESA_FOLHA_DEMO = Object.freeze({
   sindicatosPadrao: { TEMPORARIO: SINDICATO_DEMO.cnpj, TERCEIRIZADO: SINDICATO_DEMO.cnpj, PROPRIO: SINDICATO_DEMO.cnpj },
   // Desconto do vale-refeição pela empresa (a CCT permite até 10%).
   descontoVRPercentual: 0,
+  // Tributos sobre o faturamento para o resultado por contrato: ISS 5% (Manaus) + PIS 1,65% + COFINS
+  // 7,6% (lucro real, não cumulativo, sem créditos). Conferir com a contabilidade.
+  tributosFaturamentoPercentual: 14.25,
+  // Kit entregue na admissão: cada item vira custo do colaborador no centro de custos.
+  kitAdmissao: [{ itemId: "ITC_CRACHA", quantidade: 1 }, { itemId: "ITC_UNIFORME", quantidade: 2 }, { itemId: "ITC_BOTA", quantidade: 1 }, { itemId: "ITC_EXAME_ADM", quantidade: 1 }],
 });
 
 /** Função da tabela de pisos da CCT para os cargos do demo (os demais ficam para o DP enquadrar). */
@@ -119,6 +124,81 @@ function prazoDoTemporario(admissao) {
   return fim180 >= `${COMPETENCIA_DEMO}-30`
     ? { fimPrevisto: fim180, prorrogado: false }
     : { fimPrevisto: somarDias(admissao, 269), prorrogado: true };
+}
+
+/** Catálogo de itens de custo com preço (valores de referência do demo). */
+const ITENS_CUSTO_DEMO = Object.freeze([
+  { id: "ITC_CRACHA", nome: "Crachá PVC com foto", tipo: "CRACHA", custoUnitario: 1_200 },
+  // CCT, cláusula 24ª: 2 uniformes completos a cada 6 meses — custo amortizado no semestre.
+  { id: "ITC_UNIFORME", nome: "Uniforme completo (camisa, calça e sapato)", tipo: "UNIFORME", custoUnitario: 8_500, amortizarMeses: 6 },
+  { id: "ITC_BOTA", nome: "Bota de segurança (CA)", tipo: "EPI", custoUnitario: 12_000, amortizarMeses: 6 },
+  { id: "ITC_LUVA", nome: "Luva nitrílica (par)", tipo: "EPI", custoUnitario: 900 },
+  { id: "ITC_PROTETOR", nome: "Protetor auricular tipo plug", tipo: "EPI", custoUnitario: 350 },
+  { id: "ITC_EXAME_ADM", nome: "Exame admissional (clínica do grupo)", tipo: "EXAME", custoUnitario: 6_000 },
+  { id: "ITC_EXAME_PER", nome: "Exame periódico (clínica do grupo)", tipo: "EXAME", custoUnitario: 4_500 },
+  { id: "ITC_EXAME_DEM", nome: "Exame demissional (clínica do grupo)", tipo: "EXAME", custoUnitario: 4_500 },
+  { id: "ITC_AUDIOMETRIA", nome: "Audiometria", tipo: "EXAME", custoUnitario: 3_500 },
+  { id: "ITC_NR12", nome: "Treinamento NR-12 (máquinas)", tipo: "TREINAMENTO", custoUnitario: 8_000 },
+]);
+
+/**
+ * Preço de faturamento dos contratos do demo. Com 4 administrativos para 18 alocados, o custo
+ * indireto por cabeça é alto e todos ficam abaixo do ponto de equilíbrio — no cenário de 1.000
+ * colaboradores (docs/14) o mesmo indireto se dilui.
+ */
+const FATURAMENTO_DEMO = Object.freeze({
+  CTR_ELETRONICA_AMAZONIA_TEMP: { modalidade: "TAXA_SOBRE_CUSTO", taxaPercentual: 32 },
+  CTR_MOTOS_NORTE_TEMP: { modalidade: "TAXA_SOBRE_CUSTO", taxaPercentual: 28 },
+  CTR_AMAZON_INFORMATICA_TEMP: { modalidade: "TAXA_SOBRE_CUSTO", taxaPercentual: 30 },
+  CTR_AMAZON_INFORMATICA_SERV: { modalidade: "POR_COLABORADOR", valor: 690_000 },
+  CTR_PLASTICOS_TARUMA_SERV: { modalidade: "POR_COLABORADOR", valor: 480_000 },
+});
+
+/** Itens, kit, faturamento, preposto e os custos lançados em setembro/2026. */
+async function semearCustos(repo, tenantId) {
+  for (const i of ITENS_CUSTO_DEMO) await repo.inserir(tenantId, "itensCusto", { amortizarMeses: 1, ...i });
+  for (const [id, f] of Object.entries(FATURAMENTO_DEMO)) if (await repo.obter(tenantId, "contratosTomador", id)) await repo.atualizar(tenantId, "contratosTomador", id, { faturamento: f });
+  const { itens: vinculos } = await repo.listar(tenantId, "vinculos", {}, { limite: 1000 });
+  const porCargo = (cargo) => vinculos.filter((v) => v.cargo === cargo && !v.desligamento);
+  // A supervisora de operações é a preposta dos dois contratos de prestação de serviços.
+  const preposta = vinculos.find((v) => v.cargo === "Supervisora de operações");
+  if (preposta) await repo.atualizar(tenantId, "vinculos", preposta.id, { rateioContratos: [{ contratoId: "CTR_AMAZON_INFORMATICA_SERV", percentual: 50 }, { contratoId: "CTR_PLASTICOS_TARUMA_SERV", percentual: 50 }] });
+
+  const item = Object.fromEntries(ITENS_CUSTO_DEMO.map((i) => [i.id, i]));
+  const lancar = async (data, itemId, quantidade, destino, extra = {}) => {
+    const i = item[itemId];
+    await repo.inserir(tenantId, "custosLancamentos", {
+      id: `CUS_DEMO_${String(++n).padStart(3, "0")}`, data, competencia: data.slice(0, 7), tipo: i.tipo, descricao: i.nome, quantidade,
+      custoUnitario: i.custoUnitario, valor: quantidade * i.custoUnitario, amortizarMeses: i.amortizarMeses ?? 1, itemId, destino, origem: "DEMO", ...extra,
+    });
+  };
+  const outro = async (data, tipo, descricao, valor, destino) => {
+    await repo.inserir(tenantId, "custosLancamentos", {
+      id: `CUS_DEMO_${String(++n).padStart(3, "0")}`, data, competencia: data.slice(0, 7), tipo, descricao, quantidade: 1, custoUnitario: valor, valor, amortizarMeses: 1, itemId: null, destino, origem: "DEMO",
+    });
+  };
+  let n = 0;
+  const colaborador = (v) => ({ tipo: "COLABORADOR", matricula: v.matricula });
+  // Kit de quem foi admitido em setembro.
+  for (const v of vinculos.filter((x) => x.admissao.startsWith("2026-09"))) {
+    for (const k of [["ITC_CRACHA", 1], ["ITC_UNIFORME", 2], ["ITC_BOTA", 1], ["ITC_EXAME_ADM", 1]]) await lancar(v.admissao, k[0], k[1], colaborador(v));
+  }
+  // Troca semestral de uniforme e bota (entregue em julho, amortizada até dezembro).
+  for (const v of vinculos.filter((x) => x.tipo === "TERCEIRIZADO" && !x.desligamento && x.admissao < "2026-07-01")) {
+    await lancar("2026-07-01", "ITC_UNIFORME", 2, colaborador(v));
+    await lancar("2026-07-01", "ITC_BOTA", 1, colaborador(v));
+  }
+  // EPI do mês na limpeza e na produção; periódicos e demissional.
+  for (const v of [...porCargo("Auxiliar de limpeza")]) await lancar("2026-09-02", "ITC_LUVA", 8, colaborador(v));
+  for (const v of vinculos.filter((x) => x.tipo === "TEMPORARIO" && x.tomadorId === "TOM_MOTOS_NORTE" && !x.desligamento)) await lancar("2026-09-02", "ITC_PROTETOR", 4, colaborador(v));
+  for (const v of vinculos.filter((x) => x.tipo === "TERCEIRIZADO" && x.admissao.slice(5, 7) === "09" && x.admissao < "2026-01-01")) await lancar("2026-09-10", "ITC_EXAME_PER", 1, colaborador(v));
+  for (const v of vinculos.filter((x) => x.desligamento?.startsWith("2026-09"))) await lancar(v.desligamento, "ITC_EXAME_DEM", 1, colaborador(v));
+  for (const v of vinculos.filter((x) => x.tomadorId === "TOM_PLASTICOS_TARUMA" && x.cargo === "Operador de empilhadeira")) await lancar("2026-09-15", "ITC_NR12", 1, colaborador(v));
+  // Despesas do contrato e gerais.
+  await outro("2026-09-20", "PREPOSTO", "Deslocamento da preposta (combustível e estacionamento)", 38_000, { tipo: "RATEIO", contratoIds: ["CTR_AMAZON_INFORMATICA_SERV", "CTR_PLASTICOS_TARUMA_SERV"] });
+  await outro("2026-09-05", "ADMINISTRATIVO", "Aluguel e condomínio do escritório", 650_000, { tipo: "RATEIO", contratoIds: null });
+  await outro("2026-09-05", "ADMINISTRATIVO", "Sistemas, telefonia e internet", 120_000, { tipo: "RATEIO", contratoIds: null });
+  await outro("2026-09-12", "EQUIPAMENTO", "Carrinho funcional de limpeza", 45_000, { tipo: "CONTRATO", contratoId: "CTR_AMAZON_INFORMATICA_SERV" });
 }
 
 /** Candidatos do recrutamento demo prontos para admitir: a admissão puxa os dados deles. */
@@ -197,5 +277,6 @@ export async function semearFolha(repo, tenantId) {
   }
   for (const p of postos.values()) await repo.inserir(tenantId, "postos", p);
   await adiantarProcessoSeletivo(repo, tenantId);
+  await semearCustos(repo, tenantId);
   return { semeado: true, colaboradores: dados.length };
 }
