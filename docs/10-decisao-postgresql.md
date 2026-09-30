@@ -1,7 +1,7 @@
 # Decisão: PostgreSQL como banco principal
 
 **Status:** aprovada em 2026-09-30 · **Substitui:** Firestore como banco principal
-(`docs/06-firebase.md`) · **Implementação:** etapa seguinte, em PR próprio.
+(`docs/06-firebase.md`) · **Implementação:** etapa 1 feita (driver de documentos, abaixo).
 
 ## Contexto
 
@@ -43,3 +43,19 @@ O escopo agora inclui ponto, folha, rescisão, faturamento, financeiro e contabi
 
 Nada está em produção. Trocar hoje custa um driver e um esquema; trocar com clientes
 usando folha custa uma migração de dados com risco trabalhista.
+
+## Implementação — etapa 1 (driver de documentos)
+
+- `server/src/db/postgres.js`: mesma interface dos drivers de memória e Firestore,
+  guardando cada documento como `jsonb` em `labutar_documentos`
+  (`server/src/db/migracoes/001_documentos.sql`). Filtro e ordenação usam o mesmo
+  `aplicarFiltro` dos outros drivers, então o resultado é idêntico.
+- Isolamento em duas camadas: `WHERE tenant_id` em toda consulta **e** Row-Level Security
+  com o tenant declarado por transação. Testado com consulta crua sem filtro.
+- Sobe só com usuário sem `SUPERUSER`/`BYPASSRLS` (`verificarPapel`).
+- Migrações versionadas, aplicadas na subida, com trava contra duas instâncias migrando juntas.
+- A suíte da API inteira roda sobre PostgreSQL no CI (job `testes-postgres`).
+
+Próximas etapas: tabelas relacionais próprias para os módulos de dinheiro e fechamento
+(`tabelas-legais`, `ponto`, `folha`, `faturamento`, `contabil`), cada uma em sua migração;
+backup e recuperação pontual no provedor escolhido.

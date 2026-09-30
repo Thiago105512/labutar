@@ -27,7 +27,7 @@ roadmap em [`docs/03-roadmap.md`](docs/03-roadmap.md).
 | `web/app` | painel do recrutador | 🚧 |
 | ponto, folha, tomadores, faturamento, comercial e demais | ver `docs/09-modulos.md` | ⬜ |
 
-**513 testes passando** (1 pulado sem `firebase-admin`), rodados pelo CI em todo push.
+**525 testes passando** (1 pulado sem `firebase-admin`), e mais 14 com PostgreSQL; o CI roda os dois modos em todo push.
 Nada em produção.
 
 O backend roda **sem `npm install`**: o driver padrão é memória. O banco principal passa a
@@ -37,12 +37,30 @@ o driver Firestore ([`docs/06-firebase.md`](docs/06-firebase.md)) fica até a tr
 ## Rodando
 
 ```bash
-node --test "packages/*/test/*.test.js"    # todos os testes
+npm test                                   # todos os testes (pacotes + server)
 npm run test:core                          # só o núcleo
 ```
 
 Não há `npm install` obrigatório: os pacotes de domínio não têm dependência externa
 e se importam por caminho relativo. Node >= 22.
+
+### Com PostgreSQL
+
+`pg` é dependência opcional: `npm install` na raiz. O usuário do banco **não pode** ser
+superusuário nem ter `BYPASSRLS` (ignorariam o isolamento por tenant); o servidor se
+recusa a subir nesse caso. As migrações de `server/src/db/migracoes/` rodam na subida.
+
+```sql
+CREATE ROLE labutar_app LOGIN PASSWORD '...' NOSUPERUSER NOBYPASSRLS;
+CREATE DATABASE labutar OWNER labutar_app;
+```
+
+```bash
+LABUTAR_DB_DRIVER=postgres LABUTAR_DATABASE_URL=postgres://labutar_app:...@host/labutar npm start
+
+# testes sobre PostgreSQL (banco descartável; cada arquivo usa um schema próprio)
+LABUTAR_TESTE_PG_URL=postgres://labutar_app:...@localhost/labutar_teste npm test
+```
 
 > Em Windows/cmd.exe o padrão precisa ir entre aspas — o shell não expande glob,
 > quem expande é o Node. E `node --test <diretorio>` falha neste ambiente; use o glob.

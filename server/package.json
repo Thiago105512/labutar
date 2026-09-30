@@ -1,7 +1,7 @@
 {
   "name": "@labutar/server",
   "version": "0.1.0",
-  "description": "API do Labutar. HTTP em node:http e armazenamento com driver trocável (memória por padrão, Firestore quando houver credencial). Zero dependência obrigatória.",
+  "description": "API do Labutar. HTTP em node:http e armazenamento com driver trocável (memória por padrão, PostgreSQL em produção, Firestore legado). Zero dependência obrigatória: `pg` é opcional.",
   "type": "module",
   "main": "./src/index.js",
   "scripts": {
@@ -11,5 +11,8 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "optionalDependencies": {
+    "pg": "^8.23.0"
   }
 }

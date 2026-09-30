@@ -7,6 +7,7 @@ import { criarRepositorioMemoria } from "../src/db/index.js";
 import { semear, TENANT_DEMO } from "../src/seed/dados.js";
 import { responderErro, CODIGOS } from "../src/http/resposta.js";
 import { origemPermitida } from "../src/http/corpo.js";
+import { urlDeTeste } from "./auxiliar-pg.js";
 
 let base;
 let repo;
@@ -36,8 +37,21 @@ async function chamar(caminho, { metodo = "GET", tenant = TENANT_DEMO, usuario =
   };
 }
 
+/**
+ * Com LABUTAR_TESTE_PG_URL definida, a suíte inteira roda sobre o driver
+ * PostgreSQL (banco de teste descartável, limpo aqui). Sem ela, memória.
+ */
+async function criarRepositorioDeTeste() {
+  const url = await urlDeTeste("teste_api");
+  if (!url) return criarRepositorioMemoria();
+  const { criarRepositorioPostgres } = await import("../src/db/postgres.js");
+  const pg = await criarRepositorioPostgres({ url });
+  for (const tenant of await pg.tenants()) await pg.removerTenant(tenant);
+  return pg;
+}
+
 before(async () => {
-  repo = criarRepositorioMemoria();
+  repo = await criarRepositorioDeTeste();
   const app = await criarAplicacao({ repo, limiteCorpoBytes: 4096, log: () => {} });
   const servidor = createServer(app.handler);
   await new Promise((resolver) => servidor.listen(0, "127.0.0.1", resolver));
@@ -48,6 +62,7 @@ before(async () => {
 
 after(async () => {
   await fechar();
+  await repo.encerrar();
 });
 
 /**
@@ -99,7 +114,7 @@ test("toda resposta de erro usa { ok:false, erro, codigo, detalhes }", async () 
 test("/api/saude reporta driver, eSocial adiado e IA desabilitada com honestidade", async () => {
   const { dados } = (await chamar("/api/saude")).json;
   assert.equal(dados.status, "ok");
-  assert.equal(dados.driver, "memoria");
+  assert.equal(dados.driver, repo.nome);
   assert.equal(dados.esocial.habilitado, false);
   assert.equal(dados.ia.habilitado, false);
   assert.ok(dados.rotas > 20);
