@@ -1,5 +1,5 @@
 import { iniciar } from "./index.js";
-import { semear, semearUsuarios, SENHA_DEMO, USUARIOS_DEMO, TENANT_DEMO } from "./seed/dados.js";
+import { semear, semearUsuarios, SENHA_DEMO, USUARIOS_DEMO, CONTAS_EXTERNAS_DEMO, TENANT_DEMO } from "./seed/dados.js";
 
 /**
  * Sobe com dados de demonstração e força driver de memória: desenvolvimento
@@ -32,12 +32,14 @@ async function principal() {
   } else {
     console.log(`  seed pulado: ${resultado.motivo}`);
   }
-  const usuarios = await semearUsuarios(contexto.acesso);
+  const usuarios = await semearUsuarios(contexto.acesso, { repo: contexto.repo });
   if (usuarios.semeado) {
     console.log(`\n  Usuários de demonstração (senha "${SENHA_DEMO}", empresa "${TENANT_DEMO}"):`);
-    for (const u of USUARIOS_DEMO) console.log(`    ${u.email.padEnd(26)} ${u.perfilId}`);
+    for (const u of USUARIOS_DEMO) console.log(`    ${u.email.padEnd(34)} ${u.perfilId}`);
+    for (const c of CONTAS_EXTERNAS_DEMO) console.log(`    ${c.email.padEnd(34)} portal ${c.tipo}`);
   }
-  console.log(`\n  Painel: ${contexto.url}/web/app/index.html`);
+  console.log(`\n  Painel da empresa: ${contexto.url}/web/app/index.html`);
+  console.log(`  Portal (candidato, colaborador, cliente): ${contexto.url}/web/portal/index.html`);
   console.log(`
   API: POST ${contexto.url}/api/auth/entrar {"empresa":"${TENANT_DEMO}","email":"admin@demo.com.br","senha":"${SENHA_DEMO}"}
 `);

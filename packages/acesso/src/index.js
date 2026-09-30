@@ -6,3 +6,4 @@ export * from "./catalogo.js";
 export * from "./perfis.js";
 export * from "./permissoes.js";
 export * from "./senha.js";
+export * from "./contas.js";

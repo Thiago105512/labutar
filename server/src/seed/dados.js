@@ -1,4 +1,5 @@
 import * as ats from "../../../packages/ats/src/index.js";
+import { ATOR_SISTEMA } from "../auth/servico.js";
 
 export const TENANT_DEMO = "demo-industrial";
 
@@ -231,7 +232,15 @@ export const USUARIOS_DEMO = Object.freeze([
   { nome: "Fernanda Financeiro", email: "financeiro@demo.com.br", perfilId: "FINANCEIRO" },
 ]);
 
-export async function semearUsuarios(acesso, { tenantId = TENANT_DEMO } = {}) {
+/** Contas dos portais externos, também só para desenvolvimento. */
+export const CONTAS_EXTERNAS_DEMO = Object.freeze([
+  { tipo: "CANDIDATO", email: "ana.lima@exemplo.com", nomeCandidato: "Ana Souza Lima" },
+  { tipo: "COLABORADOR", email: "joao.batista@exemplo.com", nomeCandidato: "João Batista Silva" },
+  { tipo: "TOMADOR", email: "gestor@eletronica-amazonia.com.br", nome: "Otávio Gestor do Cliente",
+    escopo: { tomadorId: "TOM_ELETRONICA_AMAZONIA", tomadorNome: "Eletrônica Amazônia S.A.", papel: "GESTOR_CONTRATO" } },
+]);
+
+export async function semearUsuarios(acesso, { tenantId = TENANT_DEMO, repo = null } = {}) {
   const [admin, ...demais] = USUARIOS_DEMO;
   try {
     await acesso.criarPrimeiroAdministrador(tenantId, { ...admin, senha: SENHA_DEMO, trocarSenha: false });
@@ -241,6 +250,17 @@ export async function semearUsuarios(acesso, { tenantId = TENANT_DEMO } = {}) {
   const atorAcesso = { acessoTotal: true, niveis: {} };
   for (const u of demais) {
     await acesso.criarUsuario(tenantId, { ...u, senha: SENHA_DEMO, trocarSenha: false }, { atorAcesso, atorId: "SEED" });
+  }
+  if (repo) {
+    const { itens: candidatos } = await repo.listar(tenantId, "candidatos");
+    for (const c of CONTAS_EXTERNAS_DEMO) {
+      const pessoa = c.nomeCandidato ? candidatos.find((x) => x.dados?.nome === c.nomeCandidato) : null;
+      const escopo = c.escopo ?? (c.tipo === "CANDIDATO" ? { candidatoId: pessoa?.id } : { pessoaId: pessoa?.id });
+      const conta = await acesso.criarContaExterna(tenantId,
+        { tipo: c.tipo, nome: c.nome ?? c.nomeCandidato, email: c.email, senha: SENHA_DEMO, escopo, trocarSenha: false },
+        { atorAcesso: ATOR_SISTEMA, atorId: "SEED" });
+      if (c.tipo === "CANDIDATO" && pessoa) await repo.atualizar(tenantId, "candidatos", pessoa.id, { contaUid: conta.id });
+    }
   }
   return { semeado: true, usuarios: USUARIOS_DEMO.length };
 }

@@ -8,7 +8,8 @@
  */
 import { pode as podeNoAcesso } from "/packages/acesso/src/index.js";
 
-const CHAVE = "labutar.sessao";
+// O portal externo usa outra chave (data-sessao no <html>): painel e portal convivem no mesmo navegador.
+const CHAVE = document.documentElement.dataset.sessao || "labutar.sessao";
 let atual = ler();
 const ouvintesSaida = new Set();
 
@@ -35,6 +36,8 @@ export const sessao = {
   get dados() { return atual; },
   get usuario() { return atual?.usuario ?? null; },
   get perfil() { return atual?.perfil ?? null; },
+  get tipo() { return atual?.tipo ?? "INTERNO"; },
+  get escopo() { return atual?.escopo ?? {}; },
   get modulos() { return atual?.modulos ?? []; },
   get empresa() { return atual?.token?.split(".")[0] ?? null; },
   pode(modulo, acao) { return podeNoAcesso(atual?.acesso, modulo, acao); },
@@ -67,10 +70,15 @@ export async function api(caminho, { metodo = "GET", corpo, anonimo = false } = 
   return json.dados;
 }
 
-export async function entrar({ empresa, email, senha }) {
-  const dados = await api("/auth/entrar", { metodo: "POST", corpo: { empresa, email, senha }, anonimo: true });
+export async function entrar({ empresa, email, senha, tipo = "INTERNO" }) {
+  const dados = await api("/auth/entrar", { metodo: "POST", corpo: { empresa, email, senha, tipo }, anonimo: true });
   gravar(dados);
   return dados;
+}
+
+/** Guarda uma sessão já obtida por outra rota (ex.: autocadastro do candidato, que já devolve o login). */
+export function adotarSessao(dados) {
+  gravar(dados);
 }
 
 /** Atualiza usuário, perfil e módulos a partir do servidor (ex.: depois de trocar a senha). */

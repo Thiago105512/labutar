@@ -1,6 +1,10 @@
 import {
   ID_ADMINISTRADOR_GERAL,
+  MODULO_GESTOR_DA_CONTA,
   PERFIS_PADRAO,
+  TIPO_CONTA,
+  pode,
+  validarEscopo,
   acessoEfetivo,
   modulosDoUsuario,
   podeConcederAcesso,
@@ -29,6 +33,9 @@ export const REGRAS_SESSAO = Object.freeze({
 
 const C = COLECOES_ACESSO;
 const normalizarEmail = (email) => String(email ?? "").trim().toLowerCase();
+const tipoDe = (u) => u?.tipo ?? TIPO_CONTA.INTERNO;
+/** Ator usado quando o próprio sistema cria a conta (autocadastro do candidato, seed). */
+export const ATOR_SISTEMA = Object.freeze({ acessoTotal: true, niveis: {}, sistema: true });
 const credenciaisInvalidas = () => new ErroApi(401, CODIGOS.NAO_AUTENTICADO, "e-mail ou senha incorretos");
 
 /** O que sai do servidor sobre um usuário. Hash de senha nunca sai. */
@@ -66,12 +73,14 @@ export function criarServicoAcesso({ repo, agora = () => new Date(), regras = RE
   }
 
   async function acessoDe(tenant, usuario) {
+    if (tipoDe(usuario) !== TIPO_CONTA.INTERNO) return acessoEfetivo(usuario, null);
     return acessoEfetivo(usuario, await perfil(tenant, usuario?.perfilId));
   }
 
-  async function usuarioPorEmail(tenant, email) {
-    const { itens } = await repo.listar(tenant, C.usuarios, { email: normalizarEmail(email) }, { limite: 1 });
-    return itens[0] ?? null;
+  /** O mesmo e-mail pode ter uma conta de cada tipo (ex.: colaborador que também é candidato). */
+  async function usuarioPorEmail(tenant, email, tipo = TIPO_CONTA.INTERNO) {
+    const { itens } = await repo.listar(tenant, C.usuarios, { email: normalizarEmail(email) });
+    return itens.find((u) => tipoDe(u) === tipo) ?? null;
   }
 
   async function revogarSessoes(tenant, usuarioId) {
@@ -87,7 +96,8 @@ export function criarServicoAcesso({ repo, agora = () => new Date(), regras = RE
 
   // ------------------------------------------------------------ login
 
-  async function entrar({ tenant, email, senha, ip = null, userAgent = null }) {
+  async function entrar({ tenant, email, senha, tipo = TIPO_CONTA.INTERNO, ip = null, userAgent = null }) {
+    if (!Object.values(TIPO_CONTA).includes(tipo)) throw credenciaisInvalidas();
     try {
       exigirTenant(tenant);
     } catch {
@@ -95,7 +105,7 @@ export function criarServicoAcesso({ repo, agora = () => new Date(), regras = RE
       throw credenciaisInvalidas();
     }
 
-    const usuario = await usuarioPorEmail(tenant, email);
+    const usuario = await usuarioPorEmail(tenant, email, tipo);
     const momento = agora();
 
     if (usuario?.bloqueadoAte && usuario.bloqueadoAte > momento.toISOString()) {
@@ -134,16 +144,20 @@ export function criarServicoAcesso({ repo, agora = () => new Date(), regras = RE
     const patch = { tentativasFalhas: 0, bloqueadoAte: null, ultimoAcesso: momento.toISOString() };
     if (precisaRehash(usuario.senhaHash)) patch.senhaHash = await gerarHash(senha);
     const atualizado = await repo.atualizar(tenant, C.usuarios, usuario.id, patch);
-    await registrar(tenant, "LOGIN_OK", { usuarioId: usuario.id, ip });
+    await registrar(tenant, "LOGIN_OK", { usuarioId: usuario.id, tipo, ip });
 
     return { token: `${tenant}.${segredo}`, expiraEm: sessao.expiraEm, ...(await perfilDoUsuario(tenant, atualizado)) };
   }
 
   async function perfilDoUsuario(tenant, usuario) {
+    if (tipoDe(usuario) !== TIPO_CONTA.INTERNO) {
+      return { usuario: usuarioPublico(usuario), tipo: tipoDe(usuario), escopo: usuario.escopo ?? {}, perfil: null, acesso: acessoEfetivo(usuario, null), modulos: [] };
+    }
     const p = await perfil(tenant, usuario.perfilId);
     const acesso = acessoEfetivo(usuario, p);
     return {
       usuario: usuarioPublico(usuario),
+      tipo: TIPO_CONTA.INTERNO,
       perfil: p ? { id: p.id, nome: p.nome, acessoTotal: Boolean(p.acessoTotal) } : null,
       acesso,
       modulos: modulosDoUsuario(acesso),
@@ -190,7 +204,7 @@ export function criarServicoAcesso({ repo, agora = () => new Date(), regras = RE
 
   async function listarUsuarios(tenant) {
     const { itens } = await repo.listar(tenant, C.usuarios, {}, { ordenarPor: "nome" });
-    return itens.map(usuarioPublico);
+    return itens.filter((u) => tipoDe(u) === TIPO_CONTA.INTERNO).map(usuarioPublico);
   }
 
   function exigirConcessao(ator, acessoAlvo) {
@@ -214,7 +228,7 @@ export function criarServicoAcesso({ repo, agora = () => new Date(), regras = RE
     const novo = { ativo: true, perfilId: p.id, ajustes: dados.ajustes ?? {} };
     exigirConcessao(atorAcesso, acessoEfetivo(novo, p));
 
-    const usuario = { id: novoId("USR"), nome, email, ...novo };
+    const usuario = { id: novoId("USR"), tipo: TIPO_CONTA.INTERNO, nome, email, ...novo };
     await validarNovaSenha(tenant, dados.senha, usuario);
     const gravado = await repo.inserir(tenant, C.usuarios, {
       ...usuario,
@@ -241,7 +255,7 @@ export function criarServicoAcesso({ repo, agora = () => new Date(), regras = RE
 
   async function atualizarUsuario(tenant, id, patch, { atorAcesso, atorId }) {
     const atual = await repo.obter(tenant, C.usuarios, id);
-    if (!atual) throw erroNaoEncontrado("usuário não encontrado");
+    if (!atual || tipoDe(atual) !== TIPO_CONTA.INTERNO) throw erroNaoEncontrado("usuário não encontrado");
 
     const permitido = {};
     if (patch.nome !== undefined) permitido.nome = String(patch.nome).trim();
@@ -276,7 +290,7 @@ export function criarServicoAcesso({ repo, agora = () => new Date(), regras = RE
 
   async function redefinirSenha(tenant, id, { novaSenha }, { atorAcesso, atorId }) {
     const alvo = await repo.obter(tenant, C.usuarios, id);
-    if (!alvo) throw erroNaoEncontrado("usuário não encontrado");
+    if (!alvo || tipoDe(alvo) !== TIPO_CONTA.INTERNO) throw erroNaoEncontrado("usuário não encontrado");
     exigirConcessao(atorAcesso, await acessoDe(tenant, alvo));
     await validarNovaSenha(tenant, novaSenha, alvo);
     await repo.atualizar(tenant, C.usuarios, id, {
@@ -316,6 +330,78 @@ export function criarServicoAcesso({ repo, agora = () => new Date(), regras = RE
     return salvo;
   }
 
+  // ------------------------------------------------------------ contas externas
+
+  function exigirGestorDaConta(atorAcesso, tipo, acao) {
+    if (atorAcesso === ATOR_SISTEMA) return;
+    const modulo = MODULO_GESTOR_DA_CONTA[tipo];
+    if (!modulo) throw erroValidacao("tipo de conta externa inválido");
+    if (!pode(atorAcesso, modulo, acao)) {
+      throw erroSemPermissao(`gerenciar contas de ${tipo.toLowerCase()} exige permissão de ${acao === "criar" ? "cadastro" : "alteração"} no módulo correspondente`);
+    }
+  }
+
+  async function criarContaExterna(tenant, dados, { atorAcesso, atorId }) {
+    const tipo = dados.tipo;
+    if (!MODULO_GESTOR_DA_CONTA[tipo]) throw erroValidacao("tipo de conta externa inválido", ["tipo"]);
+    exigirGestorDaConta(atorAcesso, tipo, "criar");
+
+    const nome = String(dados.nome ?? "").trim();
+    const email = normalizarEmail(dados.email);
+    if (nome.length < 3) throw erroValidacao("nome deve ter ao menos 3 caracteres", ["nome"]);
+    if (!validarEmail(email).valido) throw erroValidacao("e-mail inválido", ["email"]);
+    const escopo = dados.escopo ?? {};
+    const v = validarEscopo(tipo, escopo);
+    if (!v.ok) throw erroValidacao(v.erros[0], v.erros);
+    if (await usuarioPorEmail(tenant, email, tipo)) throw erroConflito("já existe conta deste tipo com este e-mail");
+
+    const conta = { id: novoId("USR"), tipo, nome, email, ativo: true, escopo };
+    await validarNovaSenha(tenant, dados.senha, conta);
+    const gravada = await repo.inserir(tenant, C.usuarios, {
+      ...conta,
+      senhaHash: await gerarHash(dados.senha),
+      trocarSenha: dados.trocarSenha !== false,
+      tentativasFalhas: 0,
+      bloqueadoAte: null,
+      ultimoAcesso: null,
+      criadoEm: agora().toISOString(),
+      criadoPor: atorId ?? null,
+    });
+    await registrar(tenant, "CONTA_EXTERNA_CRIADA", { usuarioId: atorId ?? null, alvoId: gravada.id, tipo });
+    return usuarioPublico(gravada);
+  }
+
+  async function listarContasExternas(tenant, { tipo, atorAcesso }) {
+    exigirGestorDaConta(atorAcesso, tipo, "ver");
+    const { itens } = await repo.listar(tenant, C.usuarios, { tipo }, { ordenarPor: "nome" });
+    return itens.map(usuarioPublico);
+  }
+
+  async function atualizarContaExterna(tenant, id, patch, { atorAcesso, atorId }) {
+    const atual = await repo.obter(tenant, C.usuarios, id);
+    if (!atual || tipoDe(atual) === TIPO_CONTA.INTERNO) throw erroNaoEncontrado("conta não encontrada");
+    exigirGestorDaConta(atorAcesso, atual.tipo, "editar");
+
+    const permitido = {};
+    if (patch.nome !== undefined) permitido.nome = String(patch.nome).trim();
+    if (patch.ativo !== undefined) permitido.ativo = Boolean(patch.ativo);
+    if (patch.escopo !== undefined) {
+      const escopo = { ...atual.escopo, ...patch.escopo };
+      const v = validarEscopo(atual.tipo, escopo);
+      if (!v.ok) throw erroValidacao(v.erros[0], v.erros);
+      permitido.escopo = escopo;
+    }
+    const gravada = await repo.atualizar(tenant, C.usuarios, id, permitido);
+    if (permitido.ativo === false || permitido.escopo !== undefined) await revogarSessoes(tenant, id);
+    if (patch.novaSenha) {
+      await validarNovaSenha(tenant, patch.novaSenha, gravada);
+      await repo.atualizar(tenant, C.usuarios, id, { senhaHash: await gerarHash(patch.novaSenha), trocarSenha: true, tentativasFalhas: 0, bloqueadoAte: null });
+      await revogarSessoes(tenant, id);
+    }
+    await registrar(tenant, "CONTA_EXTERNA_ALTERADA", { usuarioId: atorId, alvoId: id, tipo: atual.tipo });
+    return usuarioPublico(await repo.obter(tenant, C.usuarios, id));
+  }
+
   async function listarAuditoria(tenant, { limite = 100 } = {}) {
     const { itens } = await repo.listar(tenant, C.auditoria, {}, { ordenarPor: "em:desc", limite });
     return itens;
@@ -336,5 +422,9 @@ export function criarServicoAcesso({ repo, agora = () => new Date(), regras = RE
     salvarPerfil,
     listarAuditoria,
     registrar,
+    usuarioPorEmail,
+    criarContaExterna,
+    listarContasExternas,
+    atualizarContaExterna,
   };
 }

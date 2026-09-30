@@ -15,6 +15,7 @@ import {
   esconderTelaCheia,
   ligarEventosAcesso,
   paginaAuditoria,
+  paginaContasExternas,
   paginaPerfis,
   paginaUsuarios,
   telaLogin,
@@ -35,6 +36,7 @@ const PAGINAS = {
   administracao: [
     { id: "usuarios", nome: "Usuários", icone: "pessoas" },
     { id: "perfis", nome: "Perfis de acesso", icone: "cadeado" },
+    { id: "externos", nome: "Acessos externos", icone: "tomadores" },
     { id: "auditoria", nome: "Auditoria", icone: "relogio" },
   ],
 };
@@ -287,7 +289,7 @@ async function renderizar() {
       else conteudo.innerHTML = telaInicio();
     } else if (moduloId === "administracao") {
       conteudo.innerHTML = carregando;
-      const telas = { usuarios: paginaUsuarios, perfis: paginaPerfis, auditoria: paginaAuditoria };
+      const telas = { usuarios: paginaUsuarios, perfis: paginaPerfis, externos: paginaContasExternas, auditoria: paginaAuditoria };
       conteudo.innerHTML = await telas[pagina.id]();
     } else {
       conteudo.innerHTML = telaEmBreve({ nome: modulo.nome, icone: ICONE_MODULO[moduloId], ...EM_BREVE[moduloId] });
