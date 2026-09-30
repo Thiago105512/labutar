@@ -14,7 +14,8 @@ diferencia o produto. Mapa de módulos em [`docs/09-modulos.md`](docs/09-modulos
 roadmap em [`docs/03-roadmap.md`](docs/03-roadmap.md) ·
 escopo da folha, item a item, em [`docs/13-escopo-folha.md`](docs/13-escopo-folha.md) ·
 cenário de teste (1.000 colaboradores) em [`docs/14-cenario-de-teste.md`](docs/14-cenario-de-teste.md) ·
-**padrões de nomes, formatos e telas** em [`docs/15-padroes.md`](docs/15-padroes.md).
+**padrões de nomes, formatos e telas** em [`docs/15-padroes.md`](docs/15-padroes.md). ·
+o que entra do **eSocial** em [`docs/16-esocial.md`](docs/16-esocial.md).
 
 ## Estado atual
 
@@ -27,6 +28,7 @@ cenário de teste (1.000 colaboradores) em [`docs/14-cenario-de-teste.md`](docs/
 | `@labutar/ia` | prompts, desidentificação, rubricas | ✅ |
 | `@labutar/acesso` | login, módulos, níveis, perfis, permissões, política de senha e contas de candidato, colaborador e cliente ([`docs/12-acesso.md`](docs/12-acesso.md)) | ✅ |
 | `@labutar/mao-de-obra` | **núcleo do domínio**: vínculos, prazos legais, alocação, rateio | ✅ |
+| `@labutar/folha` | motor da folha: tabelas com vigência, INSS, IRRF 2026, FGTS, adicionais, encargos por tomador | 🚧 |
 | `@labutar/admissao` | checklist, ASO, contrato, prazos do temporário | ⏸ contrato reservado |
 | `@labutar/esocial` | eventos eSocial | ⏸ contrato reservado |
 | `server` | API + repositório multi-tenant com fronteira de escopo | 🚧 |

@@ -14,6 +14,7 @@ import { VERBAS, TIPO_VERBA, efeitoNaBase } from "./verbas.js";
 import { calcularINSS, calcularIRRF, calcularSalarioFamilia } from "./impostos.js";
 import { calendarioDaCompetencia } from "./calendario.js";
 import { tabelaDaCompetencia, ARREDONDAMENTO_INSS } from "./tabelas.js";
+import { formatarDataBR } from "../../core/src/datas.js";
 
 const r = Math.round;
 const JORNADA_PADRAO = 220;
@@ -36,10 +37,10 @@ export function calcularHolerite(colaborador, competencia, lancamentos = {}, opc
   const tabela = opcoes.tabela ?? tabelaDaCompetencia(competencia);
   const avisos = [];
   if (colaborador.desligamento && colaborador.desligamento.slice(0, 7) <= competencia) {
-    throw new Error(`${colaborador.matricula}: desligamento em ${colaborador.desligamento} — calcular pela rescisão, não pela folha mensal`);
+    throw new Error(`desligamento em ${formatarDataBR(colaborador.desligamento)}: o cálculo é feito na rescisão, não na folha mensal`);
   }
   const dias = diasDeContrato(colaborador, competencia);
-  if (dias === 0) throw new Error(`${colaborador.matricula}: admissão depois da competência ${competencia}`);
+  if (dias === 0) throw new Error(`admissão em ${formatarDataBR(colaborador.admissao)}, depois da competência`);
 
   const cal = calendarioDaCompetencia(competencia, opcoes.local);
   const itens = [];

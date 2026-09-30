@@ -89,3 +89,31 @@ test("catálogo de verbas segue o padrão NNNN.VV e marca natureza a conferir", 
   for (const v of CATALOGO_VERBAS) assert.match(v.codigo, /^\d{4}\.\d{2}$/);
   assert.ok(CATALOGO_VERBAS.some((v) => !v.naturezaConferida));
 });
+
+test("cenário de teste: 1.000 colaboradores (600 temporários, 300 terceirizados, 100 próprios) em menos de 1 segundo", () => {
+  const colaboradores = [];
+  const lotacoes = ["TOM:T1", "TOM:T2", "TOM:T3", "TOM:T4"];
+  for (let i = 0; i < 1000; i++) {
+    const proprio = i >= 900;
+    colaboradores.push({
+      matricula: String(10_000_000 + i),
+      nome: `Colaborador ${i}`,
+      vinculo: proprio ? "PROPRIO" : i < 600 ? "TEMPORARIO" : "TERCEIRIZADO",
+      salario: 170_000 + (i % 40) * 9_000,
+      admissao: i % 25 === 0 ? "2026-09-14" : "2026-03-02",
+      dependentesIR: i % 3,
+      filhosSalarioFamilia: i % 7 === 0 ? 1 : 0,
+      insalubridadeGrau: i % 11 === 0 ? 20 : undefined,
+      lotacao: proprio ? "SET:ADM" : lotacoes[i % 4],
+    });
+  }
+  const lancamentos = Object.fromEntries(colaboradores.map((c, i) => [c.matricula, { horasExtras50: i % 13, horasNoturnas: i % 5 === 0 ? 60 : 0, faltasDias: i % 50 === 0 ? 1 : 0 }]));
+  const inicio = performance.now();
+  const f = calcularFolha({ empresa: { ratPercentual: 3, terceirosPercentual: 5.8, local: { uf: "AM", municipio: "Manaus" } }, competencia: "2026-09", colaboradores, lancamentos });
+  const ms = performance.now() - inicio;
+  assert.equal(f.resumo.colaboradores, 1000);
+  assert.equal(f.resumo.porLotacao.length, 5);
+  assert.equal(f.resumo.proventos - f.resumo.descontos, f.resumo.liquido);
+  assert.equal(f.resumo.porLotacao.reduce((s, l) => s + l.custoTotal, 0), f.resumo.custoTotal);
+  assert.ok(ms < 1000, `levou ${Math.round(ms)} ms`);
+});

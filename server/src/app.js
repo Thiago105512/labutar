@@ -8,6 +8,7 @@ import { registrarRotasPublicas } from "./rotas-publicas.js";
 import { resolverContexto } from "./middleware/contexto.js";
 import { registrarRotasAcesso } from "./rotas-acesso.js";
 import { registrarRotasPortal } from "./rotas-portal.js";
+import { registrarRotasFolha } from "./rotas-folha.js";
 import { criarServicoAcesso } from "./auth/servico.js";
 import { cabecalhosCors, lerCorpo } from "./http/corpo.js";
 import { responderErro, falha, CODIGOS } from "./http/resposta.js";
@@ -88,6 +89,7 @@ export async function criarAplicacao({ config = {}, repo, log = () => {}, limite
   const internas = registrarRotas({ repo, log });
   registrarRotasAcesso(internas, { acesso: servicoAcesso });
   registrarRotasPortal(internas, { repo, acesso: servicoAcesso });
+  registrarRotasFolha(internas, { repo });
   const publicas = registrarRotasPublicas({ repo, log });
 
   async function handler(req, res) {
