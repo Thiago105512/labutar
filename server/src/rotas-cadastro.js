@@ -1,7 +1,9 @@
 import {
   validarPessoa, validarTomador, validarContratoTomador, validarPosto, validarVinculo,
   alterarSalario, lerPlanilhaColaboradores, lotacaoDoVinculo,
+  buscarOrigens, pessoaDoCandidato, completarPessoa,
 } from "../../packages/cadastro/src/index.js";
+import * as ats from "../../packages/ats/src/index.js";
 import { proximaMatricula, TIPO_VINCULO, VINCULO_ACEITO_POR_CONTRATO } from "../../packages/mao-de-obra/src/index.js";
 import { tabelaDaCompetencia } from "../../packages/folha/src/index.js";
 import { novoId } from "../../packages/core/src/ids.js";
@@ -15,6 +17,25 @@ const invalido = (r) => { if (!r.ok) throw erroValidacao(r.erros.join("; "), r.e
 
 function salarioMinimoEm(data) {
   try { return tabelaDaCompetencia(data.slice(0, 7)).salarioMinimo; } catch { return 0; }
+}
+
+/**
+ * O processo seletivo fica sabendo da admissão: a candidatura vai para a etapa "Admissão" (se a
+ * vaga tiver) e guarda a matrícula aberta.
+ */
+async function registrarAdmissaoNaCandidatura(repo, tenant, candidatura, matricula, usuario) {
+  const vaga = await repo.obter(tenant, "vagas", candidatura.vagaId);
+  let atualizada = candidatura;
+  const avisos = [];
+  if (vaga && candidatura.etapaAtualId !== "admissao" && (vaga.etapas ?? []).some((e) => e.id === "admissao")) {
+    const r = ats.moverEtapa(candidatura, { vaga, paraEtapaId: "admissao", usuarioId: usuario, observacao: `Admitido com a matrícula ${matricula}` });
+    if (r.ok) {
+      atualizada = r.candidatura;
+      avisos.push(`Candidatura na vaga "${vaga.titulo}" movida para a etapa Admissão.`);
+    }
+  }
+  await repo.atualizar(tenant, "candidaturas", candidatura.id, { ...atualizada, admissao: { matricula, em: new Date().toISOString() } });
+  return avisos;
 }
 
 /** Vínculo com a pessoa, o tomador e o posto, como a tela mostra. */
@@ -54,6 +75,19 @@ export function registrarRotasCadastro(r, { repo }) {
     });
   });
 
+  /**
+   * De onde puxar os dados de quem vai ser admitido: candidatos prontos para admitir (sem busca)
+   * ou, com `?busca=` (nome ou CPF), pessoas do cadastro e candidatos do recrutamento.
+   */
+  r.get("/api/colaboradores/origens", async (req, res, ctx) => {
+    const tenant = exigirPermissao(ctx, "colaboradores", "criar");
+    const [cad, candidatos, candidaturas, vagas] = await Promise.all([
+      carregarCadastro(repo, tenant),
+      ...["candidatos", "candidaturas", "vagas"].map((c) => repo.listar(tenant, c, {}, { limite: 100_000 }).then((r) => r.itens)),
+    ]);
+    sucesso(res, buscarOrigens({ pessoas: cad.pessoas, vinculos: cad.vinculos, candidatos, candidaturas, vagas }, String(ctx.query.busca ?? "")));
+  });
+
   r.get("/api/colaboradores/:matricula", async (req, res, ctx) => {
     const tenant = exigirPermissao(ctx, "colaboradores", "ver");
     const cad = await carregarCadastro(repo, tenant);
@@ -62,22 +96,61 @@ export function registrarRotasCadastro(r, { repo }) {
     sucesso(res, { ...resumoDoVinculo(v, cad), pessoaCompleta: cad.pessoa.get(v.pessoaId) ?? null });
   });
 
-  /** Admite: cria (ou reaproveita, pelo CPF) a pessoa e abre um vínculo novo com matrícula nova. */
+  /**
+   * Admite: abre um vínculo novo com matrícula nova. A pessoa pode vir do zero, do cadastro
+   * (`pessoaId`, readmissão) ou do recrutamento (`origem.candidatoId`, com a candidatura). O que
+   * veio no formulário prevalece; o que ficou em branco é completado pela origem. Mesmo CPF =
+   * mesma pessoa.
+   */
   r.post("/api/colaboradores", async (req, res, ctx, corpo) => {
     const tenant = exigirPermissao(ctx, "colaboradores", "criar");
     const cad = await carregarCadastro(repo, tenant);
     const d = corpo?.vinculo ?? {};
+    const origem = corpo?.origem ?? {};
 
-    let pessoa = corpo?.pessoaId ? cad.pessoa.get(corpo.pessoaId) : null;
-    if (!pessoa) {
-      const p = validarPessoa(corpo?.pessoa ?? {});
+    const candidato = origem.candidatoId ? await repo.obter(tenant, "candidatos", origem.candidatoId) : null;
+    if (origem.candidatoId && !candidato) throw erroNaoEncontrado("candidato não encontrado no recrutamento");
+    const candidatura = origem.candidaturaId ? await repo.obter(tenant, "candidaturas", origem.candidaturaId) : null;
+    if (origem.candidaturaId && (!candidatura || candidatura.candidatoId !== candidato?.id)) {
+      throw erroValidacao("candidatura não pertence a este candidato", ["origem.candidaturaId"]);
+    }
+
+    const informada = Object.fromEntries(Object.entries(corpo?.pessoa ?? {}).filter(([, v]) => v !== "" && v !== null && v !== undefined));
+    const doRecrutamento = candidato ? pessoaDoCandidato(candidato) : {};
+    const pessoaId = corpo?.pessoaId ?? origem.pessoaId;
+    let pessoa;
+    let existente = false;
+    let preenchidos = [];
+    if (pessoaId) {
+      const atual = cad.pessoa.get(pessoaId);
+      if (!atual) throw erroNaoEncontrado("pessoa não encontrada no cadastro");
+      const comForm = completarPessoa(atual, informada);
+      const comRecrutamento = completarPessoa(comForm.pessoa, doRecrutamento);
+      pessoa = comRecrutamento.pessoa;
+      preenchidos = [...comForm.preenchidos, ...comRecrutamento.preenchidos];
+      existente = true;
+    } else {
+      const juntos = completarPessoa(informada, doRecrutamento);
+      const p = validarPessoa(juntos.pessoa);
       invalido(p);
+      preenchidos = juntos.preenchidos;
       const mesmoCPF = p.pessoa.cpf ? cad.pessoas.find((x) => x.cpf === p.pessoa.cpf) : null;
       if (mesmoCPF && mesmoCPF.nome.toLowerCase() !== p.pessoa.nome.toLowerCase()) {
         throw erroConflito(`este CPF já está no cadastro de ${mesmoCPF.nome}`);
       }
-      pessoa = mesmoCPF ?? { ...p.pessoa, id: novoId("PES") };
+      if (mesmoCPF) {
+        pessoa = completarPessoa(mesmoCPF, p.pessoa).pessoa;
+        existente = true;
+      } else pessoa = { ...p.pessoa, id: novoId("PES") };
     }
+    const conferida = validarPessoa(pessoa);
+    invalido(conferida);
+    // Formatos do cadastro (CPF e telefone só com dígitos), preservando dependentes e banco da pessoa.
+    pessoa = { ...pessoa, nome: conferida.pessoa.nome, cpf: conferida.pessoa.cpf, telefone: conferida.pessoa.telefone };
+    if (pessoa.cpf && cad.pessoas.some((x) => x.cpf === pessoa.cpf && x.id !== pessoa.id)) {
+      throw erroConflito("este CPF já está no cadastro de outra pessoa");
+    }
+    if (candidato) pessoa.candidatoId ??= candidato.id;
 
     const posto = d.postoId ? cad.posto.get(d.postoId) : null;
     const contrato = posto ? cad.contrato.get(posto.contratoId) : null;
@@ -90,7 +163,8 @@ export function registrarRotasCadastro(r, { repo }) {
     });
     invalido(r2);
 
-    if (!cad.pessoa.has(pessoa.id)) await repo.inserir(tenant, "pessoas", pessoa);
+    if (existente) await repo.atualizar(tenant, "pessoas", pessoa.id, pessoa);
+    else await repo.inserir(tenant, "pessoas", pessoa);
     const matricula = await proximaMatriculaDoTenant(repo, tenant, dados.tipo);
     const vinculo = {
       id: matricula, matricula, pessoaId: pessoa.id, tipo: dados.tipo, admissao: dados.admissao, desligamento: null,
@@ -99,10 +173,13 @@ export function registrarRotasCadastro(r, { repo }) {
       tomadorId: tomador?.id ?? null, tomadorCnpj: tomador?.cnpj ?? null, contratoId: contrato?.id ?? null, postoId: posto?.id ?? null,
       setor: dados.tipo === TIPO_VINCULO.PROPRIO ? d.setor : null,
       temporario: dados.tipo === TIPO_VINCULO.TEMPORARIO ? { fimPrevisto: d.temporario?.fimPrevisto ?? null, hipotese: contrato?.hipotese ?? null } : null,
+      origem: candidato ? { candidatoId: candidato.id, candidaturaId: candidatura?.id ?? null, vagaId: candidatura?.vagaId ?? null } : null,
       criadoPor: ctx.usuario ?? null,
     };
     await repo.inserir(tenant, "vinculos", vinculo);
-    sucesso(res, { vinculo, pessoa, avisos: r2.avisos }, 201);
+    const avisos = [...r2.avisos];
+    if (candidatura) avisos.push(...await registrarAdmissaoNaCandidatura(repo, tenant, candidatura, matricula, ctx.usuario));
+    sucesso(res, { vinculo, pessoa, preenchidos, avisos }, 201);
   });
 
   r.patch("/api/pessoas/:id", async (req, res, ctx, corpo) => {

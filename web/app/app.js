@@ -9,10 +9,10 @@
  */
 import { icone } from "./icones.js";
 import { api, sessao } from "./sessao.js";
-import { paginaColaboradores, paginaImportacao, paginaTomadores, ligarEventosCadastro, limparCadastro } from "./cadastro-telas.js";
+import { paginaColaboradores, paginaImportacao, paginaTomadores, ligarEventosCadastro, limparCadastro, admitirCandidatura } from "./cadastro-telas.js";
 import { paginaFolhaResumo, paginaHolerites, paginaFolhaTomadores, paginaVerbas, ligarEventosFolha, limparFolha } from "./folha-telas.js";
 import { paginaDecimoTerceiro, paginaRescisaoFerias, ligarEventosRescisao, limparRescisao } from "./rescisao-telas.js";
-import { esc, moeda, dataHora, avatar, etiqueta, diasDesde, quando, aviso, abrirPainel, fecharPainel, matiz } from "./ui.js";
+import { esc, moeda, dataHora, avatar, etiqueta, diasDesde, quando, aviso, abrirPainel, fecharPainel, matiz, matricula } from "./ui.js";
 import {
   ICONE_MODULO,
   esconderTelaCheia,
@@ -699,7 +699,10 @@ function painelCandidatura(id) {
     </div>
     <footer class="painel-rodape">
       <button class="botao botao-secundario" data-fechar>Fechar</button>
-      ${proxima && c.status === "EM_ANDAMENTO" && sessao.pode("recrutamento", "editar")
+      ${c.admissao ? `<span class="etiqueta e-verde">Admitido · matrícula ${esc(matricula(c.admissao.matricula))}</span>`
+        : ["proposta", "aprovado", "admissao"].includes(c.etapaAtualId) && sessao.pode("colaboradores", "criar")
+          ? `<button class="botao botao-primario" data-admitir="${esc(c.id)}">${icone("cracha")}Admitir</button>` : ""}
+      ${!c.admissao && proxima && proxima.id !== "admissao" && c.status === "EM_ANDAMENTO" && sessao.pode("recrutamento", "editar")
         ? `<button class="botao botao-primario" data-mover="${esc(c.id)}" data-para="${esc(proxima.id)}">Avançar para ${esc(proxima.nome)} ${icone("seta")}</button>`
         : ""}
     </footer>`);
@@ -848,6 +851,12 @@ document.addEventListener("click", (evento) => {
   if (publicar) return publicarVaga(publicar.dataset.abrirVaga);
   const mover = alvo.closest("[data-mover]");
   if (mover) return moverCandidatura(mover.dataset.mover, mover.dataset.para);
+  const admitir = alvo.closest("[data-admitir]");
+  if (admitir) {
+    // A admissão move a candidatura para "Admissão": o recrutamento recarrega depois.
+    recrutamentoCarregado = false;
+    return admitirCandidatura(admitir.dataset.admitir);
+  }
   if (alvo.closest("[data-acao='nova-vaga']")) return painelNovaVaga();
   const candidatura = alvo.closest("[data-candidatura]");
   if (candidatura) return painelCandidatura(candidatura.dataset.candidatura);

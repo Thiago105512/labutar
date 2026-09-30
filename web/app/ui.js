@@ -3,7 +3,7 @@
  * Todo texto de origem externa passa por `esc()` antes de virar HTML.
  */
 import { icone } from "./icones.js";
-import { FUSO_PADRAO, formatarBRL, formatarCNPJ, formatarCPF, formatarDataBR, paraCentavos } from "/packages/core/src/index.js";
+import { FUSO_PADRAO, formatarBRL, formatarCNPJ, formatarCPF, formatarDataBR, formatarTelefone, paraCentavos } from "/packages/core/src/index.js";
 import { formatarMatricula } from "/packages/mao-de-obra/src/matricula.js";
 
 export const esc = (valor) =>
@@ -44,6 +44,11 @@ export const quando = (iso) => {
 export const moeda = (centavos) => (centavos == null ? "—" : formatarBRL(centavos));
 /** Valor digitado ("2.000,00", "2000") → centavos. */
 export const lerMoeda = (texto) => paraCentavos(texto);
+
+/** Valor para preencher um campo de dinheiro ("3.500,00"): o mesmo formato que lerMoeda() lê. */
+export const moedaParaCampo = (centavos) => (centavos == null ? "" : formatarBRL(centavos).replace(/^R\$\s*/, ""));
+
+export const telefone = (valor) => (valor ? formatarTelefone(valor) : "");
 /** CNPJ só com os caracteres → "42.288.454/0001-50" (também alfanumérico). */
 export const cnpj = (valor) => (valor ? formatarCNPJ(valor) : "—");
 /** CPF só com dígitos → "529.982.247-25". */

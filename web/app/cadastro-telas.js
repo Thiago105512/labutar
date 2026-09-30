@@ -5,12 +5,17 @@
  */
 import { icone } from "./icones.js";
 import { api, sessao } from "./sessao.js";
-import { esc, moeda, cnpj, cpf, matricula, data, lerMoeda, avatar, etiqueta, aviso, abrirPainel, fecharPainel } from "./ui.js";
+import { esc, moeda, moedaParaCampo, cnpj, cpf, telefone, matricula, data, lerMoeda, avatar, etiqueta, aviso, abrirPainel, fecharPainel } from "./ui.js";
 
 const cache = { colaboradores: null, tomadores: null, busca: "", aoAlterar: null, previa: null, planilha: "" };
 const NOME_VINCULO = { TEMPORARIO: ["Temporário", "e-azul"], TERCEIRIZADO: ["Terceirizado", "e-marca"], PROPRIO: ["Próprio", "e-cinza"] };
 const TIPO_CONTRATO = { TRABALHO_TEMPORARIO: ["Trabalho temporário", "e-azul"], PRESTACAO_SERVICOS: ["Prestação de serviços", "e-marca"] };
 const HIPOTESE = { DEMANDA_COMPLEMENTAR: "Demanda complementar de serviços", SUBSTITUICAO_TRANSITORIA: "Substituição transitória de pessoal" };
+
+/** Admissão aberta a partir do processo seletivo (botão "Admitir" na candidatura). */
+export function admitirCandidatura(candidaturaId) {
+  return painelNovoColaborador({ candidaturaId }).catch((e) => aviso(e.message, "erro"));
+}
 
 export function limparCadastro() {
   cache.colaboradores = null;
@@ -134,8 +139,31 @@ async function postosDisponiveis() {
   return detalhes.flatMap((t) => t.contratos.flatMap((c) => c.postos.map((p) => ({ ...p, tomador: t.nomeFantasia || t.razaoSocial, contratoTipo: c.tipo }))));
 }
 
-async function painelNovoColaborador() {
-  const postos = await postosDisponiveis();
+const ETAPA_RECRUTAMENTO = { proposta: ["Proposta", "e-azul"], aprovado: ["Aprovado", "e-verde"], admissao: ["Em admissão", "e-verde"] };
+
+/** Uma linha da lista "Puxar dados": candidato do recrutamento ou pessoa do cadastro. */
+function linhaOrigem(o, i) {
+  const detalhe = o.origem === "RECRUTAMENTO"
+    ? `${o.prontoParaAdmitir ? etiqueta(ETAPA_RECRUTAMENTO, o.etapa) : '<span class="etiqueta e-cinza">Banco de talentos</span>'} ${o.vaga ? esc(o.vaga.titulo) : "Recrutamento"}`
+    : o.vinculoAtivo
+      ? '<span class="etiqueta e-ambar">Colaborador ativo</span> um novo vínculo será o segundo contrato'
+      : `<span class="etiqueta e-cinza">Já trabalhou aqui</span> ${o.ultimoVinculo ? `${esc(o.ultimoVinculo.cargo ?? "")} · ${data(o.ultimoVinculo.admissao)} a ${data(o.ultimoVinculo.desligamento)}` : ""}`;
+  return `
+    <button type="button" class="lista-item origem-item" data-origem="${i}">
+      ${avatar(o.nome, "avatar-sm")}
+      <div class="texto"><strong>${esc(o.nome)}</strong><small>${o.cpf ? `CPF ${esc(cpf(o.cpf))} · ` : "CPF não informado · "}${detalhe}</small></div>
+      <span class="dica">Usar ${icone("seta")}</span>
+    </button>`;
+}
+
+/**
+ * Admissão. A pessoa pode ser cadastrada do zero ou puxada do recrutamento (candidato) ou do
+ * cadastro (quem já trabalhou aqui). `inicial` já escolhe a origem (vindo do processo seletivo).
+ */
+async function painelNovoColaborador({ candidaturaId = null } = {}) {
+  const [postos, prontos] = await Promise.all([postosDisponiveis(), api("/colaboradores/origens")]);
+  let lista = prontos;
+  let escolhida = candidaturaId ? prontos.find((o) => o.candidaturaId === candidaturaId) ?? null : null;
   const opcoes = (tipo) => postos.filter((p) => (tipo === "TEMPORARIO" ? p.contratoTipo === "TRABALHO_TEMPORARIO" : p.contratoTipo === "PRESTACAO_SERVICOS"))
     .map((p) => `<option value="${esc(p.id)}" data-salario="${p.salarioReferencia ?? ""}">${esc(p.tomador)} — ${esc(p.funcao)}${p.salarioReferencia ? ` (tomadora paga ${moeda(p.salarioReferencia)})` : ""}</option>`).join("");
   abrirPainel(`
@@ -145,11 +173,23 @@ async function painelNovoColaborador() {
       <button class="botao-icone" data-fechar aria-label="Fechar">${icone("fechar")}</button>
     </header>
     <form class="painel-corpo formulario" id="form-novo-colaborador">
+      <div class="secao"><h4>Puxar dados</h4>
+        <p class="dica">Se a pessoa passou pelo recrutamento ou já trabalhou aqui, os dados vêm de lá. Se não, preencha do zero.</p>
+        <div id="n-origem-escolhida" class="origem-escolhida" hidden></div>
+        <div id="n-origem-busca">
+          <div class="campo"><input id="n-busca" type="search" placeholder="Buscar candidato ou ex-colaborador por nome ou CPF" aria-label="Buscar pessoa" autocomplete="off"></div>
+          <div class="lista" id="n-origens" style="margin-top:10px"></div>
+        </div>
+      </div>
       <div class="secao"><h4>Pessoa</h4>
         <div class="campo"><label for="n-nome">Nome completo</label><input id="n-nome" name="nome" required></div>
         <div class="duas">
           <div class="campo"><label for="n-cpf">CPF</label><input id="n-cpf" name="cpf" inputmode="numeric" placeholder="000.000.000-00"></div>
           <div class="campo"><label for="n-nasc">Nascimento</label><input id="n-nasc" name="nascimento" type="date"></div>
+        </div>
+        <div class="duas">
+          <div class="campo"><label for="n-email">E-mail</label><input id="n-email" name="email" type="email"></div>
+          <div class="campo"><label for="n-tel">Telefone</label><input id="n-tel" name="telefone" inputmode="tel" placeholder="(92) 99999-9999"></div>
         </div>
       </div>
       <div class="secao"><h4>Vínculo</h4>
@@ -175,6 +215,48 @@ async function painelNovoColaborador() {
       <button class="botao botao-primario" type="submit" form="form-novo-colaborador">${icone("ok")}Admitir</button>
     </footer>`);
   const form = document.getElementById("form-novo-colaborador");
+  const caixaLista = document.getElementById("n-origens");
+  const caixaEscolhida = document.getElementById("n-origem-escolhida");
+  const caixaBusca = document.getElementById("n-origem-busca");
+  const desenharLista = (vazio) => {
+    caixaLista.innerHTML = lista.map(linhaOrigem).join("") || `<p class="dica">${vazio}</p>`;
+  };
+  const CAMPOS = { nome: "nome", cpf: "cpf", nascimento: "nascimento", email: "email", telefone: "telefone" };
+  const usar = (o) => {
+    escolhida = o;
+    // Troca de origem: limpa o que veio da anterior, mantém o resto do formulário.
+    for (const [campo, nomeCampo] of Object.entries(CAMPOS)) {
+      const valor = o?.[campo];
+      form[nomeCampo].value = !valor ? "" : campo === "cpf" ? cpf(valor) : campo === "telefone" ? telefone(valor) : valor;
+    }
+    if (o?.vaga?.salario && !form.salario.value) form.salario.value = moedaParaCampo(o.vaga.salario);
+    caixaBusca.hidden = Boolean(o);
+    caixaEscolhida.hidden = !o;
+    caixaEscolhida.innerHTML = o ? `
+      ${avatar(o.nome, "avatar-sm")}
+      <div class="texto"><strong>${esc(o.nome)}</strong><small>${o.origem === "RECRUTAMENTO" ? `Dados do recrutamento${o.vaga ? ` · ${esc(o.vaga.titulo)}` : ""}` : "Dados do cadastro · matrícula nova, mesma pessoa"}. Confira e complete abaixo.</small></div>
+      <button type="button" class="botao botao-secundario botao-sm" data-origem-limpar>Cadastrar do zero</button>` : "";
+  };
+  desenharLista("Nenhum candidato aprovado aguardando admissão. Busque pelo nome ou CPF.");
+  if (escolhida) usar(escolhida);
+  let espera;
+  document.getElementById("n-busca").addEventListener("input", (e) => {
+    clearTimeout(espera);
+    const termo = e.target.value.trim();
+    espera = setTimeout(async () => {
+      try {
+        lista = termo.length >= 2 ? await api(`/colaboradores/origens?busca=${encodeURIComponent(termo)}`) : prontos;
+        desenharLista(termo.length >= 2 ? "Ninguém encontrado: siga com o cadastro do zero." : "Nenhum candidato aprovado aguardando admissão.");
+      } catch (erro) { aviso(erro.message, "erro"); }
+    }, 250);
+  });
+  caixaLista.addEventListener("click", (e) => {
+    const botao = e.target.closest("[data-origem]");
+    if (botao) usar(lista[Number(botao.dataset.origem)]);
+  });
+  caixaEscolhida.addEventListener("click", (e) => {
+    if (e.target.closest("[data-origem-limpar]")) usar(null);
+  });
   const ajustar = () => {
     const tipo = form.tipo.value;
     form.querySelector("[data-so-tomador]").hidden = tipo === "PROPRIO";
@@ -185,13 +267,15 @@ async function painelNovoColaborador() {
   form.tipo.addEventListener("change", ajustar);
   form.postoId.addEventListener("change", () => {
     const s = form.postoId.selectedOptions[0]?.dataset.salario;
-    if (s && !form.salario.value) form.salario.value = (Number(s) / 100).toFixed(2).replace(".", ",");
+    if (s && !form.salario.value) form.salario.value = moedaParaCampo(Number(s));
   });
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const f = Object.fromEntries(new FormData(form));
     const corpo = {
-      pessoa: { nome: f.nome, cpf: f.cpf || null, nascimento: f.nascimento || undefined },
+      pessoaId: escolhida?.origem === "CADASTRO" ? escolhida.pessoaId : undefined,
+      origem: escolhida?.origem === "RECRUTAMENTO" ? { candidatoId: escolhida.candidatoId, candidaturaId: escolhida.candidaturaId } : undefined,
+      pessoa: { nome: f.nome, cpf: f.cpf || null, nascimento: f.nascimento || undefined, email: f.email || undefined, telefone: f.telefone || undefined },
       vinculo: {
         tipo: f.tipo, admissao: f.admissao, cargo: f.cargo || undefined, salario: lerMoeda(f.salario),
         postoId: f.tipo === "PROPRIO" ? undefined : f.postoId || undefined,
