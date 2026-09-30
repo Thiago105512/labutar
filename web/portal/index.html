@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-sessao="labutar.portal">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1b1446">
+  <title>Labutar — Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../app/styles.css">
+  <link rel="stylesheet" href="./portal.css">
+</head>
+<body>
+  <div class="tela-cheia" id="tela-cheia" hidden></div>
+  <div class="portal" id="portal" hidden></div>
+
+  <div class="painel-lateral" id="painel-lateral" aria-hidden="true">
+    <div class="painel-fundo" data-fechar></div>
+    <aside class="painel" role="dialog" aria-modal="true" id="painel"></aside>
+  </div>
+  <div class="avisos" id="avisos" aria-live="polite"></div>
+
+  <script type="module" src="./portal.js"></script>
+</body>
+</html>

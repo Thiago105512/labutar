@@ -93,3 +93,33 @@ na tela de login (só em `localhost`).
 - Autenticação em dois fatores para Administrador geral e Gestor de folha/financeiro.
 - Tenant resolvido pelo subdomínio (`empresa.labutar.com.br`), dispensando o campo "Empresa".
 - Sessões ativas visíveis ao usuário, com "sair de todos os dispositivos".
+
+## 7. Acessos externos: candidato, colaborador e cliente
+
+Além da equipe, três públicos entram no Labutar — cada um por um **portal próprio**
+(`/web/portal/`) e vendo **só o que é dele**. São tipos de conta diferentes: a mesma
+pessoa pode ter uma conta de cada tipo com o mesmo e-mail (ex.: colaborador que também é
+candidato a outra vaga), e o login pede o tipo.
+
+| Conta | Como é criada | Escopo (filtro de tudo que ela vê) | O que acessa |
+|---|---|---|---|
+| **Candidato** | Ele mesmo, no portal, com aceite do termo LGPD | `candidatoId` | Vagas abertas, candidatar-se, acompanhar as próprias candidaturas (etapa, sem score), desistir, editar o currículo |
+| **Colaborador** | A empresa libera (quem tem cadastro em **Colaboradores**) | `pessoaId` do cadastro único | Holerites, ponto, férias, documentos, informe de rendimentos, treinamentos — os serviços acendem conforme os módulos entram em produção |
+| **Cliente (tomador)** | A empresa libera (quem tem cadastro em **Tomadores e postos**) | `tomadorId` (+ contratos) e **papel** | Consulta: alocados, presença, documentos · Gestor do contrato: + aprovar ponto e medição, pedir postos · Financeiro: medições e faturas |
+
+Regras:
+
+- **Conta externa nunca entra nas rotas da equipe** (`exigirPermissao` recusa), e a equipe
+  não usa as rotas dos portais (`exigirConta`).
+- Nos portais, **o dono do dado vem sempre do escopo gravado na conta**, nunca da URL.
+  Recurso de outra pessoa responde 404 — nem a existência é confirmada.
+- **Autocadastro não herda histórico pelo e-mail.** Se já existe currículo com aquele e-mail
+  (candidatura feita sem conta), ligar exige o **código de acompanhamento** recebido na
+  candidatura. Sem isso, qualquer um que soubesse o e-mail de outra pessoa leria as
+  candidaturas dela.
+- O candidato altera o próprio currículo, mas não o e-mail (que é o login).
+- Contas de colaborador e cliente nascem com **senha provisória** (troca no primeiro acesso).
+  Desativar ou mudar o papel **derruba a sessão** na hora.
+- A equipe gerencia tudo em **Administração → Acessos externos**, que também mostra o link do
+  portal para enviar. Cada aba exige a permissão do módulo correspondente
+  (Colaboradores, Tomadores e postos, Recrutamento).

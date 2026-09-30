@@ -5,7 +5,7 @@
 import { icone } from "./icones.js";
 import { api, entrar, recarregarSessao, sair, sessao } from "./sessao.js";
 import { esc, avatar, aviso, abrirPainel, fecharPainel, dataHora } from "./ui.js";
-import { MODULOS, NIVEIS, NIVEL, validarSenha } from "/packages/acesso/src/index.js";
+import { MODULOS, NIVEIS, NIVEL, PAPEIS_TOMADOR, validarSenha } from "/packages/acesso/src/index.js";
 
 export const ICONE_MODULO = Object.freeze({
   recrutamento: "candidatos", colaboradores: "cracha", admissao: "admissao", tomadores: "tomadores",
@@ -253,6 +253,8 @@ const NOME_EVENTO = {
   USUARIO_ALTERADO: ["Alterou usuário", "e-marca"],
   PERFIL_CRIADO: ["Criou perfil de acesso", "e-marca"],
   PERFIL_ALTERADO: ["Alterou perfil de acesso", "e-marca"],
+  CONTA_EXTERNA_CRIADA: ["Liberou acesso externo", "e-destaque"],
+  CONTA_EXTERNA_ALTERADA: ["Alterou acesso externo", "e-destaque"],
 };
 
 const cacheAdmin = { usuarios: [], perfis: [] };
@@ -344,6 +346,108 @@ export async function paginaAuditoria() {
       </table>
     </div>`;
 }
+
+// ------------------------------------------------------------------ acessos externos
+
+const ABAS_EXTERNAS = [
+  { tipo: "COLABORADOR", nome: "Colaboradores", modulo: "colaboradores", icone: "cracha" },
+  { tipo: "TOMADOR", nome: "Clientes (tomadores)", modulo: "tomadores", icone: "tomadores" },
+  { tipo: "CANDIDATO", nome: "Candidatos", modulo: "recrutamento", icone: "candidatos" },
+];
+const cacheExternas = { tipo: null, contas: [], pessoas: [] };
+
+export async function paginaContasExternas() {
+  const abas = ABAS_EXTERNAS.filter((a) => sessao.pode(a.modulo, "ver"));
+  if (!abas.length) return '<div class="cartao vazio">Seu perfil não gerencia acessos externos.</div>';
+  const aba = abas.find((a) => a.tipo === cacheExternas.tipo) ?? abas[0];
+  cacheExternas.tipo = aba.tipo;
+  const [{ itens }, pessoas] = await Promise.all([
+    api(`/contas-externas?tipo=${aba.tipo}`),
+    sessao.pode("recrutamento", "ver") ? api("/candidatos?limite=200").then((d) => d.itens).catch(() => []) : Promise.resolve([]),
+  ]);
+  cacheExternas.contas = itens;
+  cacheExternas.pessoas = pessoas;
+  const nomePessoa = (id) => pessoas.find((p) => p.id === id)?.dados?.nome ?? "—";
+  const vinculo = (c) => aba.tipo === "TOMADOR"
+    ? `<b>${esc(c.escopo?.tomadorNome ?? c.escopo?.tomadorId)}</b><small class="dica"> · ${esc(PAPEIS_TOMADOR.find((p) => p.id === c.escopo?.papel)?.nome ?? "")}</small>`
+    : esc(nomePessoa(c.escopo?.pessoaId ?? c.escopo?.candidatoId));
+  const podeCriar = aba.tipo !== "CANDIDATO" && sessao.pode(aba.modulo, "criar");
+  const podeEditar = sessao.pode(aba.modulo, "editar");
+
+  return `
+    <div class="barra-filtros">
+      ${abas.map((a) => `<button class="filtro ${a.tipo === aba.tipo ? "ativo" : ""}" data-aba-externa="${a.tipo}">${esc(a.nome)}</button>`).join("")}
+      ${podeCriar ? `<button class="botao botao-primario" style="margin-left:auto" data-adm="nova-externa">${icone("mais")}Liberar acesso</button>` : ""}
+    </div>
+    <p class="dica" style="margin:-6px 0 14px">${aba.tipo === "CANDIDATO"
+      ? "Candidatos criam a própria conta no portal. Aqui você pode desativá-la ou redefinir a senha."
+      : aba.tipo === "COLABORADOR"
+        ? "O colaborador entra no portal com e-mail e senha para ver holerites, ponto, férias e documentos — só os dele."
+        : "Usuários do cliente veem só o próprio contrato: trabalhadores alocados, ponto, medição, faturas e documentos."}
+      Link do portal: <code>${esc(location.origin)}/web/portal/index.html?empresa=${esc(sessao.empresa ?? "")}&amp;perfil=${aba.tipo.toLowerCase()}</code></p>
+    <div class="cartao tabela-cartao">
+      <table class="tabela">
+        <thead><tr><th>Pessoa</th><th>${aba.tipo === "TOMADOR" ? "Cliente e papel" : "Cadastro vinculado"}</th><th>Situação</th><th>Último acesso</th><th></th></tr></thead>
+        <tbody>
+          ${itens.map((c) => `
+            <tr>
+              <td><div class="pessoa">${avatar(c.nome, "avatar-sm")}<div><strong>${esc(c.nome)}</strong><small>${esc(c.email)}</small></div></div></td>
+              <td>${vinculo(c)}</td>
+              <td>${c.ativo ? '<span class="etiqueta e-verde">Ativo</span>' : '<span class="etiqueta e-cinza">Inativo</span>'}${c.trocarSenha ? ' <span class="etiqueta e-ambar">Senha provisória</span>' : ""}</td>
+              <td>${c.ultimoAcesso ? dataHora(c.ultimoAcesso) : '<span class="dica">nunca entrou</span>'}</td>
+              <td class="acoes-linha">${podeEditar ? `
+                <button class="botao botao-secundario botao-sm" data-adm="alternar-externa" data-id="${esc(c.id)}">${c.ativo ? "Desativar" : "Reativar"}</button>
+                <button class="botao botao-fantasma botao-sm" data-adm="senha-externa" data-id="${esc(c.id)}">Redefinir senha</button>` : ""}</td>
+            </tr>`).join("") || `<tr><td colspan="5" class="vazio">Nenhum acesso de ${esc(aba.nome.toLowerCase())} ainda.</td></tr>`}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function painelNovaExterna() {
+  const tipo = cacheExternas.tipo;
+  const colaborador = tipo === "COLABORADOR";
+  abrirPainel(`
+    <header class="painel-cabecalho">
+      <span class="indicador-icone" style="color:var(--marca-500);background:var(--marca-100)">${icone(colaborador ? "cracha" : "tomadores")}</span>
+      <div class="texto"><h2>${colaborador ? "Acesso de colaborador" : "Acesso de cliente (tomador)"}</h2>
+        <p>A pessoa recebe uma senha provisória e troca no primeiro acesso ao portal.</p></div>
+      <button class="botao-icone" data-fechar aria-label="Fechar">${icone("fechar")}</button>
+    </header>
+    <form class="painel-corpo formulario" id="form-externa" data-tipo="${tipo}">
+      ${colaborador ? `
+        <div class="campo"><label for="x-pessoa">Colaborador (cadastro único)</label>
+          <select id="x-pessoa" name="pessoaId" required><option value="">Selecione</option>
+            ${cacheExternas.pessoas.map((p) => `<option value="${esc(p.id)}" data-email="${esc(p.contato?.email ?? "")}" data-nome="${esc(p.dados?.nome ?? "")}">${esc(p.dados?.nome)}</option>`).join("")}
+          </select><p class="dica">A pessoa vem do cadastro único (o mesmo do banco de talentos e da admissão).</p></div>` : `
+        <div class="duas">
+          <div class="campo"><label for="x-tomador">Cliente (tomador)</label><input id="x-tomador" name="tomadorNome" required placeholder="Razão social do cliente"></div>
+          <div class="campo"><label for="x-papel">Papel no portal</label><select id="x-papel" name="papel">${PAPEIS_TOMADOR.map((p) => `<option value="${p.id}">${esc(p.nome)}</option>`).join("")}</select></div>
+        </div>
+        <p class="dica" id="x-papel-desc"></p>`}
+      <div class="campo"><label for="x-nome">Nome de quem vai acessar</label><input id="x-nome" name="nome" required minlength="3"></div>
+      <div class="campo"><label for="x-email">E-mail (login)</label><input id="x-email" name="email" type="email" required></div>
+      <div class="campo"><label for="x-senha">Senha provisória</label>
+        <div class="campo-senha"><input id="x-senha" name="senha" required minlength="10" value="${esc(gerarSenha())}">
+        <button type="button" class="botao-fantasma botao-sm" data-gerar-senha="x-senha">Gerar outra</button></div></div>
+    </form>
+    <footer class="painel-rodape">
+      <button class="botao botao-secundario" data-fechar type="button">Cancelar</button>
+      <button class="botao botao-primario" type="submit" form="form-externa">${icone("ok")}Liberar acesso</button>
+    </footer>`);
+  const pessoa = document.getElementById("x-pessoa");
+  pessoa?.addEventListener("change", () => {
+    const op = pessoa.selectedOptions[0];
+    document.getElementById("x-nome").value = op?.dataset.nome ?? "";
+    document.getElementById("x-email").value = op?.dataset.email ?? "";
+  });
+  const papel = document.getElementById("x-papel");
+  const descrever = () => { if (papel) document.getElementById("x-papel-desc").textContent = PAPEIS_TOMADOR.find((p) => p.id === papel.value)?.descricao ?? ""; };
+  papel?.addEventListener("change", descrever);
+  descrever();
+}
+
+const slugTomador = (nome) => "TOM_" + String(nome).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 40);
 
 // ------------------------------------------------------------------ painéis de administração
 
@@ -474,9 +578,37 @@ export function ligarEventosAcesso({ aoAlterar, aoSair }) {
       return;
     }
 
+    const abaExterna = alvo.closest("[data-aba-externa]");
+    if (abaExterna) {
+      cacheExternas.tipo = abaExterna.dataset.abaExterna;
+      aoAlterar?.();
+      return;
+    }
+
     const acao = alvo.closest("[data-adm]");
     if (!acao) return;
     const id = acao.dataset.id;
+    if (acao.dataset.adm === "nova-externa") return painelNovaExterna();
+    if (acao.dataset.adm === "alternar-externa") {
+      const conta = cacheExternas.contas.find((c) => c.id === id);
+      try {
+        await api(`/contas-externas/${id}`, { metodo: "PATCH", corpo: { ativo: !conta.ativo } });
+        aviso(conta.ativo ? "Acesso desativado. A sessão da pessoa foi encerrada." : "Acesso reativado.");
+        aoAlterar?.();
+      } catch (e) { aviso(e.message, "erro"); }
+      return;
+    }
+    if (acao.dataset.adm === "senha-externa") {
+      const nova = gerarSenha();
+      const conta = cacheExternas.contas.find((c) => c.id === id);
+      if (!confirm(`Redefinir a senha de ${conta?.nome}? A nova senha provisória será: ${nova}`)) return;
+      try {
+        await api(`/contas-externas/${id}`, { metodo: "PATCH", corpo: { novaSenha: nova } });
+        aviso(`Senha redefinida. Provisória: ${nova}`);
+        aoAlterar?.();
+      } catch (e) { aviso(e.message, "erro"); }
+      return;
+    }
     if (acao.dataset.adm === "novo-usuario") painelUsuario();
     if (acao.dataset.adm === "editar-usuario") painelUsuario(cacheAdmin.usuarios.find((u) => u.id === id));
     if (acao.dataset.adm === "senha-usuario") painelSenhaUsuario(cacheAdmin.usuarios.find((u) => u.id === id));
@@ -487,7 +619,7 @@ export function ligarEventosAcesso({ aoAlterar, aoSair }) {
 
   document.addEventListener("submit", async (evento) => {
     const form = evento.target;
-    if (!["form-usuario", "form-redefinir", "form-perfil"].includes(form.id)) return;
+    if (!["form-usuario", "form-redefinir", "form-perfil", "form-externa"].includes(form.id)) return;
     evento.preventDefault();
     const dados = Object.fromEntries(new FormData(form));
     try {
@@ -500,6 +632,14 @@ export function ligarEventosAcesso({ aoAlterar, aoSair }) {
           await api("/usuarios", { metodo: "POST", corpo: { nome: dados.nome, email: dados.email, perfilId: dados.perfilId, senha: dados.senha, ajustes } });
           aviso(`Usuário criado. Senha provisória: ${dados.senha}`);
         }
+      }
+      if (form.id === "form-externa") {
+        const tipo = form.dataset.tipo;
+        const escopo = tipo === "COLABORADOR"
+          ? { pessoaId: dados.pessoaId }
+          : { tomadorId: slugTomador(dados.tomadorNome), tomadorNome: dados.tomadorNome.trim(), papel: dados.papel };
+        await api("/contas-externas", { metodo: "POST", corpo: { tipo, nome: dados.nome, email: dados.email, senha: dados.senha, escopo } });
+        aviso(`Acesso liberado. Senha provisória: ${dados.senha}`);
       }
       if (form.id === "form-redefinir") {
         await api(`/usuarios/${form.dataset.id}/senha`, { metodo: "POST", corpo: { novaSenha: dados.novaSenha } });

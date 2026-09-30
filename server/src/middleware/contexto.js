@@ -51,6 +51,8 @@ export async function resolverContexto(req, { acesso: servicoAcesso, config = {}
       tenant: sessao.tenant,
       usuario: sessao.usuario.id,
       usuarioDados: sessao.usuario,
+      tipoConta: sessao.usuario.tipo ?? "INTERNO",
+      escopo: sessao.usuario.escopo ?? {},
       sessaoId: sessao.sessao.id,
       acesso: sessao.acesso,
       query,
@@ -63,7 +65,7 @@ export async function resolverContexto(req, { acesso: servicoAcesso, config = {}
     const papelBruto = (cabecalhos["x-labutar-papel"] ?? "recrutador").trim().toLowerCase();
     const papel = PAPEIS.includes(papelBruto) ? papelBruto : "recrutador";
     const acesso = usuario ? acessoEfetivo({ ativo: true }, perfilPadrao(PAPEL_PARA_PERFIL[papel])) : null;
-    return { tenant: tenantDeclarado, usuario, papel, acesso, query, stub: true };
+    return { tenant: tenantDeclarado, usuario, papel, acesso, tipoConta: "INTERNO", query, stub: true };
   }
 
   return { tenant: tenantDeclarado, usuario: null, acesso: null, query, stub: false };
@@ -84,9 +86,20 @@ export function exigirUsuario(ctx) {
   return ctx.usuario;
 }
 
+/**
+ * Rotas de portal: exige conta do tipo indicado e devolve o escopo dela.
+ * Toda consulta do portal filtra por esse escopo — nunca por id vindo da URL.
+ */
+export function exigirConta(ctx, tipo) {
+  exigirUsuario(ctx);
+  if (ctx.tipoConta !== tipo) throw erroSemPermissao("esta área não é do seu tipo de conta");
+  return { tenant: ctx.tenant, escopo: ctx.escopo ?? {}, usuario: ctx.usuarioDados };
+}
+
 /** A checagem que toda rota interna faz: usuário autenticado com a ação liberada no módulo. */
 export function exigirPermissao(ctx, modulo, acao) {
   exigirUsuario(ctx);
+  if (ctx.tipoConta !== "INTERNO") throw erroSemPermissao("esta área é da equipe da empresa; use o seu portal");
   if (!pode(ctx.acesso, modulo, acao)) {
     const nomeModulo = MODULOS.find((m) => m.id === modulo)?.nome ?? modulo;
     throw erroSemPermissao(`seu perfil não permite "${NOME_ACAO[acao] ?? acao}" em ${nomeModulo}`);

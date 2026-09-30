@@ -13,7 +13,7 @@ export function registrarRotasAcesso(r, { acesso }) {
     const empresa = String(corpo?.empresa ?? ctx.tenant ?? "").trim().toLowerCase();
     if (!corpo?.email || !corpo?.senha) throw erroValidacao("informe e-mail e senha", ["email", "senha"]);
     const resultado = await acesso.entrar({
-      tenant: empresa, email: corpo.email, senha: corpo.senha, ip: ctx.ip, userAgent: ctx.userAgent,
+      tenant: empresa, email: corpo.email, senha: corpo.senha, tipo: corpo.tipo ?? "INTERNO", ip: ctx.ip, userAgent: ctx.userAgent,
     });
     sucesso(res, resultado);
   });

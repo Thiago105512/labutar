@@ -22,7 +22,7 @@ roadmap em [`docs/03-roadmap.md`](docs/03-roadmap.md).
 | `@labutar/avaliacoes` | DISC, testes, cursos, laudos, benchmark com guardrails | ✅ |
 | `@labutar/comunica` | templates, canais, avisos, lembretes (sem entrega) | ✅ |
 | `@labutar/ia` | prompts, desidentificação, rubricas | ✅ |
-| `@labutar/acesso` | login, módulos, níveis, perfis, permissões e política de senha ([`docs/12-acesso.md`](docs/12-acesso.md)) | ✅ |
+| `@labutar/acesso` | login, módulos, níveis, perfis, permissões, política de senha e contas de candidato, colaborador e cliente ([`docs/12-acesso.md`](docs/12-acesso.md)) | ✅ |
 | `@labutar/mao-de-obra` | **núcleo do domínio**: vínculos, prazos legais, alocação, rateio | ✅ |
 | `@labutar/admissao` | checklist, ASO, contrato, prazos do temporário | ⏸ contrato reservado |
 | `@labutar/esocial` | eventos eSocial | ⏸ contrato reservado |

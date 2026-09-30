@@ -1,0 +1,69 @@
+/* Portal externo (candidato, colaborador, cliente) — complementa ../app/styles.css */
+body { background: var(--fundo); }
+.portal { min-height: 100vh; background: radial-gradient(120% 40% at 50% 0%, var(--marca-50), var(--fundo) 60%); }
+.portal-topo { display: flex; align-items: center; gap: 16px; padding: 16px 40px; border-bottom: 1px solid var(--borda); background: rgba(255,255,255,.7); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
+.portal-tipo { margin-right: auto; }
+.portal-tipo .ic { width: 14px; height: 14px; }
+.portal-conteudo { max-width: 1120px; margin: 0 auto; padding: 28px 40px 60px; }
+.portal-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.portal-hero h1 { font-size: 30px; letter-spacing: -.03em; }
+.portal-hero p { color: var(--texto-2); font-size: 15px; margin-top: 4px; }
+.portal-secao { margin-top: 28px; }
+.portal-secao h2 { font-size: 17px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.portal-secao h2 small { font-size: 12px; font-weight: 700; color: var(--texto-2); background: var(--cinza-bg); border-radius: 99px; padding: 1px 9px; }
+
+.grade-candidaturas { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr)); gap: 16px; }
+.grade-candidaturas > *, .grade-vagas-portal > *, .grade-servicos > * { min-width: 0; }
+.candidatura-portal { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.candidatura-portal header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.candidatura-portal h3 { font-size: 16px; margin-bottom: 6px; }
+.candidatura-portal footer { display: flex; justify-content: flex-end; }
+.trilha { list-style: none; display: flex; gap: 4px; }
+.trilha li { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.trilha i { height: 6px; border-radius: 3px; background: var(--cinza-bg); }
+.trilha li.feito i { background: var(--marca-500); }
+.trilha li.atual i { background: var(--destaque); }
+.trilha span { font-size: 10.5px; color: var(--texto-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trilha li.atual span { color: var(--texto); font-weight: 600; }
+
+.grade-vagas-portal { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 16px; }
+.vaga-portal { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.vaga-portal h3 { font-size: 16px; }
+.vaga-portal .botao { align-self: flex-start; margin-top: auto; }
+.lista-simples { padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+
+.grade-servicos { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 14px; }
+.servico { padding: 18px; display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; }
+.servico h3 { font-size: 15px; margin-bottom: 4px; }
+.servico p { color: var(--texto-2); font-size: 13px; }
+.servico .etiqueta { grid-column: 2; justify-self: start; }
+.dados-pessoais { padding: 20px; display: flex; gap: 16px; align-items: center; }
+.dados-pessoais strong { font-size: 16px; }
+
+/* login do portal */
+.abas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; background: var(--fundo); border-radius: 12px; border: 1px solid var(--borda); }
+.aba { display: flex; align-items: center; justify-content: center; gap: 6px; height: 38px; border-radius: 9px; font-weight: 600; font-size: 13px; color: var(--texto-2); }
+.aba .ic { width: 16px; height: 16px; }
+.aba.ativa { background: #fff; color: var(--marca-600); box-shadow: var(--sombra-1); }
+.aceite { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; color: var(--texto-2); line-height: 1.45; }
+.aceite input { margin-top: 3px; accent-color: var(--marca-500); }
+.troca-modo { text-align: center; font-size: 13.5px; color: var(--texto-2); }
+.troca-modo a, .login-rodape a { color: var(--marca-600); font-weight: 600; }
+.login-rodape a { color: var(--destaque-2); }
+.empresa-campo { font-size: 12.5px; color: var(--texto-3); }
+.empresa-campo summary { cursor: pointer; }
+.empresa-campo .campo { margin-top: 8px; }
+.conta-demo { align-self: center; cursor: pointer; }
+
+@media (max-width: 860px) {
+  .portal-topo { padding: 12px 16px; }
+  .portal-tipo, .portal-topo .usuario-texto { display: none; }
+  .portal-conteudo { padding: 20px 16px 48px; }
+  .portal-hero { flex-direction: column; align-items: flex-start; }
+  .portal-hero h1 { font-size: 24px; }
+  .grade-candidaturas, .grade-servicos { grid-template-columns: 1fr; }
+  .aba { font-size: 12px; }
+  .trilha li:not(.atual) span { visibility: hidden; }
+  .trilha li.atual { flex: 3; }
+  .candidatura-portal header { flex-direction: column; }
+}

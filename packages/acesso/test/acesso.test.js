@@ -134,3 +134,22 @@ test("política de senha: comprimento, óbvias e dados pessoais", () => {
   assert.match(validarSenha("mariafernanda2026", { email: "maria.fernanda@x.com", nome: "Maria Fernanda" }).erros.join(" "), /nome, e-mail/);
   assert.match(validarSenha("x".repeat(129)).erros[0], /no máximo/);
 });
+
+import { TIPO_CONTA, validarEscopo, podeNoTomador } from "../src/index.js";
+
+test("conta externa exige escopo: candidato, pessoa ou tomador com papel", () => {
+  assert.equal(validarEscopo(TIPO_CONTA.CANDIDATO, { candidatoId: "C1" }).ok, true);
+  assert.equal(validarEscopo(TIPO_CONTA.CANDIDATO, {}).ok, false);
+  assert.equal(validarEscopo(TIPO_CONTA.COLABORADOR, { pessoaId: "P1" }).ok, true);
+  assert.equal(validarEscopo(TIPO_CONTA.TOMADOR, { tomadorId: "T1", papel: "GESTOR_CONTRATO" }).ok, true);
+  assert.match(validarEscopo(TIPO_CONTA.TOMADOR, { tomadorId: "T1", papel: "DONO" }).erros[0], /papel/);
+});
+
+test("papéis do tomador: consulta vê, gestor aprova, financeiro vê faturas", () => {
+  assert.equal(podeNoTomador("CONSULTA", "verAlocados"), true);
+  assert.equal(podeNoTomador("CONSULTA", "aprovarPonto"), false);
+  assert.equal(podeNoTomador("GESTOR_CONTRATO", "aprovarPonto"), true);
+  assert.equal(podeNoTomador("FINANCEIRO", "verFaturas"), true);
+  assert.equal(podeNoTomador("FINANCEIRO", "verAlocados"), false);
+  assert.equal(podeNoTomador("INVENTADO", "verAlocados"), false);
+});
