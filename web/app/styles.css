@@ -677,3 +677,8 @@ a.modulo-cartao:hover { transform: translateY(-3px); box-shadow: var(--sombra-2)
 .grade-folha { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 18px; align-items: start; }
 .linha-cpf { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .linha-cpf input { flex: 1; min-width: 160px; height: 34px; padding: 0 10px; border: 1px solid var(--borda-forte); border-radius: 8px; font: inherit; background: var(--superficie); color: var(--texto); }
+
+/* Caixa de marcar com rótulo ao lado, nos formulários. */
+.opcao-marcar { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--texto-2); cursor: pointer; }
+.opcao-marcar input { margin-top: 3px; accent-color: var(--marca-500); }
+.linha-apagada td { opacity: .6; }

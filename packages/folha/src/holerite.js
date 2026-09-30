@@ -28,6 +28,42 @@ function diasDeContrato(colaborador, competencia) {
 }
 
 /**
+ * Verbas do tempo trabalhado no período: salário dos dias, adicionais, horas extras, noturno,
+ * DSR sobre variáveis, faltas. Usada pela folha mensal e pelo saldo de salário da rescisão.
+ * `verbaDoSalario` troca o código do salário (na rescisão, 6000.01 Saldo de salário).
+ */
+export function verbasSalariais(colaborador, dias, L, tabela, cal, { verbaDoSalario = VERBAS.SALARIO } = {}) {
+  const itens = [];
+  const lanca = (verba, valor, referencia = null) => {
+    if (valor > 0) itens.push({ codigo: verba.codigo, nome: verba.nome, tipo: verba.tipo, referencia, valor, verba });
+  };
+  const salario = colaborador.salario;
+  const salarioMes = r((salario * dias) / 30);
+  lanca(verbaDoSalario, salarioMes, `${dias} dias`);
+
+  const periculosidadeMensal = colaborador.periculosidade ? r(salario * 0.3) : 0;
+  const insalubridadeMensal = colaborador.insalubridadeGrau ? r((tabela.salarioMinimo * colaborador.insalubridadeGrau) / 100) : 0;
+  lanca(VERBAS.PERICULOSIDADE, r((periculosidadeMensal * dias) / 30), colaborador.periculosidade ? "30%" : null);
+  lanca(VERBAS.INSALUBRIDADE, r((insalubridadeMensal * dias) / 30), colaborador.insalubridadeGrau ? `${colaborador.insalubridadeGrau}% do mínimo` : null);
+
+  const jornada = colaborador.jornadaMensal ?? JORNADA_PADRAO;
+  const valorHora = (salario + periculosidadeMensal + insalubridadeMensal) / jornada;
+  const he50 = r((L.horasExtras50 ?? 0) * valorHora * 1.5);
+  const he100 = r((L.horasExtras100 ?? 0) * valorHora * 2);
+  const noturno = r((L.horasNoturnas ?? 0) * valorHora * 0.2);
+  lanca(VERBAS.HORA_EXTRA_50, he50, L.horasExtras50 ? `${L.horasExtras50}h` : null);
+  lanca(VERBAS.HORA_EXTRA_100, he100, L.horasExtras100 ? `${L.horasExtras100}h` : null);
+  lanca(VERBAS.ADICIONAL_NOTURNO, noturno, L.horasNoturnas ? `${L.horasNoturnas}h` : null);
+  const variaveis = he50 + he100 + noturno;
+  if (variaveis > 0) lanca(VERBAS.DSR_VARIAVEIS, r((variaveis / cal.uteis) * cal.descanso), `${cal.descanso}/${cal.uteis} dias`);
+
+  const diaria = salario / 30;
+  lanca(VERBAS.FALTAS, r((L.faltasDias ?? 0) * diaria), L.faltasDias ? `${L.faltasDias} dias` : null);
+  lanca(VERBAS.DSR_FALTAS, r((L.dsrPerdidos ?? 0) * diaria), L.dsrPerdidos ? `${L.dsrPerdidos} dias` : null);
+  return { itens, salarioMes, valorHora };
+}
+
+/**
  * @param colaborador { matricula, nome, vinculo, salario, jornadaMensal?, admissao, desligamento?,
  *   dependentesIR?, filhosSalarioFamilia?, insalubridadeGrau? (10|20|40), periculosidade?, lotacao }
  * @param lancamentos { horasExtras50?, horasExtras100?, horasNoturnas?, faltasDias?, dsrPerdidos?,
@@ -51,30 +87,8 @@ export function calcularHolerite(colaborador, competencia, lancamentos = {}, opc
     if (valor > 0) itens.push({ codigo: verba.codigo, nome: verba.nome, tipo: verba.tipo, referencia, valor, verba });
   };
   const L = lancamentos;
-
-  const salario = colaborador.salario;
-  const salarioMes = r((salario * dias) / 30);
-  lanca(VERBAS.SALARIO, salarioMes, `${dias} dias`);
-
-  const periculosidadeMensal = colaborador.periculosidade ? r(salario * 0.3) : 0;
-  const insalubridadeMensal = colaborador.insalubridadeGrau ? r((tabela.salarioMinimo * colaborador.insalubridadeGrau) / 100) : 0;
-  lanca(VERBAS.PERICULOSIDADE, r((periculosidadeMensal * dias) / 30), colaborador.periculosidade ? "30%" : null);
-  lanca(VERBAS.INSALUBRIDADE, r((insalubridadeMensal * dias) / 30), colaborador.insalubridadeGrau ? `${colaborador.insalubridadeGrau}% do mínimo` : null);
-
-  const jornada = colaborador.jornadaMensal ?? JORNADA_PADRAO;
-  const valorHora = (salario + periculosidadeMensal + insalubridadeMensal) / jornada;
-  const he50 = r((L.horasExtras50 ?? 0) * valorHora * 1.5);
-  const he100 = r((L.horasExtras100 ?? 0) * valorHora * 2);
-  const noturno = r((L.horasNoturnas ?? 0) * valorHora * 0.2);
-  lanca(VERBAS.HORA_EXTRA_50, he50, L.horasExtras50 ? `${L.horasExtras50}h` : null);
-  lanca(VERBAS.HORA_EXTRA_100, he100, L.horasExtras100 ? `${L.horasExtras100}h` : null);
-  lanca(VERBAS.ADICIONAL_NOTURNO, noturno, L.horasNoturnas ? `${L.horasNoturnas}h` : null);
-  const variaveis = he50 + he100 + noturno;
-  if (variaveis > 0) lanca(VERBAS.DSR_VARIAVEIS, r((variaveis / cal.uteis) * cal.descanso), `${cal.descanso}/${cal.uteis} dias`);
-
-  const diaria = salario / 30;
-  lanca(VERBAS.FALTAS, r((L.faltasDias ?? 0) * diaria), L.faltasDias ? `${L.faltasDias} dias` : null);
-  lanca(VERBAS.DSR_FALTAS, r((L.dsrPerdidos ?? 0) * diaria), L.dsrPerdidos ? `${L.dsrPerdidos} dias` : null);
+  const { itens: salariais, salarioMes, valorHora } = verbasSalariais(colaborador, dias, L, tabela, cal);
+  itens.push(...salariais);
 
   // Bases a partir das incidências de cada verba.
   const base = (b) => itens.reduce((s, i) => s + efeitoNaBase(i.verba, i.valor, b), 0);
