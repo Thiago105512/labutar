@@ -75,9 +75,14 @@ ou especialista em DP antes de implementar (ver seção 16).
 
 ## 4. Convenções coletivas e sindicatos — `tabelas-legais` / `folha`
 
+No cenário de referência (docs/14): **1 convenção e vários acordos coletivos**. O acordo
+prevalece sobre a convenção no que regula (art. 620 da CLT); a regra é resolvida por
+trabalhador, por dia e por assunto.
+
 | Item | Prio | Compl. | Status | Onde / observação |
 |---|---|---|---|---|
 | Cadastro de sindicatos, categorias, datas-base | E | M | 📋 | Entidade Convenção em docs/11 |
+| Acordos coletivos por tomador ou para toda a empresa, com prevalência sobre a convenção | E | A | ⬜ | Abrangência: empresa, tomador, contrato ou posto |
 | Pisos, reajustes e adicionais por convenção | E | A | 📋 | |
 | Regras de jornada e benefícios por convenção | E | A | 📋 | |
 | Contribuições sindicais e assistenciais, com regras de oposição | E | M | ⬜ | |
@@ -89,8 +94,9 @@ ou especialista em DP antes de implementar (ver seção 16).
 
 | Item | Prio | Compl. | Status | Onde / observação |
 |---|---|---|---|---|
-| Conformidade com a Portaria MTP 671/2021 (REP-C, REP-P, REP-A) | E | A | 🟡 | REP-P previsto; REP-C e REP-A ⬜ |
-| Marcação por relógio, app, web, biometria/facial | E | M | 🟡 | App previsto (portal do colaborador já tem o espaço); relógio e biometria ⬜ |
+| Conformidade com a Portaria MTP 671/2021 (REP-C, REP-P, REP-A) | E | A | 🟡 | **Relógio no tomador (REP-C) é o caso principal**; REP-P previsto; REP-A ⬜ (exige acordo coletivo) |
+| Importação do AFD dos relógios dos tomadores e geração do AEJ (programa de tratamento, PTRP) | E | A | ⬜ | Envio pelo portal do tomador, importação ou integração com fabricante |
+| Marcação por relógio, app, web, biometria/facial | E | M | 🟡 | Relógio via AFD (linha acima); app previsto; biometria no próprio relógio |
 | Escalas (12x36, revezamento, turnos) | E | M | 📋 | Escala no cadastro do posto |
 | Banco de horas e compensação | E | A | 📋 | |
 | Faltas, atrasos, abonos, justificativas | E | M | 📋 | |
@@ -235,6 +241,9 @@ e o rateio por centro de custo (8) — são o diferencial e alimentam a folha de
 5. Consignado — regras da plataforma oficial vigentes.
 6. Leiautes vigentes do eSocial, DCTFWeb, EFD-Reinf e FGTS Digital (validar contra XSD).
 7. Os pontos de interpretação da Lei 6.019/1974 listados em docs/11, seção 6.
+8. Uso do relógio do tomador para registrar o ponto de empregados da prestadora: requisitos
+   da Portaria MTP 671/2021 (identificação do empregador no AFD, acesso aos arquivos).
+9. Registro do Labutar como programa de tratamento de ponto (PTRP) e atestado técnico.
 
 ## 17. O que o produto precisa de fora do código
 

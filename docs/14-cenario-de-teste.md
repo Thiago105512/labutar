@@ -42,17 +42,42 @@ O temporário recebe remuneração equivalente à dos empregados da tomadora na 
 Os supervisores de operação visitam os tomadores, mas o custo deles é administrativo e
 entra no rateio de despesas indiretas entre os contratos.
 
-## 4. Convenções coletivas
+## 4. Normas coletivas: 1 convenção e vários acordos
 
-| Convenção | Aplica-se a |
-|---|---|
-| Comércio e serviços (empresa de trabalho temporário) | Administrativo próprio |
-| Asseio e conservação | Terceirizados de T1 e T3 |
-| Vigilância | Terceirizados de T4 |
+A empresa tem **uma convenção coletiva (CCT)** e **vários acordos coletivos (ACT)**. O acordo
+prevalece sobre a convenção naquilo que regula (art. 620 da CLT); o que o acordo não regula
+vem da convenção; o que nenhum dos dois regula vem da lei.
 
-Temporários seguem a remuneração da tomadora, não a convenção da prestadora.
+| Norma | Tipo | Abrangência | Cláusulas que regula |
+|---|---|---|---|
+| CCT da categoria | Convenção | Todos os empregados da empresa | Piso, reajuste anual, adicionais, benefícios, contribuições |
+| ACT-T1 | Acordo | Alocados em T1 | Turnos de revezamento, adicional noturno diferenciado, banco de horas |
+| ACT-T3 | Acordo | Alocados em T3 | Escala 12x36, intervalo, feriados trabalhados |
+| ACT-T4 | Acordo | Alocados em T4 | Escala de vigilância, cobertura de posto, adicional de função |
+| ACT-Ponto | Acordo | Toda a empresa | Tolerâncias de marcação e, se for o caso, autorização de REP-A |
+| ACT-PLR | Acordo | Toda a empresa | Participação nos lucros |
 
-## 5. Movimento mensal simulado
+A regra aplicável é resolvida **por trabalhador, por dia e por assunto**: quem muda de tomador
+no meio do mês passa a seguir o acordo do novo tomador a partir do dia da mudança — o mesmo
+modelo diário da alocação (docs/11). Temporários seguem, além disso, a remuneração equivalente
+à da tomadora (art. 12 da Lei 6.019/1974).
+
+## 5. Ponto: relógio no tomador
+
+O ponto é marcado em **relógio instalado em cada tomador** (REP-C). O Labutar não marca o
+ponto; ele funciona como o programa de tratamento (PTRP, Portaria MTP 671/2021):
+
+1. Coleta o **AFD** (arquivo fonte de dados) de cada relógio: envio pelo portal do tomador,
+   importação pela equipe ou integração com o fabricante.
+2. Identifica o trabalhador pelo CPF e a alocação do dia.
+3. Aplica escala, tolerâncias e o acordo coletivo daquele tomador.
+4. Gera espelho, banco de horas e ocorrências; o tomador aprova no portal.
+5. Gera o **AEJ** (arquivo eletrônico de jornada) e envia o ponto aprovado à folha e ao faturamento.
+
+Na massa: 4 tomadores, pelo menos 2 fabricantes de relógio, marcações faltando, marcação em
+relógio de tomador diferente do alocado (cobertura) e AFD reenviado com marcações repetidas.
+
+## 6. Movimento mensal simulado
 
 | Evento | Por mês | Observação |
 |---|---|---|
@@ -63,7 +88,7 @@ Temporários seguem a remuneração da tomadora, não a convenção da prestador
 | Férias | ~30 | Terceirizados e administrativo |
 | Coberturas de posto | ~40 | Faltas e férias em T3 e T4 |
 
-## 6. Casos-limite obrigatórios na massa
+## 7. Casos-limite obrigatórios na massa
 
 A massa gerada precisa conter, de propósito:
 
@@ -77,8 +102,10 @@ A massa gerada precisa conter, de propósito:
 8. Terceirizado em T3 que cobre posto em T4 (cobertura entre tomadores e adicionais diferentes).
 9. Afastamento que atravessa o fim do contrato temporário.
 10. Admissão e desligamento dentro da mesma competência.
+11. Trabalhador que muda de T1 para T3 no meio do mês (acordo coletivo muda no dia).
+12. Reajuste da convenção retroativo à data-base, com acordo vigente que não trata de salário.
 
-## 7. O que o cenário mede
+## 8. O que o cenário mede
 
 - A folha dos 1.000 fecha sem erro e dentro do tempo definido.
 - O rateio por tomador, contrato e posto soma exatamente o total da folha, centavo a centavo.

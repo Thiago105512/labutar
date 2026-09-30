@@ -51,7 +51,8 @@ Detalhe dos entregáveis em `docs/04-fase-1-checklist.md`.
 
 ## Fase 3 — Ponto e app do trabalhador
 
-- ⬜ `ponto` — REP-P (Portaria MTE 671/2021), foto, geolocalização, offline,
+- ⬜ `ponto` — importação do AFD dos relógios instalados nos tomadores (REP-C, caso principal),
+  tratamento e AEJ; REP-P (Portaria MTE 671/2021), foto, geolocalização, offline,
   banco de horas, espelho, AFD/AEJ, atestado técnico do desenvolvedor
 - ⬜ App do trabalhador (PWA) — ponto, holerite, documentos, férias, chamados
 
