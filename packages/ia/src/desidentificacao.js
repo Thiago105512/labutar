@@ -1,6 +1,6 @@
 import { normalizar, semEspacos } from "../../core/src/texto.js";
 import { validarCPF, validarCNPJ, validarPIS, validarEmail, validarTelefone, somenteDigitos } from "../../core/src/validacao.js";
-import { diferencaDias } from "../../core/src/datas.js";
+import { diferencaDias, hoje as hojeNoFuso } from "../../core/src/datas.js";
 import { formatarBRL } from "../../core/src/dinheiro.js";
 import { NOMES_COMUNS_SET, PLACEHOLDER, TIPO_VIOLACAO } from "./constantes.js";
 
@@ -166,7 +166,7 @@ export function redigirTexto(texto, { sensiveis = [] } = {}) {
 export function desidentificarCandidato(candidato, { hoje } = {}) {
   if (!candidato) throw new Error("desidentificarCandidato exige o candidato");
 
-  const referencia = hoje ?? new Date().toISOString().slice(0, 10);
+  const referencia = hoje ?? hojeNoFuso();
   const camposRemovidos = [];
   const substituicoes = {};
 

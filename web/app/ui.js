@@ -3,6 +3,7 @@
  * Todo texto de origem externa passa por `esc()` antes de virar HTML.
  */
 import { icone } from "./icones.js";
+import { FUSO_PADRAO, formatarBRL, formatarDataBR } from "/packages/core/src/index.js";
 
 export const esc = (valor) =>
   String(valor ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -37,8 +38,14 @@ export const quando = (iso) => {
   return `há ${d} dias`;
 };
 
+// Formatos únicos da interface (docs/15-padroes.md): toda tela usa estes, nunca um próprio.
+/** Valor em centavos → "R$ 1.234,56". */
+export const moeda = (centavos) => (centavos == null ? "—" : formatarBRL(centavos));
+/** Data civil AAAA-MM-DD → "30/09/2026". */
+export const data = (iso) => (iso ? formatarDataBR(iso) : "—");
+/** Instante → "30/09/2026 14:05", no fuso da empresa (não no do navegador). */
 export const dataHora = (iso) =>
-  iso ? new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—";
+  iso ? new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: FUSO_PADRAO }) : "—";
 
 export function aviso(texto, tipo = "ok") {
   const el = document.createElement("div");

@@ -85,7 +85,7 @@ test("JobPosting traz os campos que o Google for Jobs exige", () => {
   assert.equal(jp["@type"], "JobPosting");
   assert.equal(jp.title, "Pessoa Desenvolvedora Sênior");
   assert.equal(jp.datePosted, AGORA);
-  assert.equal(jp.validThrough, "2026-10-10T23:59:59-03:00");
+  assert.equal(jp.validThrough, "2026-10-10T23:59:59-04:00");
   assert.equal(jp.hiringOrganization["@type"], "Organization");
   assert.equal(jp.hiringOrganization.name, "ACME Ltda");
   assert.equal(jp.identifier.value.length > 0, true);

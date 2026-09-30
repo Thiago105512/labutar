@@ -1,5 +1,5 @@
 import { novoId } from "../../core/src/ids.js";
-import { diferencaDias, hoje } from "../../core/src/datas.js";
+import { dataNoFuso, diferencaDias, hoje } from "../../core/src/datas.js";
 import { arredondar } from "../../core/src/dinheiro.js";
 import {
   etapaDeSaidaPorMotivo,
@@ -74,7 +74,7 @@ export function criarCandidatura({ vaga, candidato, respostas = [], origem = nul
     vaga,
     candidato,
     respostas,
-    agora: String(quando).slice(0, 10),
+    agora: dataNoFuso(quando),
   });
 
   const etapa = etapaInicialPorDecisao(vaga, triagem.decisao);
@@ -213,11 +213,11 @@ export function registrarAnexo(candidatura, { nome, url, tipo = "curriculo", ago
 
 /** Tempo na etapa atual e por etapa já percorrida, contra o SLA configurado. */
 export function calcularSLA(candidatura, vaga, referencia = hoje()) {
-  const dataRef = String(referencia).slice(0, 10);
+  const dataRef = dataNoFuso(referencia);
   const atual = etapaPorId(vaga, candidatura.etapaAtualId);
   const emAndamento = !estaTerminal(candidatura);
 
-  const desdeAtual = String(candidatura.etapaAtualDesde).slice(0, 10);
+  const desdeAtual = dataNoFuso(candidatura.etapaAtualDesde);
   const diasNaEtapa = diferencaDias(desdeAtual, dataRef);
   const slaAtual = atual?.slaDias ?? null;
 
@@ -229,7 +229,7 @@ export function calcularSLA(candidatura, vaga, referencia = hoje()) {
     porEtapa.push({
       etapaId: anterior.para,
       nome: etapa?.nome ?? anterior.para,
-      dias: diferencaDias(String(anterior.em).slice(0, 10), String(entrada.em).slice(0, 10)),
+      dias: diferencaDias(dataNoFuso(anterior.em), dataNoFuso(entrada.em)),
       slaDias: etapa?.slaDias ?? null,
     });
   }
@@ -241,7 +241,7 @@ export function calcularSLA(candidatura, vaga, referencia = hoje()) {
     atrasada: emAndamento && slaAtual != null && diasNaEtapa > slaAtual,
     diasExcedidos: slaAtual != null ? Math.max(0, diasNaEtapa - slaAtual) : 0,
     porEtapa,
-    diasTotais: diferencaDias(String(candidatura.criadoEm).slice(0, 10), dataRef),
+    diasTotais: diferencaDias(dataNoFuso(candidatura.criadoEm), dataRef),
   };
 }
 

@@ -77,7 +77,7 @@ ou especialista em DP antes de implementar (ver seção 16).
 
 No cenário de referência (docs/14): **1 convenção e vários acordos coletivos**. O acordo
 prevalece sobre a convenção no que regula (art. 620 da CLT); a regra é resolvida por
-trabalhador, por dia e por assunto.
+colaborador, por dia e por assunto.
 
 | Item | Prio | Compl. | Status | Onde / observação |
 |---|---|---|---|---|

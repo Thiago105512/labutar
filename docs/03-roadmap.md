@@ -10,7 +10,7 @@ Duas mudanças em relação ao roadmap anterior:
 - **Ponto vem antes da folha**, porque a folha calcula a partir das marcações.
 
 Cada fase termina num produto utilizável e vendável sozinho. Primeiro cliente piloto:
-100 trabalhadores ativos. Cenário padrão de teste: 1.000 trabalhadores (600 temporários,
+100 colaboradores ativos. Cenário padrão de teste: 1.000 colaboradores (600 temporários,
 300 terceirizados, 100 próprios) em 4 tomadores (`docs/14-cenario-de-teste.md`).
 
 ## Fase 0 — Fundação 🚧
@@ -49,12 +49,12 @@ Detalhe dos entregáveis em `docs/04-fase-1-checklist.md`.
 - ⬜ `alocacao` — escala, reposição de faltas
 - ⬜ Importação de dados de outros sistemas (implantação de clientes)
 
-## Fase 3 — Ponto e app do trabalhador
+## Fase 3 — Ponto e app do colaborador
 
 - ⬜ `ponto` — importação do AFD dos relógios instalados nos tomadores (REP-C, caso principal),
-  tratamento e AEJ; REP-P (Portaria MTE 671/2021), foto, geolocalização, offline,
+  tratamento e AEJ; REP-P (Portaria MTP 671/2021), foto, geolocalização, offline,
   banco de horas, espelho, AFD/AEJ, atestado técnico do desenvolvedor
-- ⬜ App do trabalhador (PWA) — ponto, holerite, documentos, férias, chamados
+- ⬜ App do colaborador (PWA) — marcação alternativa ao relógio, holerite, documentos, férias, chamados
 
 ## Fase 4 — Folha e eSocial
 

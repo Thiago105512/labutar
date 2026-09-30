@@ -1,5 +1,6 @@
 import * as ats from "../../../packages/ats/src/index.js";
 import { ATOR_SISTEMA } from "../auth/servico.js";
+import { hoje } from "../../../packages/core/src/datas.js";
 
 export const TENANT_DEMO = "demo-industrial";
 
@@ -129,7 +130,7 @@ export function candidatosDemo() {
       ],
       formacao: [{ instituicao: "CETAM", curso: "TBO — Treinamento Básico Operacional", nivel: "MEDIO", concluido: true }],
       pretensaoSalarial: 250000, curriculoTexto: "Operador de linha SMT com 4 anos em eletroeletrônica. TBO pelo CETAM.",
-      consentimento: { aceito: true, em: new Date().toISOString().slice(0, 10), versaoTermo: "1.0" },
+      consentimento: { aceito: true, em: hoje(), versaoTermo: "1.0" },
     }),
     candidato({
       dados: { nome: "Maria Fernanda Costa" },
@@ -142,7 +143,7 @@ export function candidatosDemo() {
       formacao: [{ instituicao: "SENAI-AM", curso: "Técnico em Eletroeletrônica", nivel: "TECNICO", concluido: true }],
       idiomas: [{ codigo: "EN", nivel: "INTERMEDIARIO" }],
       pretensaoSalarial: 580000, curriculoTexto: "Técnica em eletroeletrônica com 8 anos em SMT.",
-      consentimento: { aceito: true, em: new Date().toISOString().slice(0, 10), versaoTermo: "1.0" },
+      consentimento: { aceito: true, em: hoje(), versaoTermo: "1.0" },
     }),
     candidato({
       dados: { nome: "Carlos Eduardo Ramos" },
@@ -151,7 +152,7 @@ export function candidatosDemo() {
       experiencias: [{ empresa: "Caloi Norte", cargo: "Inspetor de qualidade", inicio: "2021-01-10", atual: true, competencias: ["IATF 16949"] }],
       formacao: [{ instituicao: "UniNorte", curso: "Tecnologia em Qualidade", nivel: "TECNICO", concluido: true }],
       pretensaoSalarial: 420000, curriculoTexto: "Inspetor de qualidade em fornecedor automotivo.",
-      consentimento: { aceito: true, em: new Date().toISOString().slice(0, 10), versaoTermo: "1.0" },
+      consentimento: { aceito: true, em: hoje(), versaoTermo: "1.0" },
     }),
     candidato({
       dados: { nome: "Ana Souza Lima" },
@@ -161,7 +162,7 @@ export function candidatosDemo() {
       formacao: [{ instituicao: "USP", curso: "Ciência da Computação", nivel: "SUPERIOR", concluido: true }],
       idiomas: [{ codigo: "EN", nivel: "FLUENTE" }],
       pretensaoSalarial: 1500000, curriculoTexto: "Sete anos com Node.js em plataforma de pagamentos.",
-      consentimento: { aceito: true, em: new Date().toISOString().slice(0, 10), versaoTermo: "1.0" },
+      consentimento: { aceito: true, em: hoje(), versaoTermo: "1.0" },
     }),
     candidato({
       dados: { nome: "Pedro Henrique Alves" },
@@ -170,7 +171,7 @@ export function candidatosDemo() {
       experiencias: [{ empresa: "Comércio local", cargo: "Vendedor", inicio: "2023-01-01", atual: true }],
       formacao: [{ instituicao: "Escola estadual", curso: "Ensino médio", nivel: "MEDIO", concluido: true }],
       pretensaoSalarial: 350000, curriculoTexto: "Vendedor buscando primeira oportunidade na indústria.",
-      consentimento: { aceito: true, em: new Date().toISOString().slice(0, 10), versaoTermo: "1.0" },
+      consentimento: { aceito: true, em: hoje(), versaoTermo: "1.0" },
     }),
   ];
 }
@@ -236,7 +237,7 @@ export const USUARIOS_DEMO = Object.freeze([
 export const CONTAS_EXTERNAS_DEMO = Object.freeze([
   { tipo: "CANDIDATO", email: "ana.lima@exemplo.com", nomeCandidato: "Ana Souza Lima" },
   { tipo: "COLABORADOR", email: "joao.batista@exemplo.com", nomeCandidato: "João Batista Silva" },
-  { tipo: "TOMADOR", email: "gestor@eletronica-amazonia.com.br", nome: "Otávio Gestor do Cliente",
+  { tipo: "TOMADOR", email: "gestor@eletronica-amazonia.com.br", nome: "Otávio Gestor do Tomador",
     escopo: { tomadorId: "TOM_ELETRONICA_AMAZONIA", tomadorNome: "Eletrônica Amazônia S.A.", papel: "GESTOR_CONTRATO" } },
 ]);
 

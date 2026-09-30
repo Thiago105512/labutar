@@ -1,5 +1,6 @@
 import { novoId } from "../../core/src/ids.js";
 import { arredondar } from "../../core/src/dinheiro.js";
+import { dataNoFuso } from "../../core/src/datas.js";
 import { NIVEL_CONFIABILIDADE, STATUS_REVISAO, LIMITE_VALIDADE_DISC, RESSALVAS_DISC } from "./constantes.js";
 import { calcularDISC, descreverPerfil, responderDISC } from "./disc.js";
 import { calcularEscalaDISC, compararEscalaComForcada } from "./escala.js";
@@ -124,7 +125,7 @@ export function emitirLaudoDISC({
     },
     contexto: { tenantId, vagaId, candidaturaId, candidatoId, aplicadoPor },
     geradoEm,
-    dataGeracao: String(geradoEm).slice(0, 10),
+    dataGeracao: dataNoFuso(geradoEm),
     resposta: {
       completa: checagem.completo,
       respondidas: checagem.respondidas,

@@ -1,5 +1,5 @@
 import { validarEmail, validarTelefone, somenteDigitos } from "../../core/src/validacao.js";
-import { ehDiaUtil, somarDias } from "../../core/src/datas.js";
+import { FUSO_PADRAO, deslocamentoDoFuso, ehDiaUtil, paraISO, somarDias } from "../../core/src/datas.js";
 import { URGENCIA } from "./constantes.js";
 import { paraInstante, minutosDaHora, instanteCivil } from "./instantes.js";
 
@@ -45,8 +45,11 @@ export const ORDEM_FALLBACK = Object.freeze([
 /** Janela usada quando o tenant define política sem dizer o intervalo. */
 export const JANELA_PADRAO = Object.freeze({ de: "08:00", ate: "20:00" });
 
-/** Mesmo fuso de referência do core/datas.js (América/São_Paulo), que não o exporta. */
-export const FUSO_PADRAO_MIN = -180;
+/** Fuso de referência do core/datas.js (FUSO_PADRAO) em minutos: -240 em Manaus, sem horário de verão. */
+export const FUSO_PADRAO_MIN = (() => {
+  const [h, m] = deslocamentoDoFuso(FUSO_PADRAO).split(":").map(Number);
+  return h * 60 + Math.sign(h || 1) * m;
+})();
 
 const CHAVES_DESTINO = Object.freeze({
   EMAIL: Object.freeze(["EMAIL", "email"]),
@@ -215,7 +218,7 @@ export function janelaPermitida(canal, horarios = null, referencia = new Date())
   const feriados = janela.feriados ?? horarios.feriados ?? [];
   const instante = referencia instanceof Date ? referencia : new Date(paraInstante(referencia));
   const civil = new Date(instante.getTime() + fuso * 60_000);
-  const diaCivil = civil.toISOString().slice(0, 10);
+  const diaCivil = paraISO(civil);
   const minutosAgora = civil.getUTCHours() * 60 + civil.getUTCMinutes();
 
   if (janela.diasUteis && !ehDiaUtil(diaCivil, feriados)) {

@@ -19,12 +19,12 @@ const CELULAR = "(11) 98765-4321";
 const FIXO = "(11) 3456-7890";
 const EMAIL = "maria@exemplo.com";
 
-// Instantes em UTC; BRT (UTC-3) entre parênteses.
+// Instantes em UTC; hora de Manaus (UTC-4, fuso padrão) nos comentários.
 const JANELA = { permitido: { de: "08:00", ate: "20:00" }, fusoMinutos: FUSO_PADRAO_MIN };
-const DENTRO_DA_JANELA = "2026-09-28T15:00:00.000Z"; // segunda 12:00
-const NOITE = "2026-09-29T01:00:00.000Z"; // segunda 22:00
-const MADRUGADA = "2026-09-28T09:30:00.000Z"; // segunda 06:30
-const SABADO_NOITE = "2026-09-27T01:30:00.000Z"; // sábado 22:30
+const DENTRO_DA_JANELA = "2026-09-28T16:00:00.000Z"; // segunda 12:00
+const NOITE = "2026-09-29T02:00:00.000Z"; // segunda 22:00
+const MADRUGADA = "2026-09-28T10:30:00.000Z"; // segunda 06:30
+const SABADO_NOITE = "2026-09-27T02:30:00.000Z"; // sábado 22:30
 
 test("validarDestino aceita e normaliza e-mail", () => {
   const resultado = validarDestino(CANAIS.EMAIL, "  Maria@Exemplo.COM ");
@@ -132,15 +132,15 @@ test("janelaPermitida libera dentro do horário e barra fora dele", () => {
   assert.equal(janelaPermitida(CANAIS.WHATSAPP, JANELA, DENTRO_DA_JANELA).permitido, true);
   const noite = janelaPermitida(CANAIS.WHATSAPP, JANELA, NOITE);
   assert.equal(noite.permitido, false);
-  assert.equal(noite.adiarPara, "2026-09-29T11:00:00.000Z"); // terça 08:00 BRT
+  assert.equal(noite.adiarPara, "2026-09-29T12:00:00.000Z"); // terça 08:00 Manaus
   const madrugada = janelaPermitida(CANAIS.SMS, JANELA, MADRUGADA);
   assert.equal(madrugada.permitido, false);
-  assert.equal(madrugada.adiarPara, "2026-09-28T11:00:00.000Z"); // mesma segunda 08:00 BRT
+  assert.equal(madrugada.adiarPara, "2026-09-28T12:00:00.000Z"); // mesma segunda 08:00 Manaus
 });
 
 test("janelaPermitida trata o horário final como exclusivo", () => {
-  assert.equal(janelaPermitida(CANAIS.WHATSAPP, JANELA, "2026-09-28T11:00:00.000Z").permitido, true); // 08:00 BRT
-  assert.equal(janelaPermitida(CANAIS.WHATSAPP, JANELA, "2026-09-28T23:00:00.000Z").permitido, false); // 20:00 BRT
+  assert.equal(janelaPermitida(CANAIS.WHATSAPP, JANELA, "2026-09-28T12:00:00.000Z").permitido, true); // 08:00 Manaus
+  assert.equal(janelaPermitida(CANAIS.WHATSAPP, JANELA, "2026-09-29T00:00:00.000Z").permitido, false); // 20:00 Manaus
 });
 
 test("janelaPermitida não restringe canal assíncrono", () => {
@@ -154,7 +154,7 @@ test("janelaPermitida empurra para o próximo dia útil", () => {
   const resultado = janelaPermitida(CANAIS.WHATSAPP, politica, SABADO_NOITE);
   assert.equal(resultado.permitido, false);
   assert.match(resultado.motivo, /dias úteis/);
-  assert.equal(resultado.adiarPara, "2026-09-28T11:00:00.000Z"); // segunda 08:00 BRT
+  assert.equal(resultado.adiarPara, "2026-09-28T12:00:00.000Z"); // segunda 08:00 Manaus
 });
 
 test("janelaPermitida suporta bloqueio total, ausência de política e janela noturna", () => {
@@ -163,16 +163,16 @@ test("janelaPermitida suporta bloqueio total, ausência de política e janela no
   assert.equal(janelaPermitida(CANAIS.WHATSAPP, { permitido: false }, DENTRO_DA_JANELA).adiarPara, null);
 
   const noturna = { permitido: { de: "22:00", ate: "06:00" }, fusoMinutos: FUSO_PADRAO_MIN };
-  assert.equal(janelaPermitida(CANAIS.WHATSAPP, noturna, "2026-09-28T02:00:00.000Z").permitido, true); // 23:00 BRT
-  const bloqueada = janelaPermitida(CANAIS.WHATSAPP, noturna, "2026-09-28T13:00:00.000Z"); // 10:00 BRT
+  assert.equal(janelaPermitida(CANAIS.WHATSAPP, noturna, "2026-09-28T03:00:00.000Z").permitido, true); // 23:00 Manaus
+  const bloqueada = janelaPermitida(CANAIS.WHATSAPP, noturna, "2026-09-28T14:00:00.000Z"); // 10:00 Manaus
   assert.equal(bloqueada.permitido, false);
-  assert.equal(bloqueada.adiarPara, "2026-09-29T01:00:00.000Z"); // 22:00 BRT do mesmo dia civil
+  assert.equal(bloqueada.adiarPara, "2026-09-29T02:00:00.000Z"); // 22:00 Manaus do mesmo dia civil
 });
 
 test("janelaPermitida aceita janela por canal", () => {
   const politica = { WHATSAPP: { de: "09:00", ate: "18:00" }, EMAIL: true, fusoMinutos: FUSO_PADRAO_MIN };
-  assert.equal(janelaPermitida(CANAIS.WHATSAPP, politica, "2026-09-28T11:00:00.000Z").permitido, false); // 08:00 BRT
-  assert.equal(janelaPermitida(CANAIS.WHATSAPP, politica, "2026-09-28T12:00:00.000Z").permitido, true); // 09:00 BRT
+  assert.equal(janelaPermitida(CANAIS.WHATSAPP, politica, "2026-09-28T12:00:00.000Z").permitido, false); // 08:00 Manaus
+  assert.equal(janelaPermitida(CANAIS.WHATSAPP, politica, "2026-09-28T13:00:00.000Z").permitido, true); // 09:00 Manaus
   assert.equal(janelaPermitida(CANAIS.EMAIL, politica, NOITE).permitido, true);
 });
 
@@ -228,7 +228,7 @@ test("escolherCanal adia em vez de descartar quando não há alternativa", () =>
   });
   assert.equal(resultado.canal, "WHATSAPP");
   assert.equal(resultado.destino, "11987654321");
-  assert.equal(resultado.adiarPara, "2026-09-29T11:00:00.000Z");
+  assert.equal(resultado.adiarPara, "2026-09-29T12:00:00.000Z");
   assert.match(resultado.motivo, /adiado, não descartado/);
 });
 

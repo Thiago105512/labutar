@@ -9,9 +9,9 @@ export const TIPO_CONTA = Object.freeze({
   INTERNO: "INTERNO",
   /** Candidato: vagas e as próprias candidaturas. Escopo: { candidatoId }. */
   CANDIDATO: "CANDIDATO",
-  /** Trabalhador (temporário, terceirizado ou próprio): os próprios dados. Escopo: { pessoaId }. */
+  /** Colaborador (temporário, terceirizado ou próprio): os próprios dados. Escopo: { pessoaId }. */
   COLABORADOR: "COLABORADOR",
-  /** Usuário do cliente tomador: só o tomador (e contratos) dele. Escopo: { tomadorId, contratoIds }. */
+  /** Usuário do tomador: só o tomador (e contratos) dele. Escopo: { tomadorId, contratoIds }. */
   TOMADOR: "TOMADOR",
 });
 
@@ -19,7 +19,7 @@ export const NOME_TIPO_CONTA = Object.freeze({
   INTERNO: "Equipe da empresa",
   CANDIDATO: "Candidato",
   COLABORADOR: "Colaborador",
-  TOMADOR: "Cliente (tomador)",
+  TOMADOR: "Tomador",
 });
 
 /** Módulo interno cuja permissão governa quem cria e gerencia cada tipo de conta externa. */
@@ -29,7 +29,7 @@ export const MODULO_GESTOR_DA_CONTA = Object.freeze({
   TOMADOR: "tomadores",
 });
 
-/** O que o usuário do tomador pode fazer no portal do cliente. */
+/** O que o usuário do tomador pode fazer no portal do tomador. */
 export const PAPEL_TOMADOR = Object.freeze({
   CONSULTA: "CONSULTA",
   GESTOR_CONTRATO: "GESTOR_CONTRATO",
@@ -37,7 +37,7 @@ export const PAPEL_TOMADOR = Object.freeze({
 });
 
 export const PAPEIS_TOMADOR = Object.freeze([
-  { id: "CONSULTA", nome: "Consulta", descricao: "Vê trabalhadores alocados, presença e documentos" },
+  { id: "CONSULTA", nome: "Consulta", descricao: "Vê colaboradores alocados, presença e documentos" },
   { id: "GESTOR_CONTRATO", nome: "Gestor do contrato", descricao: "Aprova ponto e medição, pede reposição e novos postos" },
   { id: "FINANCEIRO", nome: "Financeiro", descricao: "Vê medições, faturas e notas fiscais" },
 ]);

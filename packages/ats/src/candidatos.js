@@ -1,7 +1,7 @@
 import { novoId } from "../../core/src/ids.js";
 import { normalizar } from "../../core/src/texto.js";
 import { somenteDigitos, validarCPF, validarEmail } from "../../core/src/validacao.js";
-import { diferencaDias, hoje } from "../../core/src/datas.js";
+import { dataNoFuso, diferencaDias, hoje } from "../../core/src/datas.js";
 import { chaveCompetencia } from "./triagem.js";
 
 const RETENCAO_PADRAO_MESES = 24;
@@ -112,7 +112,7 @@ export function validarConsentimento(candidato, { referencia = hoje(), retencaoM
     return { valido: false, motivo: "consentimento sem data", situacao: "SEM_DATA" };
   }
 
-  const dias = diferencaDias(String(consentimento.em).slice(0, 10), String(referencia).slice(0, 10));
+  const dias = diferencaDias(dataNoFuso(consentimento.em), dataNoFuso(referencia));
   const limiteDias = retencaoMeses * 30;
   if (dias > limiteDias) {
     return {
