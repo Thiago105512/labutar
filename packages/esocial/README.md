@@ -46,7 +46,7 @@ Retificação: `indRetif=2` + `nrRecibo` do evento original.
 
 1. Ler `docs/05-compliance.md` — inventaria 14 defeitos do código herdado,
    3 deles confirmados contra o fonte instalado de `xml-crypto` e `node-forge`.
-2. Baixar os XSDs do leiaute vigente em `packages/esocial/xsd/` e versioná-los.
+2. ✅ XSDs do leiaute S-1.3 versionados em `packages/esocial/xsd/` (ver o README da pasta).
    O leiaute muda; código validado contra o XSD de hoje quebra no próximo.
 3. Resolver os pré-requisitos externos (certificado A1, habilitação em produção
    restrita, qualificação cadastral) — listados no fim do `05-compliance.md`.

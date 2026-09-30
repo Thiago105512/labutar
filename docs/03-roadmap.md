@@ -71,7 +71,8 @@ risco e precisa da suíte de regressão com casos reais o quanto antes.
 - Rodar em paralelo com o sistema atual do cliente por 2–3 competências antes de virar
 
 Bloqueios externos: certificado digital A1, habilitação na produção restrita do eSocial,
-XSD oficial do leiaute vigente, revisão por especialista em DP e contador.
+revisão por especialista em DP e contador.
+XSD oficial do leiaute S-1.3 ✅ obtido e versionado em `packages/esocial/xsd/` (2026-09-30).
 Defeitos do código herdado: `docs/05-compliance.md`.
 
 ## Fase 5 — Faturamento e financeiro
