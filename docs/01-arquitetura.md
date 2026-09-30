@@ -34,6 +34,7 @@ labutar/
 │   ├── ats/             ✅ vagas, candidaturas, pipeline, triagem, matching
 │   ├── avaliacoes/      ✅ DISC, testes comportamentais/técnicos, cursos
 │   ├── admissao/        ⏸ checklist documental, ASO, contrato, prazos do temporário
+│   ├── mao-de-obra/     ✅ núcleo: vínculos, prazos legais, alocação, rateio (docs/11)
 │   ├── colaboradores/   ⬜ cadastro, dependentes, férias, afastamentos, benefícios
 │   ├── tomadores/       ⬜ clientes, contratos, postos, preços, medição
 │   ├── alocacao/        ⬜ escala, reposição de faltas

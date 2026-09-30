@@ -42,6 +42,9 @@ const MODULOS = [
     { id: "candidatos", nome: "Banco de talentos", icone: "candidatos", contador: () => estado.candidatos.length },
   ]},
   { grupo: "Mão de obra", itens: [
+    { id: "colaboradores", nome: "Colaboradores", icone: "cracha", breve: true,
+      resumo: "Temporários, terceirizados e próprios no mesmo cadastro, cada um com suas regras: onde está alocado hoje, prazo do contrato temporário, quarentenas legais e para qual cliente vai o custo de cada dia.",
+      recursos: ["Temporário, terceirizado e próprio", "Alocação por tomador, posto ou setor", "Prazo de 180 + 90 dias com alerta", "Quarentenas legais bloqueadas", "Coberturas de folguistas e feristas", "Plano de desmobilização por contrato"] },
     { id: "admissao", nome: "Admissão", titulo: "Admissão digital", icone: "admissao", breve: true,
       resumo: "Do candidato aprovado ao trabalhador registrado, sem papel: documentos pelo celular, exame admissional, contrato assinado eletronicamente e envio ao eSocial.",
       recursos: ["Documentos pelo celular com OCR", "Agendamento e validade do ASO", "Contrato eletrônico (CLT e temporário)", "Prazos da Lei 6.019/1974", "Envio do S-2200 ao eSocial", "Bloqueio de início sem pendências"] },

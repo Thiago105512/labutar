@@ -35,7 +35,10 @@ Detalhe dos entregáveis em `docs/04-fase-1-checklist.md`.
 
 ## Fase 2 — Admissão e operação
 
-- ⏸ `admissao` — documentos, ASO, contrato eletrônico, prazos do temporário
+- ✅ `mao-de-obra` — núcleo de regras: vínculos, 180+90 dias e quarentena do temporário,
+  quarentena de 18 meses da terceirização, alocação por dia, rateio por centro de custo,
+  desmobilização (`docs/11-dominio-mao-de-obra.md`)
+- ⏸ `admissao` — documentos, ASO, contrato eletrônico
 - ⬜ `colaboradores` — cadastro único, dependentes, benefícios
 - ⬜ `tomadores` — clientes, contratos, postos, preços
 - ⬜ `alocacao` — escala, reposição de faltas
