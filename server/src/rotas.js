@@ -1,5 +1,5 @@
 import * as ats from "../../packages/ats/src/index.js";
-import { mascararCPF, mascararNome, mascararEmail, mascararTelefone } from "../../packages/core/src/texto.js";
+import { mascararNome, mascararEmail, mascararTelefone } from "../../packages/core/src/texto.js";
 import { statusIntegracao } from "../../packages/esocial/src/index.js";
 import { criarRoteador } from "./http/roteador.js";
 import {
@@ -12,7 +12,6 @@ import {
   CODIGOS,
 } from "./http/resposta.js";
 import { exigirPermissao } from "./middleware/contexto.js";
-import { pode } from "../../packages/acesso/src/index.js";
 import { versao, IA_HABILITADA } from "./versao.js";
 
 /**
@@ -27,12 +26,6 @@ const COLECOES = Object.freeze({
   candidaturas: "candidaturas",
   modelos: "modelosProcesso",
 });
-
-/** CPF completo só para quem tem "dados sensíveis" no recrutamento (Gestor ou acima). */
-function protegerCpf(ctx, candidato) {
-  if (!candidato?.dados?.cpf || pode(ctx.acesso, "recrutamento", "dadosSensiveis")) return candidato;
-  return { ...candidato, dados: { ...candidato.dados, cpf: mascararCPF(candidato.dados.cpf) } };
-}
 
 function numero(valor, padrao, minimo = 0, maximo = 1000) {
   const n = Number(valor);
@@ -217,7 +210,7 @@ export function registrarRotas({ repo, log = () => {} }) {
     const competencias = (ctx.query.competencias ?? "").split(",").map((s) => s.trim()).filter(Boolean);
     const filtrados = ats.buscarCandidatos(itens, { texto: ctx.query.busca, competencias });
     const { limite, iniciarEm } = paginacao(ctx.query);
-    const pagina = filtrados.slice(iniciarEm, iniciarEm + limite).map((c) => protegerCpf(ctx, c));
+    const pagina = filtrados.slice(iniciarEm, iniciarEm + limite);
     sucesso(res, { itens: pagina, total: filtrados.length, retornados: pagina.length, ocultos: total - itens.length });
   });
 
@@ -259,7 +252,7 @@ export function registrarRotas({ repo, log = () => {} }) {
         mascarado: true,
       });
     }
-    sucesso(res, { candidato: protegerCpf(ctx, candidato), consentimento: ats.validarConsentimento(candidato), mascarado: false });
+    sucesso(res, { candidato, consentimento: ats.validarConsentimento(candidato), mascarado: false });
   });
 
   r.patch("/api/candidatos/:id", async (req, res, ctx, corpo) => {

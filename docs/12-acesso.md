@@ -25,12 +25,13 @@ permissão do módulo, e digitar o endereço de um módulo bloqueado leva de vol
 | Sem acesso | Não vê o módulo | — |
 | **Consulta** | Ver | `ver` |
 | **Operador** | Trabalho do dia a dia | + `criar`, `editar` |
-| **Gestor** | Decisões e dados sensíveis | + `aprovar`, `excluir`, `exportar`, `dadosSensiveis` |
+| **Gestor** | Decisões | + `aprovar`, `excluir`, `exportar`, `dadosSensiveis` (saúde) |
 | **Administrador do módulo** | Configurar o módulo | + `configurar` |
 
 As ações são as mesmas em todos os módulos: "Gestor" significa a mesma coisa no
-recrutamento e na folha. Exemplo de dado sensível: o CPF completo do candidato só aparece
-para Gestor ou acima; os demais veem `***.444.777-**`.
+recrutamento e na folha. Dados cadastrais (nome, CPF, contato) são visíveis a quem tem
+acesso ao módulo; os níveis limitam o que a pessoa **faz**, não o que ela lê. A exceção
+prevista é dado de saúde (ASO, laudos), que a LGPD trata como sensível.
 
 ## 3. Perfis
 

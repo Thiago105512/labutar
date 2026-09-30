@@ -38,7 +38,7 @@ export const NIVEIS = Object.freeze([
   { valor: NIVEL.SEM_ACESSO, id: "SEM_ACESSO", nome: "Sem acesso", descricao: "Não vê o módulo" },
   { valor: NIVEL.CONSULTA, id: "CONSULTA", nome: "Consulta", descricao: "Visualiza informações, sem alterar nada" },
   { valor: NIVEL.OPERADOR, id: "OPERADOR", nome: "Operador", descricao: "Cadastra e altera no dia a dia" },
-  { valor: NIVEL.GESTOR, id: "GESTOR", nome: "Gestor", descricao: "Aprova, exclui, exporta e vê dados sensíveis" },
+  { valor: NIVEL.GESTOR, id: "GESTOR", nome: "Gestor", descricao: "Aprova, exclui e exporta" },
   { valor: NIVEL.ADMINISTRADOR, id: "ADMINISTRADOR", nome: "Administrador do módulo", descricao: "Configura o módulo (modelos, regras, parâmetros)" },
 ]);
 
@@ -64,7 +64,7 @@ export const NOME_ACAO = Object.freeze({
   aprovar: "Aprovar",
   excluir: "Excluir",
   exportar: "Exportar",
-  dadosSensiveis: "Ver dados sensíveis (CPF completo, salário, saúde)",
+  dadosSensiveis: "Ver dados de saúde (ASO, laudos, CID)",
   configurar: "Configurar o módulo",
 });
 

@@ -125,13 +125,11 @@ test("recrutador acessa o recrutamento e é barrado no resto", async () => {
   assert.equal((await chamar("/api/usuarios", { token: rita.token })).status, 403);
   const candidatos = (await chamar("/api/candidatos", { token: rita.token })).json.dados.itens;
   const comCpf = candidatos.find((c) => c.dados.cpf);
-  assert.match(comCpf.dados.cpf, /^\*\*\*\./, "sem permissão de dados sensíveis, CPF vem mascarado");
+  assert.match(comCpf.dados.cpf, /^\d{11}$/, "quem tem acesso ao módulo vê o CPF");
   const anonimizar = await chamar(`/api/candidatos/${comCpf.id}/anonimizar`, { metodo: "POST", token: rita.token, corpo: { motivo: "teste" } });
   assert.equal(anonimizar.status, 403);
   assert.match(anonimizar.json.erro, /Excluir/);
 
-  const doAdmin = (await chamar(`/api/candidatos/${comCpf.id}`, { token: admin.token })).json.dados.candidato;
-  assert.match(doAdmin.dados.cpf, /^\d{11}$/, "administrador vê o CPF completo");
 });
 
 test("ninguém concede mais acesso do que tem", async () => {
