@@ -42,3 +42,12 @@ competência, quanto cada contrato fatura, quanto custa e se dá lucro.
 - Estoque com saldo e validade de CA; ponto (horas extras e faltas) alimentando a folha do contrato.
 - No demo há 4 administrativos para 18 alocados: a estrutura pesa ~R$ 2.290 por cabeça; no cenário de
   1.000 colaboradores (docs/14) ela se dilui.
+
+## Receita faturada (medição)
+
+Com a medição do mês aprovada pelo tomador e faturada (Financeiro › Medição e faturamento), a
+receita do contrato no resultado deixa de ser a estimada pelo preço e passa a ser a faturada
+(`receitaFaturada: true`). A medição usa o mesmo custo de mão de obra do centro de custos (custo +
+taxa) ou o preço por colaborador com pro rata de admissão e desligamento, glosa das faltas e
+horas extras do ponto aprovado. As retenções do tomador (INSS, IRRF, CSRF, ISS) não mudam a
+receita: são antecipação de tributo, abatidas no líquido a receber.

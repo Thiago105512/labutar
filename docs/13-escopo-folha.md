@@ -179,7 +179,7 @@ colaborador, por dia e por assunto.
 
 | Item | Prio | Compl. | Status | Onde / observação |
 |---|---|---|---|---|
-| **Terceirização e trabalho temporário (faturamento, repasse)** | D | A | 🟡 | **Foco do produto.** Regras legais, alocação, rateio e desmobilização prontos (`mao-de-obra`, docs/11); faturamento previsto |
+| **Terceirização e trabalho temporário (faturamento, repasse)** | D | A | 🟡 | **Foco do produto.** Regras legais, alocação, rateio e desmobilização prontos (`mao-de-obra`, docs/11); **faturamento por medição** ✅ (`faturamento`: por colaborador com pro rata, glosa de faltas e extras do ponto aprovado; custo + taxa; valor fixo; retenções INSS 11%, IRRF 1%, CSRF 4,65% e ISS; aprovação do tomador no portal; RPS e receita faturada no resultado por contrato); NFS-e na prefeitura ⬜ |
 | **Vigilância e facilities (postos, cobertura, convenção por posto)** | D | A | 🟡 | Postos, coberturas e rateio prontos; convenção por posto prevista |
 | Folha doméstica (eSocial Doméstico) | D | A | ⬜ | Fora do foco inicial |
 | Construção civil (CNO, obras, rateio por obra) | D | A | ⬜ | O rateio por posto serve de base para rateio por obra |

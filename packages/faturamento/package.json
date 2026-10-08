@@ -1,0 +1,11 @@
+{
+  "name": "@labutar/faturamento",
+  "version": "0.1.0",
+  "description": "Faturamento por medição: valor do contrato no mês (por colaborador, custo + taxa ou fixo, com proporcionalidade, glosa de faltas e horas extras), retenções do tomador (INSS, IRRF, CSRF, ISS) e RPS. JS puro.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "sideEffects": false
+}
