@@ -102,8 +102,10 @@ export function apurarResultado({
     const v = vinculoPorMatricula.get(mat);
     const sf = h.itens.find((i) => i.codigo === CODIGO_SALARIO_FAMILIA)?.valor ?? 0;
     const pessoal = h.proventos - sf;
-    const encargos = encargosDaEmpresa(h.bases.inss, empresa).total + h.fgts;
-    const provisoes = provisaoMensal(h.bases.inss, empresa).total;
+    // Férias gozadas no mês já estão na provisão: os encargos ficam sobre a remuneração do mês.
+    const baseDoMes = h.bases.inss - (h.ferias?.base ?? 0);
+    const encargos = encargosDaEmpresa(baseDoMes, empresa).total + h.fgts;
+    const provisoes = provisaoMensal(baseDoMes, empresa).total;
     const beneficios = (custosExtras[mat] ?? []).reduce((s, c) => s + c.valor, 0);
     const destino = destinoDoVinculo(v);
     if (!destino) {

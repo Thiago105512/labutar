@@ -1,4 +1,4 @@
-import { CATALOGO_VERBAS, calcularFolha, calcularHolerite, tabelaDaCompetencia, validarCompetencia, STATUS_COMPETENCIA, ACAO_FECHAMENTO, verificarFechamento, aplicarAcaoFechamento } from "../../packages/folha/src/index.js";
+import { CATALOGO_VERBAS, calcularFolha, calcularHolerite, tabelaDaCompetencia, validarCompetencia, STATUS_COMPETENCIA, ACAO_FECHAMENTO, verificarFechamento, aplicarAcaoFechamento, feriasNaCompetencia } from "../../packages/folha/src/index.js";
 import { obterFechamento, exigirCompetenciaAberta, gravarFechamento, hashDaFotografia } from "./fechamento.js";
 import { sucesso, erroValidacao, erroNaoEncontrado, erroConflito } from "./http/resposta.js";
 import { validarCPF } from "../../packages/core/src/validacao.js";
@@ -46,18 +46,22 @@ function competenciaValida(ctx) {
  * informados pelo DP (o que a tela edita); `calculo` leva as verbas e parâmetros da convenção.
  */
 export async function dadosDaFolha(repo, tenant, competencia) {
-  const [empresa, cad, lancamentos, instrumentos] = await Promise.all([
+  const [empresa, cad, lancamentos, instrumentos, ferias] = await Promise.all([
     repo.obter(tenant, "folhaParametros", "empresa"),
     carregarCadastro(repo, tenant),
     repo.listar(tenant, "folhaLancamentos", { competencia }, { limite: 100_000 }),
     carregarConvencoes(repo, tenant),
+    repo.listar(tenant, "ferias", {}, { limite: 100_000 }),
   ]);
   const informados = Object.fromEntries(lancamentos.itens.map(({ id, competencia: _c, matricula, ...l }) => [matricula, l]));
+  // Férias gravadas com gozo no mês: dias fora do salário e base do INSS (o DP não digita).
+  const comFerias = { ...informados };
+  for (const [matricula, f] of Object.entries(feriasNaCompetencia(ferias.itens, competencia))) comFerias[matricula] = { ...comFerias[matricula], ferias: f };
   const todos = colaboradoresDaFolha(cad, competencia, empresa ?? {});
   // Sem sindicato não entra no cálculo: vira pendência do DP.
   const colaboradores = todos.filter((c) => c.sindicato?.cnpj);
   const semSindicato = todos.filter((c) => !c.sindicato?.cnpj);
-  const calculo = aplicarConvencoes({ colaboradores, lancamentos: informados, cad, empresa: empresa ?? {}, competencia, instrumentos });
+  const calculo = aplicarConvencoes({ colaboradores, lancamentos: comFerias, cad, empresa: empresa ?? {}, competencia, instrumentos });
   return {
     empresa: empresa ?? {},
     lotacoes: lotacoesDoCadastro(cad, empresa ?? {}),

@@ -64,10 +64,11 @@ export function aplicarConvencoes({ colaboradores, lancamentos, cad, empresa, co
     const L = lancamentos[c.matricula] ?? {};
     const mes = beneficiosDoMes(principal, {
       competencia, salarioBase: c.salario, admissao: c.admissao, desligamento: c.desligamento,
-      diasTrabalhados: diasDeTrabalho(competencia, { admissao: c.admissao, local: c.local ?? empresa.local, escala }),
+      // Férias no mês: dias de trabalho na proporção dos dias fora de férias (o ponto refina).
+      diasTrabalhados: Math.round((diasDeTrabalho(competencia, { admissao: c.admissao, local: c.local ?? empresa.local, escala }) * Math.max(0, 30 - (L.ferias?.dias ?? 0))) / 30),
       faltasDias: L.faltasDias ?? 0, atestadoDias: L.atestadoDias ?? 0, atrasosHoras: L.atrasosHoras ?? 0,
       associado: Boolean(pessoa?.associadoSindicato), oposicaoContribuicao: Boolean(pessoa?.oposicaoContribuicao),
-      refeitorio: Boolean(posto?.refeitorio ?? tomador?.refeitorio), emFeriasOuAfastado: Boolean(L.emFeriasOuAfastado),
+      refeitorio: Boolean(posto?.refeitorio ?? tomador?.refeitorio), emFeriasOuAfastado: Boolean(L.emFeriasOuAfastado || L.ferias?.dias),
       descontoVRPercentual: empresa.descontoVRPercentual ?? 0,
     });
 
