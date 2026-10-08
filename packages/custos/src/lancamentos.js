@@ -17,6 +17,7 @@ export const TIPO_CUSTO = Object.freeze({
   TRANSPORTE: Object.freeze({ nome: "Transporte", material: false }),
   EQUIPAMENTO: Object.freeze({ nome: "Equipamentos e materiais", material: true }),
   ADMINISTRATIVO: Object.freeze({ nome: "Despesa administrativa", material: false }),
+  RESCISAO: Object.freeze({ nome: "Rescisão (verbas não provisionadas e multa do FGTS)", material: false }),
   OUTROS: Object.freeze({ nome: "Outros", material: false }),
 });
 

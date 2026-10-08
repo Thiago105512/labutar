@@ -12,3 +12,5 @@ export * from "./decimo-terceiro.js";
 export * from "./ferias.js";
 export * from "./rescisao.js";
 export * from "./fechamento.js";
+export * from "./registros.js";
+export * from "./trct.js";

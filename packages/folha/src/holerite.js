@@ -69,8 +69,10 @@ export function verbasSalariais(colaborador, dias, L, tabela, cal, { verbaDoSala
  *   dependentesIR?, filhosSalarioFamilia?, insalubridadeGrau? (10|20|40), periculosidade?, lotacao }
  * @param lancamentos { horasExtras50?, horasExtras100?, horasNoturnas?, faltasDias?, dsrPerdidos?,
  *   adiantamento?, custoValeTransporte?, pensao?, outrosDescontos?, eConsignado?,
- *   outrosRendimentosIRNoMes?, irrfRetidoNoMes?, verbasExtras? } — outrosRendimentos e irrfRetido para o regime de caixa do IRRF:
+ *   outrosRendimentosIRNoMes?, irrfRetidoNoMes?, verbasExtras?, ferias? } — outrosRendimentos e irrfRetido para o regime de caixa do IRRF:
  *   o que outro pagamento do mesmo mês já pagou e reteve (13º, férias, complementar).
+ *   ferias: { dias, base, inssRetido } — dias de gozo no mês (pagos no recibo, saem do salário), a
+ *   parte das férias + 1/3 do mês (soma à base do INSS) e o INSS que o recibo já reteve dessa parte.
  * @param opcoes { local?, arredondamentoINSS?, arredondamentoFGTS?, dispensarIRRFAte10?, tabela? }
  */
 export function calcularHolerite(colaborador, competencia, lancamentos = {}, opcoes = {}) {
@@ -88,12 +90,14 @@ export function calcularHolerite(colaborador, competencia, lancamentos = {}, opc
     if (valor > 0) itens.push({ codigo: verba.codigo, nome: verba.nome, tipo: verba.tipo, referencia, valor, verba });
   };
   const L = lancamentos;
-  const { itens: salariais, salarioMes, valorHora } = verbasSalariais(colaborador, dias, L, tabela, cal);
+  const ferias = L.ferias?.dias ? { dias: Math.min(L.ferias.dias, dias), base: L.ferias.base ?? 0, inssRetido: L.ferias.inssRetido ?? 0 } : null;
+  const { itens: salariais, salarioMes, valorHora } = verbasSalariais(colaborador, dias - (ferias?.dias ?? 0), L, tabela, cal);
   itens.push(...salariais);
 
   // Bases a partir das incidências de cada verba.
   const base = (b) => itens.reduce((s, i) => s + efeitoNaBase(i.verba, i.valor, b), 0);
-  const baseINSS = Math.max(0, base("inss"));
+  // Férias do mês: a base do INSS é a do mês inteiro; desconta-se só o que o recibo não reteve.
+  const baseINSS = Math.max(0, base("inss")) + (ferias?.base ?? 0);
   const baseFGTS = Math.max(0, base("fgts"));
   const rendimentosIR = Math.max(0, base("irrf"));
 
@@ -101,10 +105,12 @@ export function calcularHolerite(colaborador, competencia, lancamentos = {}, opc
   lanca(VERBAS.SALARIO_FAMILIA, sf.valor, sf.cotas ? `${sf.cotas} cota(s)` : null);
 
   const inss = calcularINSS(baseINSS, tabela, { arredondamento: opcoes.arredondamentoINSS ?? ARREDONDAMENTO_INSS.POR_FAIXA });
-  lanca(VERBAS.INSS, inss.valor, inss.faixas.length ? `até ${inss.faixas.at(-1).aliquota}%` : null);
+  const inssDoMes = Math.max(0, inss.valor - (ferias?.inssRetido ?? 0));
+  lanca(VERBAS.INSS, inssDoMes, inss.faixas.length ? `até ${inss.faixas.at(-1).aliquota}%${ferias ? " (menos o retido nas férias)" : ""}` : null);
+  if (ferias) avisos.push(`${ferias.dias} dia(s) de férias no mês, pagos no recibo de férias; a base do INSS inclui as férias.`);
   const irrf = calcularIRRF({
     rendimentos: rendimentosIR + (L.outrosRendimentosIRNoMes ?? 0),
-    inss: inss.valor,
+    inss: inssDoMes,
     dependentes: colaborador.dependentesIR ?? 0,
     pensao: L.pensao ?? 0,
     jaRetido: L.irrfRetidoNoMes ?? 0,
@@ -152,6 +158,7 @@ export function calcularHolerite(colaborador, competencia, lancamentos = {}, opc
     liquido,
     bases: { inss: inss.base, fgts: baseFGTS, irrf: irrf.base, rendimentosIR },
     fgts,
+    ferias,
     detalhe: { inss, irrf, salarioFamilia: sf, calendario: cal, diasDeContrato: dias, valorHora: r(valorHora) },
     avisos,
     pendencias,
