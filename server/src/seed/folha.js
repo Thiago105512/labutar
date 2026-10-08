@@ -2,6 +2,7 @@
  * Folha de demonstração: setembro/2026, empresa de mão de obra no Polo Industrial de Manaus
  * (docs/14-cenario-de-teste.md), em escala de vitrine. Pessoas e valores fictícios.
  */
+import { semearAdmissaoDemo } from "./admissao.js";
 import { semearPonto } from "./ponto.js";
 import { TIPO_VINCULO, gerarMatricula } from "../../../packages/mao-de-obra/src/index.js";
 import { somarDias } from "../../../packages/core/src/datas.js";
@@ -339,5 +340,6 @@ export async function semearFolha(repo, tenantId) {
   await semearCustos(repo, tenantId);
   await fecharCompetenciaDemo(repo, tenantId, "2026-08");
   await semearPonto(repo, tenantId);
+  await semearAdmissaoDemo(repo, tenantId);
   return { semeado: true, colaboradores: dados.length };
 }

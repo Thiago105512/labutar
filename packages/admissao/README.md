@@ -1,7 +1,7 @@
-# @labutar/admissao — contrato reservado
+# @labutar/admissao
 
-**Estado: só constantes.** O pacote existe para o workspace do monorepo ficar íntegro e
-para a fase de admissão começar sem retrabalho. Modelo de dados em
+**Estado: implementado** — etapas da admissão digital, situação (com bloqueio sem ASO apto), PIS e texto do contrato.
+Modelo de dados em
 [`docs/02-modelo-de-dados.md`](../../docs/02-modelo-de-dados.md#admissão).
 
 JS puro, como `core` e `ats`: pode ser importado pelo navegador.

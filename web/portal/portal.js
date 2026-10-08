@@ -7,7 +7,7 @@
  */
 import { icone } from "../app/icones.js";
 import { api, adotarSessao, entrar, sessao } from "../app/sessao.js";
-import { esc, moeda, avatar, aviso, abrirPainel, fecharPainel, dataHora, duracao, matricula } from "../app/ui.js";
+import { esc, moeda, avatar, aviso, abrirPainel, fecharPainel, data, dataHora, duracao, matricula } from "../app/ui.js";
 import { esconderTelaCheia, ligarEventosAcesso, telaTrocarSenhaObrigatoria } from "../app/acesso-telas.js";
 import { validarSenha } from "/packages/acesso/src/index.js";
 
@@ -302,13 +302,56 @@ const SERVICOS_COLABORADOR = [
 const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const nomeCompetencia = (c) => `${MESES[Number(c.slice(5, 7)) - 1]} de ${c.slice(0, 4)}`;
 
+/** Admissão em andamento: o que falta, os dados para completar, o exame e o contrato para aceitar. */
+function secaoAdmissao(a) {
+  const d = a.dados;
+  const e = d.endereco ?? {};
+  const b = d.banco ?? {};
+  const campo = (id, rotulo, valor, extra = "") => `<div class="campo"><label for="ad-${id}">${rotulo}</label><input id="ad-${id}" name="${id}" value="${esc(valor ?? "")}" ${extra}></div>`;
+  const ex = a.exame;
+  return `
+    <section class="portal-secao">
+      <h2>Minha admissão</h2>
+      <div class="cartao" style="padding:18px">
+        <p class="dica">Início em ${data(a.admissao)} · ${esc(a.cargo ?? "")}${a.tomador ? ` · ${esc(a.tomador)}` : ""}</p>
+        <ul class="etapas-portal">${a.etapas.map((x) => `<li class="${x.ok ? "ok" : ""}">${x.ok ? icone("ok") : icone("relogio")}<span><strong>${esc(x.nome)}</strong>${x.ok ? "" : `<small>${esc(x.pendencia)}</small>`}</span></li>`).join("")}</ul>
+      </div>
+      <form class="cartao formulario" id="form-admissao" style="padding:18px;margin-top:12px">
+        <h3>Seus dados</h3>
+        <div class="duas">${campo("nascimento", "Data de nascimento", d.nascimento, 'type="date"')}${campo("nomeMae", "Nome da mãe", d.nomeMae)}</div>
+        <div class="duas">${campo("rg", "RG ou CNH", d.rg)}${campo("pis", "PIS/NIS", d.pis, 'inputmode="numeric"')}</div>
+        <div class="duas">${campo("cep", "CEP", e.cep, 'inputmode="numeric"')}${campo("logradouro", "Rua", e.logradouro)}</div>
+        <div class="duas">${campo("numero", "Número", e.numero)}${campo("bairro", "Bairro", e.bairro)}</div>
+        <div class="duas">${campo("municipio", "Cidade", e.municipio)}${campo("uf", "UF", e.uf, 'maxlength="2"')}</div>
+        <h3 style="margin-top:8px">Onde receber o salário</h3>
+        ${campo("pix", "Chave PIX (CPF, e-mail, celular +55 ou aleatória)", b.pix)}
+        <div class="duas">${campo("banco", "Banco (código)", b.banco, 'inputmode="numeric" maxlength="3"')}${campo("agencia", "Agência", b.agencia, 'inputmode="numeric"')}</div>
+        ${campo("conta", "Conta com dígito", b.conta)}
+        <button class="botao botao-primario" type="submit">Salvar meus dados</button>
+      </form>
+      <div class="cartao" style="padding:18px;margin-top:12px">
+        <h3>Exame admissional</h3>
+        <p class="dica">${ex?.status === "AGENDADO" ? `Agendado para ${data(ex.agendadoPara)} às ${esc(ex.hora ?? "")}, ${esc(ex.local ?? "")}. Leve um documento com foto.` : ex?.status === "REALIZADO" ? "Exame feito." : "A clínica vai agendar e avisar você aqui."}</p>
+      </div>
+      <div class="cartao" style="padding:18px;margin-top:12px">
+        <h3>Contrato de trabalho</h3>
+        <pre class="texto-contrato">${esc(a.contrato.texto)}</pre>
+        ${a.contrato.aceite ? `<p class="dica">${icone("ok")} Você aceitou este contrato em ${esc(dataHora(a.contrato.aceite.aceitoEm))}.</p>` : `
+        <label class="opcao-marcar" style="margin-top:10px"><input type="checkbox" id="aceite-contrato"> Li e aceito o contrato acima</label>
+        <button class="botao botao-primario" style="margin-top:10px" data-aceitar-contrato="${esc(a.contrato.hash)}">Aceitar contrato</button>`}
+      </div>
+    </section>`;
+}
+
 async function areaColaborador() {
   const d = await api("/portal/colaborador/inicio");
   const holerites = d.servicos.includes("holerites") ? await api("/portal/colaborador/holerites") : [];
+  const admissao = d.servicos.includes("admissao") ? await api("/portal/colaborador/admissao") : null;
   return `
     <section class="portal-hero">
       <div><h1>${saudacao()}, ${esc(primeiroNome())}.</h1><p>${esc(TIPOS.COLABORADOR.chamada)}</p></div>
     </section>
+    ${admissao ? secaoAdmissao(admissao) : ""}
     ${d.servicos.includes("holerites") ? `
     <section class="portal-secao">
       <h2>Meus holerites</h2>
@@ -468,6 +511,16 @@ async function painelEspelho(chave) {
 
 document.addEventListener("click", async (e) => {
   if (e.target.closest("[data-fechar]")) return fecharPainel();
+  const aceitar = e.target.closest("[data-aceitar-contrato]");
+  if (aceitar) {
+    if (!document.getElementById("aceite-contrato")?.checked) return aviso("Marque que leu e aceita o contrato.", "erro");
+    try {
+      await api("/portal/colaborador/admissao/contrato", { metodo: "POST", corpo: { aceito: true, hash: aceitar.dataset.aceitarContrato } });
+      aviso("Contrato aceito. Obrigado!");
+      renderizar();
+    } catch (err) { aviso(err.message, "erro"); }
+    return undefined;
+  }
   const espelho = e.target.closest("[data-espelho]");
   if (espelho) return painelEspelho(espelho.dataset.espelho).catch((err) => aviso(err.message, "erro"));
   const acaoEspelho = e.target.closest("[data-espelho-acao]");
@@ -549,3 +602,18 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") fecharPain
 ligarEventosAcesso({ aoAlterar: renderizar });
 sessao.aoSair((motivo) => telaEntrada({ motivo }));
 renderizar();
+
+document.addEventListener("submit", async (e) => {
+  if (e.target.id !== "form-admissao") return;
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(e.target));
+  try {
+    await api("/portal/colaborador/admissao/dados", { metodo: "PUT", corpo: {
+      nascimento: f.nascimento, nomeMae: f.nomeMae, rg: f.rg, pis: f.pis || undefined,
+      endereco: { cep: f.cep, logradouro: f.logradouro, numero: f.numero, bairro: f.bairro, municipio: f.municipio, uf: f.uf },
+      banco: { pix: f.pix || null, banco: f.banco || null, agencia: f.agencia || null, conta: f.conta || null },
+    } });
+    aviso("Dados salvos.");
+    renderizar();
+  } catch (err) { aviso(err.message, "erro"); }
+});

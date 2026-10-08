@@ -70,3 +70,14 @@ body { background: var(--fundo); }
 
 /* Lista de holerites do colaborador. */
 .lista-holerites { padding: 6px 18px; }
+
+/* Admissão digital no portal */
+.etapas-portal { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 8px; }
+.etapas-portal li { display: flex; gap: 10px; align-items: flex-start; color: var(--texto-2); }
+.etapas-portal li svg { flex: none; width: 18px; height: 18px; margin-top: 1px; }
+.etapas-portal li.ok { color: var(--verde); }
+.etapas-portal li span { display: flex; flex-direction: column; }
+.etapas-portal li strong { color: var(--texto); }
+.etapas-portal li small { color: var(--texto-2); }
+.texto-contrato { white-space: pre-wrap; font-family: inherit; font-size: 13px; line-height: 1.55; background: var(--cinza-bg); border-radius: 10px; padding: 14px; max-height: 320px; overflow: auto; }
+#form-admissao h3 { font-size: 15px; }

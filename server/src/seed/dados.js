@@ -231,6 +231,8 @@ export const USUARIOS_DEMO = Object.freeze([
   { nome: "Sandra Supervisora", email: "supervisor@demo.com.br", perfilId: "SUPERVISOR_OPERACOES" },
   { nome: "Caio Comercial", email: "comercial@demo.com.br", perfilId: "COMERCIAL" },
   { nome: "Fernanda Financeiro", email: "financeiro@demo.com.br", perfilId: "FINANCEIRO" },
+  { nome: "Beatriz Médica do Trabalho", email: "medico@demo.com.br", perfilId: "MEDICO_TRABALHO" },
+  { nome: "Lucas Recepção da Clínica", email: "clinica@demo.com.br", perfilId: "EQUIPE_CLINICA" },
 ]);
 
 /** Contas dos portais externos, também só para desenvolvimento. */
@@ -239,6 +241,8 @@ export const CONTAS_EXTERNAS_DEMO = Object.freeze([
   { tipo: "COLABORADOR", email: "joao.batista@exemplo.com", nomeCandidato: "João Batista Silva" },
   // Colaboradora fictícia já na folha (holerite de agosto/2026 fechado no portal).
   { tipo: "COLABORADOR", email: "marcia.santos@exemplo.com", nomePessoa: "Márcia Oliveira Santos" },
+  // Admissão em andamento: completa os dados e aceita o contrato no portal.
+  { tipo: "COLABORADOR", email: "joana.lima@exemplo.com", nomePessoa: "Joana Ribeiro Lima" },
   { tipo: "TOMADOR", email: "gestor@eletronica-amazonia.com.br", nome: "Otávio Gestor do Tomador",
     escopo: { tomadorId: "TOM_ELETRONICA_AMAZONIA", tomadorNome: "Eletrônica Amazônia S.A.", papel: "GESTOR_CONTRATO" } },
 ]);

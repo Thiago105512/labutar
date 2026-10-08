@@ -16,6 +16,7 @@ import { paginaConvencoes, ligarEventosConvencoes, limparConvencoes } from "./co
 import { paginaResultado, paginaLancamentos, paginaItens, paginaRateio, ligarEventosCustos, limparCustos } from "./custos-telas.js";
 import { paginaPagamentos, ligarEventosPagamento, limparPagamento } from "./pagamento-telas.js";
 import { paginaEspelhos, paginaImportarAFD, ligarEventosPonto, limparPonto } from "./ponto-telas.js";
+import { paginaAdmissoes, paginaAgendaExames, ligarEventosAdmissao, limparAdmissao } from "./admissao-telas.js";
 import { esc, moeda, dataHora, avatar, etiqueta, diasDesde, quando, aviso, abrirPainel, fecharPainel, matiz, matricula } from "./ui.js";
 import {
   ICONE_MODULO,
@@ -56,6 +57,8 @@ const PAGINAS = {
     { id: "convencoes", nome: "Convenções e acordos", icone: "juridico" },
     { id: "verbas", nome: "Catálogo de verbas", icone: "dinheiro" },
   ],
+  admissao: [{ id: "admissoes", nome: "Admissões", icone: "admissao" }],
+  clinica: [{ id: "agenda", nome: "Agenda de exames", icone: "clinica" }],
   ponto: [
     { id: "espelhos", nome: "Espelhos de ponto", icone: "ponto" },
     { id: "afd", nome: "Importar AFD", icone: "relogio" },
@@ -289,6 +292,7 @@ function limparDados() {
   limparCustos();
   limparPagamento();
   limparPonto();
+  limparAdmissao();
   limparCadastro();
   Object.assign(estado, { vagas: [], candidatos: [], candidaturas: [], resumo: null, origens: [], busca: "" });
 }
@@ -334,6 +338,9 @@ async function renderizar() {
       else if (pagina.id === "pipeline") conteudo.innerHTML = telaPipeline(param);
       else if (pagina.id === "candidatos") conteudo.innerHTML = telaCandidatos();
       else conteudo.innerHTML = telaInicio();
+    } else if (moduloId === "admissao" || moduloId === "clinica") {
+      conteudo.innerHTML = carregando;
+      conteudo.innerHTML = moduloId === "admissao" ? await paginaAdmissoes() : await paginaAgendaExames();
     } else if (moduloId === "ponto") {
       conteudo.innerHTML = carregando;
       conteudo.innerHTML = pagina.id === "afd" ? await paginaImportarAFD() : await paginaEspelhos();
@@ -937,6 +944,7 @@ ligarEventosConvencoes({ aoAlterar: renderizar });
 ligarEventosCustos({ aoAlterar: renderizar });
 ligarEventosPagamento({ aoAlterar: renderizar });
 ligarEventosPonto({ aoAlterar: renderizar });
+ligarEventosAdmissao({ aoAlterar: renderizar });
 ligarEventosCadastro({ aoAlterar: renderizar });
 sessao.aoSair((motivo) => {
   limparDados();

@@ -1,3 +1,4 @@
+import { iniciarAdmissao } from "./rotas-admissao.js";
 import {
   validarPessoa, validarTomador, validarContratoTomador, validarPosto, validarVinculo,
   alterarSalario, lerPlanilhaColaboradores, lotacaoDoVinculo,
@@ -211,6 +212,7 @@ export function registrarRotasCadastro(r, { repo }) {
     await repo.inserir(tenant, "vinculos", vinculo);
     const avisos = [...r2.avisos];
     avisos.push(...await lancarKitDeAdmissao(repo, tenant, empresa, vinculo, ctx.usuario));
+    await iniciarAdmissao(repo, tenant, vinculo, pessoa, ctx.usuario ?? null);
     if (candidatura) avisos.push(...await registrarAdmissaoNaCandidatura(repo, tenant, candidatura, matricula, ctx.usuario));
     sucesso(res, { vinculo, pessoa, preenchidos, avisos }, 201);
   });
