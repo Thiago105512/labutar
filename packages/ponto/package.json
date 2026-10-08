@@ -1,0 +1,11 @@
+{
+  "name": "@labutar/ponto",
+  "version": "0.1.0",
+  "description": "Ponto eletrônico: leitura do AFD (Portaria MTP 671/2021 e leiaute anterior), apuração da jornada por escala (extras, noturno, intervalo, faltas, atrasos, DSR), banco de horas da convenção e totais para a folha. JS puro.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "sideEffects": false
+}

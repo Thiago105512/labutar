@@ -28,6 +28,9 @@ export const VERBAS = Object.freeze({
   INSALUBRIDADE: v("1202.01", "Adicional de insalubridade", P, { inss: "11", fgts: "11", irrf: true }),
   PERICULOSIDADE: v("1203.01", "Adicional de periculosidade", P, { inss: "11", fgts: "11", irrf: true }),
   ADICIONAL_NOTURNO: v("1205.01", "Adicional noturno", P, { inss: "11", fgts: "11", irrf: true }),
+  // Intervalo intrajornada não concedido: só o tempo suprimido, com 50%, de natureza indenizatória
+  // (art. 71, § 4º, da CLT, redação da Lei 13.467/2017) — sem INSS e FGTS; IRRF incide.
+  INTERVALO_SUPRIMIDO: v("1099.01", "Intervalo intrajornada suprimido (art. 71, § 4º)", P, { inss: "00", fgts: "00", irrf: true, conferida: false }),
   // Férias (CLT arts. 129 a 145). Gozadas: INSS e FGTS no mês, IRRF em separado no pagamento.
   // Abono pecuniário (art. 143) e seu 1/3: isentos (art. 144 e Lei 8.212, art. 28, § 9º, e, 6).
   FERIAS: v("1016.01", "Férias", P, { inss: "11", fgts: "11", irrf: "FERIAS" }),
@@ -60,6 +63,8 @@ export const VERBAS = Object.freeze({
   IRRF_13: v("9203.02", "IRRF sobre o 13º", D, { inss: "00", fgts: "00", irrf: false }),
   IRRF_FERIAS: v("9203.03", "IRRF sobre férias", D, { inss: "00", fgts: "00", irrf: false }),
   FALTAS: v("9207.01", "Faltas", D, { inss: "11", fgts: "11", irrf: true }),
+  // Atrasos e saídas antecipadas apurados no ponto: variante da natureza de faltas (conferir no Anexo I).
+  ATRASOS: v("9207.02", "Atrasos e saídas antecipadas", D, { inss: "11", fgts: "11", irrf: true, conferida: false }),
   DSR_FALTAS: v("9209.01", "DSR perdido por faltas", D, { inss: "11", fgts: "11", irrf: true, conferida: false }),
   DECIMO_TERCEIRO_DESCONTO_ADIANTAMENTO: v("9214.01", "13º salário – 1ª parcela já paga", D, { inss: "00", fgts: "00", irrf: false, conferida: false }),
   AVISO_NAO_CUMPRIDO: v("9213.01", "Aviso prévio não cumprido (art. 487, § 2º)", D, { inss: "00", fgts: "00", irrf: false, conferida: false }),

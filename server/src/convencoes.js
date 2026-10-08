@@ -29,7 +29,7 @@ function diasDeTrabalho(competencia, { admissao, local, escala }) {
     const iso = `${competencia}-${String(d).padStart(2, "0")}`;
     if (iso < admissao) continue;
     const semana = new Date(Date.UTC(ano, mes - 1, d)).getUTCDay();
-    if (escala === "12X36") dias += 0.5;
+    if (String(escala ?? "").startsWith("12X36")) dias += 0.5;
     else if (semana !== 0 && semana !== 6 && !feriados.has(iso)) dias += 1;
   }
   return Math.floor(dias);

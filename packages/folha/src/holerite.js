@@ -58,8 +58,11 @@ export function verbasSalariais(colaborador, dias, L, tabela, cal, { verbaDoSala
   const variaveis = he50 + he100 + noturno;
   if (variaveis > 0) lanca(VERBAS.DSR_VARIAVEIS, r((variaveis / cal.uteis) * cal.descanso), `${cal.descanso}/${cal.uteis} dias`);
 
+  lanca(VERBAS.INTERVALO_SUPRIMIDO, r((L.intervaloSuprimidoHoras ?? 0) * valorHora * 1.5), L.intervaloSuprimidoHoras ? `${L.intervaloSuprimidoHoras}h` : null);
+
   const diaria = salario / 30;
   lanca(VERBAS.FALTAS, r((L.faltasDias ?? 0) * diaria), L.faltasDias ? `${L.faltasDias} dias` : null);
+  lanca(VERBAS.ATRASOS, r((L.atrasosHoras ?? 0) * valorHora), L.atrasosHoras ? `${L.atrasosHoras}h` : null);
   lanca(VERBAS.DSR_FALTAS, r((L.dsrPerdidos ?? 0) * diaria), L.dsrPerdidos ? `${L.dsrPerdidos} dias` : null);
   return { itens, salarioMes, valorHora };
 }
@@ -67,7 +70,7 @@ export function verbasSalariais(colaborador, dias, L, tabela, cal, { verbaDoSala
 /**
  * @param colaborador { matricula, nome, vinculo, salario, jornadaMensal?, admissao, desligamento?,
  *   dependentesIR?, filhosSalarioFamilia?, insalubridadeGrau? (10|20|40), periculosidade?, lotacao }
- * @param lancamentos { horasExtras50?, horasExtras100?, horasNoturnas?, faltasDias?, dsrPerdidos?,
+ * @param lancamentos { horasExtras50?, horasExtras100?, horasNoturnas?, faltasDias?, dsrPerdidos?, atrasosHoras?, intervaloSuprimidoHoras?,
  *   adiantamento?, custoValeTransporte?, pensao?, outrosDescontos?, eConsignado?,
  *   outrosRendimentosIRNoMes?, irrfRetidoNoMes?, verbasExtras?, ferias? } — outrosRendimentos e irrfRetido para o regime de caixa do IRRF:
  *   o que outro pagamento do mesmo mês já pagou e reteve (13º, férias, complementar).
