@@ -78,10 +78,13 @@ test("lançamento recalcula o holerite e valida os limites", async () => {
 });
 
 test("CPF é o código da pessoa: valida, grava e recusa CPF de outra pessoa", async () => {
-  const [a, b] = folhaDemo().map((p) => p.colaborador.matricula);
   const antes = (await chamar("/api/folha/2026-09", { token: admin })).json.dados;
-  assert.ok(antes.holerites.every((h) => h.pendencias.some((p) => /CPF não informado/.test(p))));
-  assert.equal(antes.resumo.semCPF, antes.holerites.length);
+  // No demo, parte das pessoas está sem CPF (como num cadastro importado).
+  const semCPF = antes.holerites.filter((h) => !h.colaborador.cpf);
+  assert.ok(semCPF.length >= 2 && semCPF.length < antes.holerites.length);
+  assert.ok(semCPF.every((h) => h.pendencias.some((p) => /CPF não informado/.test(p))));
+  assert.equal(antes.resumo.semCPF, semCPF.length);
+  const [a, b] = semCPF.map((h) => h.colaborador.matricula);
 
   const invalido = await chamar(`/api/folha/colaboradores/${a}`, { metodo: "PATCH", token: admin, corpo: { cpf: "111.111.111-11" } });
   assert.equal(invalido.status, 400);

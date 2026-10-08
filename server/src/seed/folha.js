@@ -41,6 +41,38 @@ export const SETORES_DEMO = Object.freeze([{ id: "ADM", nome: "Administrativo pr
 
 const SINDICATO_DEMO = Object.freeze({ cnpj: "23006562000148", sigla: "SEEACEAM", nome: "Sindicato dos Empregados em Empresas de Asseio e Conservação do Estado do Amazonas" });
 
+/** CPF fictício (dígitos verificadores válidos) a partir de um número: só para o demo e os testes. */
+export function cpfFicticio(n) {
+  const base = `8${String((n * 104_729) % 100_000_000).padStart(8, "0")}`;
+  const dv = (d, peso) => { const s = d.split("").reduce((a, x, i) => a + Number(x) * (peso - i), 0) % 11; return s < 2 ? 0 : 11 - s; };
+  const d1 = dv(base, 10);
+  return `${base}${d1}${dv(`${base}${d1}`, 11)}`;
+}
+
+/**
+ * CPF e dados bancários fictícios do demo: um a cada quatro (e quem já saiu, como num cadastro
+ * importado) fica sem — pendência no pagamento e aviso no eSocial; os demais recebem por crédito
+ * em conta no banco da empresa, TED ou PIX.
+ */
+function documentosDemo(n, nome, desligado) {
+  if (n % 4 === 0 || desligado) return { cpf: null, banco: null };
+  const [primeiro, ...resto] = nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split(" ");
+  const banco = [
+    null,
+    { banco: "001", agencia: "1234", conta: `${String(10_000 + n * 37)}-${n % 10}`, pix: null },
+    { banco: "237", agencia: "0456", conta: `${String(20_000 + n * 53)}-${(n * 3) % 10}`, pix: null },
+    { banco: null, agencia: null, conta: null, pix: `${primeiro}.${resto.at(-1)}@exemplo.com` },
+  ][n % 4];
+  return { cpf: cpfFicticio(n), banco };
+}
+
+/** Conta da empresa para a remessa de pagamentos (fictícia; o convênio vem do banco). */
+export const CONTA_PAGAMENTO_DEMO = Object.freeze({
+  banco: Object.freeze({ codigo: "001", nome: "Banco Fictício S.A." }),
+  conta: Object.freeze({ agencia: "1234", agenciaDv: "5", numero: "98765", contaDv: "0" }),
+  convenio: "000123456",
+});
+
 export const EMPRESA_FOLHA_DEMO = Object.freeze({
   id: "empresa",
   cnpj: EMPRESAS_DEMO[0].cnpj,
@@ -52,6 +84,8 @@ export const EMPRESA_FOLHA_DEMO = Object.freeze({
   fpas: "515 (conferir)",
   arredondamentoINSS: "POR_FAIXA",
   local: { uf: "AM", municipio: "Manaus" },
+  endereco: { logradouro: "Rua Exemplo", numero: "100", complemento: "", cidade: "Manaus", cep: "69000000", uf: "AM" },
+  contaPagamento: CONTA_PAGAMENTO_DEMO,
   setores: SETORES_DEMO,
   // Sindicato sugerido na admissão por tipo de vínculo (o DP confirma ou troca). A CCT AM000038/2026
   // abrange todos os empregados das empresas de asseio, conservação e serviços terceirizados.
@@ -287,7 +321,7 @@ export async function semearFolha(repo, tenantId) {
     }));
     const pessoaId = `PES_${String(++nPessoa).padStart(4, "0")}`;
     // Associados ao sindicato laboral no demo: um a cada três (cesta básica da CCT).
-    await repo.inserir(tenantId, "pessoas", { id: pessoaId, cpf: null, nome: c.nome, dependentes, banco: null, associadoSindicato: nPessoa % 3 === 0 });
+    await repo.inserir(tenantId, "pessoas", { id: pessoaId, ...documentosDemo(nPessoa, c.nome, Boolean(c.desligamento)), nome: c.nome, dependentes, associadoSindicato: nPessoa % 3 === 0 });
     await repo.inserir(tenantId, "vinculos", {
       id: c.matricula, matricula: c.matricula, pessoaId, tipo: c.vinculo, admissao: c.admissao, desligamento: c.desligamento ?? null,
       cargo: c.cargo, salario: c.salario, historicoSalarial: [{ desde: c.admissao, valor: c.salario, motivo: "Admissão" }],

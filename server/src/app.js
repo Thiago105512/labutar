@@ -13,6 +13,7 @@ import { registrarRotasCadastro } from "./rotas-cadastro.js";
 import { registrarRotasRescisaoFerias } from "./rotas-rescisao-ferias.js";
 import { registrarRotasConvencoes } from "./rotas-convencoes.js";
 import { registrarRotasCustos } from "./rotas-custos.js";
+import { registrarRotasPagamento } from "./rotas-pagamento.js";
 import { criarServicoAcesso } from "./auth/servico.js";
 import { cabecalhosCors, lerCorpo } from "./http/corpo.js";
 import { responderErro, falha, CODIGOS } from "./http/resposta.js";
@@ -98,6 +99,7 @@ export async function criarAplicacao({ config = {}, repo, log = () => {}, limite
   registrarRotasRescisaoFerias(internas, { repo });
   registrarRotasConvencoes(internas, { repo });
   registrarRotasCustos(internas, { repo });
+  registrarRotasPagamento(internas, { repo });
   const publicas = registrarRotasPublicas({ repo, log });
 
   async function handler(req, res) {
