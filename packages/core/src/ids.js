@@ -32,15 +32,16 @@ function compactar(data) {
 
 /**
  * Identificador do evento no padrão eSocial (36 caracteres):
- * "ID" + tpInsc (1) + nrInsc (14, zeros à esquerda) + AAAAMMDDHHMMSS (14) + sequencial (5).
- * Conferir contra o XSD vigente do portal antes de enviar em produção.
+ * "ID" + tpInsc (1) + nrInsc (14) + AAAAMMDDHHMMSS (14) + sequencial (5). A inscrição é a mesma
+ * de ideEmpregador/nrInsc (raiz do CNPJ com 8 posições, ou CPF) **completada com zeros à direita**
+ * (Manual de Orientação do eSocial, identificação do evento).
  */
 export function idEventoESocial({ tpInsc, nrInsc, sequencial = 1, quando = new Date() }) {
   const digitos = somenteDigitos(nrInsc);
   if (digitos.length > 14) {
     throw new Error(`nrInsc com ${digitos.length} dígitos; o máximo no eSocial é 14`);
   }
-  const inscricao = digitos.padStart(14, "0");
+  const inscricao = digitos.padEnd(14, "0");
   const tipo = somenteDigitos(tpInsc).slice(0, 1);
   const seq = String(sequencial).padStart(5, "0").slice(0, 5);
   const id = `ID${tipo}${inscricao}${compactar(quando)}${seq}`;

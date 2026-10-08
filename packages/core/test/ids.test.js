@@ -39,7 +39,7 @@ test("idEventoESocial gera 36 caracteres no padrão oficial", () => {
   assert.equal(validarIdEventoESocial(id).valido, true);
 });
 
-test("idEventoESocial preenche inscrição curta com zeros", () => {
+test("idEventoESocial completa a inscrição com zeros à direita (raiz do CNPJ ou CPF)", () => {
   const quando = new Date(Date.UTC(2026, 0, 5, 8, 30, 15));
   const id = idEventoESocial({
     tpInsc: "2",
@@ -48,7 +48,9 @@ test("idEventoESocial preenche inscrição curta com zeros", () => {
     quando,
   });
 
-  assert.equal(id, "ID2000111444777352026010508301500042");
+  assert.equal(id, "ID2111444777350002026010508301500042");
+  // Raiz do CNPJ (8 posições), como em ideEmpregador/nrInsc.
+  assert.equal(idEventoESocial({ tpInsc: "1", nrInsc: "11222333", sequencial: 1, quando }).slice(0, 17), "ID111222333000000");
   assert.equal(id.length, 36);
 });
 

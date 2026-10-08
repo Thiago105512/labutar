@@ -1,61 +1,37 @@
-# @labutar/esocial — ⏸ ADIADO (interface reservada)
+# @labutar/esocial
 
-**Estado: não implementado.** Decisão de 2026-09-27: eSocial fica para depois, mas com o
-contrato já definido para que a Fase 4 comece sem retrabalho.
+**Estado: gera, assina e valida; não transmite.**
 
-Este pacote é o **único** do monorepo com dependências nativas de Node
-(`node-forge`, `xml-crypto`, `soap`, `pem`). Nunca é importado pelo front-end.
+| Faz | Como |
+|---|---|
+| Gera S-1200 (remuneração), S-2299 (desligamento) e S-2220 (ASO) | `src/eventos.js`, a partir da folha fechada, da rescisão salva e do ASO da clínica |
+| Assina (XMLDSig enveloped, RSA-SHA256, C14N 1.0, Id do evento) | `src/assinatura.js`, só com `node:crypto` — o XML já sai em forma canônica (`src/xml.js`) |
+| Confere a assinatura | `verificarAssinatura`; conferida também com uma implementação independente (signxml/lxml) |
+| Valida pelo XSD oficial | `xmllint` contra `xsd/` (testes e servidor); sem xmllint o teste é pulado e o servidor avisa |
 
-## Contrato reservado
+Sem dependência externa: o pacote não usa mais `xml-crypto`, `node-forge` nem `soap` (os
+defeitos do código herdado em `docs/05-compliance.md` ficam só como histórico).
 
-```js
-import {
-  EVENTOS,                  // { S2200, S2220, S2240 }
-  PendenciaError,           // lançado por toda função ainda não implementada
-  criarTransmissor,         // ({ certificado, ambiente }) => Transmissor
-  gerarS2200,               // (admissao) => xml
-  gerarS2220,               // (aso) => xml
-  gerarS2240,               // (condicoesAmbientais) => xml
-  validarContraXSD,         // (xml, evento) => { valido, erros }
-  transmitir,               // (transmissor, eventos) => { protocolo }
-  consultarLote,            // (transmissor, protocolo) => retorno
-} from "@labutar/esocial";
+## Certificado
+
+O A1 da empresa (.pfx) é convertido uma vez para PEM:
+
+```sh
+openssl pkcs12 -in empresa.pfx -nodes -out empresa.pem
 ```
 
-Toda função acima lança `PendenciaError` hoje. Isso é deliberado: um stub que devolve
-`null` ou `{ ok: true }` permitiria que uma admissão fosse marcada como transmitida sem
-ter sido. Enviar evento mal formado ao eSocial gera multa, então o padrão aqui é falhar alto.
+e passado ao servidor em `LABUTAR_ESOCIAL_CHAVE_PEM` (chave) e `LABUTAR_ESOCIAL_CERT_PEM`
+(certificado). Sem ele, o servidor usa uma chave de teste: o XML confere, mas não tem valor
+jurídico e o eSocial recusa.
 
-## Fluxo que a Fase 4 vai implementar
+## Ainda pendente (lança `PendenciaError`)
 
-```
-Admissao (docs/02-modelo-de-dados.md)
-   ├─ dadosContrato + checklist completo + ASO apto
-   ├─ gerarS2200(admissao)          → xml
-   ├─ gerarS2220(admissao.aso)      → xml
-   ├─ validarContraXSD(xml, evento) → bloqueia se inválido
-   ├─ assinar(xml, certificado)     → xml assinado (ICP-Brasil, RSA-SHA256)
-   ├─ transmitir(...)               → protocolo
-   └─ consultarLote(protocolo)      → PROCESSADO | REJEITADO
-        └─ EventoESocial persistido com xmlAssinado, hash, retorno e erros
-```
+- `criarTransmissor`, `transmitir`, `consultarLote`: certificado A1, habilitação em produção
+  restrita e o WSDL de produção (o pacote de comunicação guardado é **alfa**).
+- `gerarS2200`: completar no cadastro o que o leiaute pede (endereço, nascimento, CBO, horário
+  contratual) — a admissão digital já coleta parte.
+- `gerarS2240`: depende do PGR por posto.
+- S-1010 (tabela de rubricas): falta a Tabela 21 (incidência de IRRF) conferida.
+- **Decisão pendente**: quem assina o S-2220 — e-CNPJ do empregador ou e-CPF do médico.
 
-Retificação: `indRetif=2` + `nrRecibo` do evento original.
-
-## Antes de escrever qualquer linha
-
-1. Ler `docs/05-compliance.md` — inventaria 14 defeitos do código herdado,
-   3 deles confirmados contra o fonte instalado de `xml-crypto` e `node-forge`.
-2. ✅ XSDs do leiaute S-1.3 versionados em `packages/esocial/xsd/` (ver o README da pasta).
-   O leiaute muda; código validado contra o XSD de hoje quebra no próximo.
-3. Resolver os pré-requisitos externos (certificado A1, habilitação em produção
-   restrita, qualificação cadastral) — listados no fim do `05-compliance.md`.
-4. Decidir **quem assina** o ASO: e-CNPJ do empregador ou e-CPF do médico do
-   trabalho. Tem consequência jurídica direta e não é reversível depois de enviado.
-
-## Dependências
-
-Já instaladas em `C:\Users\FENIX JURIDICO\node_modules`: `node-forge@1.4.0`,
-`xml-crypto@6.3.2`, `soap@1.13.1`, `pem@1.14.8`, `xmlbuilder@15.1.1`.
-
-Falta: um validador XSD real (`libxmljs2` ou equivalente).
+Retificação (`indRetif=2` + `nrRecibo`) entra junto com a transmissão, quando houver recibo.
