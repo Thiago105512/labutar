@@ -707,3 +707,8 @@ a.modulo-cartao:hover { transform: translateY(-3px); box-shadow: var(--sombra-2)
   body.imprimindo-documento .documento-impressao, body.imprimindo-documento .documento-impressao * { visibility: visible; }
   body.imprimindo-documento .documento-impressao { position: absolute; inset: 0 auto auto 0; width: 100%; padding: 12mm; background: #fff; color: #000; }
 }
+
+/* Admissão digital */
+.etapas-admissao { display: flex; flex-wrap: wrap; gap: 4px; }
+.etapas-admissao .etiqueta { font-size: 11px; }
+.texto-contrato { white-space: pre-wrap; font-family: inherit; font-size: 13px; line-height: 1.55; background: var(--cinza-bg); border-radius: 10px; padding: 14px; margin-top: 8px; }

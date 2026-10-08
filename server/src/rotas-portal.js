@@ -3,6 +3,7 @@ import { PAPEIS_TOMADOR, TIPO_CONTA, podeNoTomador } from "../../packages/acesso
 import { exigirTenant } from "./db/guard.js";
 import { sucesso, erroValidacao, erroNaoEncontrado, erroConflito, erroSemPermissao } from "./http/resposta.js";
 import { exigirConta, exigirUsuario } from "./middleware/contexto.js";
+import { pessoaDoColaborador as pessoaDoColaboradorNoRepo, matriculasDaPessoa as matriculasDaPessoaNoRepo } from "./portal-pessoa.js";
 import { ATOR_SISTEMA } from "./auth/servico.js";
 
 /**
@@ -173,18 +174,15 @@ export function registrarRotasPortal(r, { repo, acesso }) {
    * A pessoa do colaborador no cadastro: a conta aponta para a pessoa (pessoaId) ou, se veio do
    * recrutamento, para o candidato que virou pessoa (candidatoId na pessoa).
    */
-  async function pessoaDoColaborador(tenant, escopo) {
-    const direta = escopo.pessoaId ? await repo.obter(tenant, "pessoas", escopo.pessoaId) : null;
-    if (direta) return direta;
-    const { itens } = await repo.listar(tenant, "pessoas", { candidatoId: escopo.pessoaId }, { limite: 1 });
-    return itens[0] ?? null;
-  }
-
-  async function matriculasDaPessoa(tenant, pessoa) {
-    if (!pessoa) return new Set();
-    const { itens } = await repo.listar(tenant, "vinculos", { pessoaId: pessoa.id }, { limite: 100 });
-    return new Set(itens.map((v) => v.matricula));
-  }
+  const pessoaDoColaborador = (tenant, escopo) => pessoaDoColaboradorNoRepo(repo, tenant, escopo);
+  const matriculasDaPessoa = (tenant, pessoa) => matriculasDaPessoaNoRepo(repo, tenant, pessoa);
+  const admissaoPendente = async (tenant, pessoa) => {
+    for (const m of await matriculasDaPessoa(tenant, pessoa)) {
+      const a = await repo.obter(tenant, "admissoes", m);
+      if (a && a.status !== "CONCLUIDA") return true;
+    }
+    return false;
+  };
 
   r.get("/api/portal/colaborador/inicio", async (req, res, ctx) => {
     const { tenant, escopo, usuario } = exigirConta(ctx, TIPO_CONTA.COLABORADOR);
@@ -196,7 +194,7 @@ export function registrarRotasPortal(r, { repo, acesso }) {
         : candidato ? { nome: candidato.dados?.nome, cidade: candidato.contato?.cidade, uf: candidato.contato?.uf } : null,
       colaborador: Boolean(pessoa),
       // Disponíveis hoje; os demais dependem dos módulos de ponto, férias e documentos.
-      servicos: pessoa ? ["holerites"] : [],
+      servicos: pessoa ? [...(await admissaoPendente(tenant, pessoa) ? ["admissao"] : []), "holerites"] : [],
     });
   });
 

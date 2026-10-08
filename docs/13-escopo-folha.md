@@ -44,7 +44,7 @@ ou especialista em DP antes de implementar (ver seção 16).
 
 | Item | Prio | Compl. | Status | Onde / observação |
 |---|---|---|---|---|
-| Admissão (checklist documental, exame admissional) | E | M | 🟡 | Admissão puxa os dados do recrutamento (candidato aprovado, com a candidatura indo para a etapa Admissão) ou do cadastro (readmissão pela mesma pessoa/CPF), ou começa do zero (`cadastro/origens`). Checklist documental e ASO: `admissao` com contrato reservado; modelo em docs/02 |
+| Admissão (checklist documental, exame admissional) | E | M | ✅ | Admissão puxa os dados do recrutamento (candidato aprovado, com a candidatura indo para a etapa Admissão) ou do cadastro (readmissão pela mesma pessoa/CPF), ou começa do zero (`cadastro/origens`). Checklist documental e ASO: `admissao` com contrato reservado; modelo em docs/02; **admissão digital** ✅: etapas (dados, endereço, documentos com PIS, conta/PIX, ASO, contrato) completadas pelo colaborador no portal, contrato aceito eletronicamente (hash do texto, data, IP), conclusão só com ASO apto |
 | Vínculos: CLT, aprendiz, estagiário, intermitente, temporário, autônomo (RPA), pró-labore, doméstico, avulso | E | M | 🟡 | Temporário, terceirizado e próprio com regras legais prontas (`mao-de-obra`); demais ⬜ |
 | Dependentes, dados bancários, documentos, histórico contratual | E | B | 🟡 | Pessoa por CPF com dependentes (IR e salário-família) e vínculos por matrícula prontos (`cadastro`); dados bancários e documentos ⬜ |
 | Alterações de cargo, salário, lotação, jornada, centro de custo, com histórico | E | M | 🟡 | Lotação/alocação e salário com vigência e histórico prontos (`cadastro`); cargo e jornada ⬜ |
@@ -112,7 +112,7 @@ colaborador, por dia e por assunto.
 | Item | Prio | Compl. | Status | Onde / observação |
 |---|---|---|---|---|
 | PGR e PCMSO | E | M | 📋 | |
-| ASO e calendário de exames, com alertas | E | M | 📋 | |
+| ASO e calendário de exames, com alertas | E | M | 🟡 | Agenda da clínica (admissional criado na admissão, periódico, retorno, mudança de risco, demissional com código do eSocial), ASO só pelo médico, RH vê só a conclusão, custo do exame no contrato ✅; alertas de vencimento ⬜ |
 | CAT e gestão de acidentes | E | M | 📋 | |
 | Controle de EPI (entrega, validade, assinatura) | E | M | 📋 | Também no módulo de estoque |
 | LTCAT, PPP e eventos de SST no eSocial | E | A | 🟡 | Eventos previstos; LTCAT e PPP ⬜ |
