@@ -18,6 +18,7 @@ import { paginaPagamentos, ligarEventosPagamento, limparPagamento } from "./paga
 import { paginaEspelhos, paginaImportarAFD, ligarEventosPonto, limparPonto } from "./ponto-telas.js";
 import { paginaAdmissoes, paginaAgendaExames, ligarEventosAdmissao, limparAdmissao } from "./admissao-telas.js";
 import { paginaESocial, ligarEventosESocial, limparESocial } from "./esocial-telas.js";
+import { paginaMedicoes, ligarEventosFaturamento, limparFaturamento } from "./faturamento-telas.js";
 import { esc, moeda, dataHora, avatar, etiqueta, diasDesde, quando, aviso, abrirPainel, fecharPainel, matiz, matricula } from "./ui.js";
 import {
   ICONE_MODULO,
@@ -70,6 +71,7 @@ const PAGINAS = {
     { id: "custos", nome: "Lançamentos de custo", icone: "dinheiro" },
     { id: "itens", nome: "Itens de custo", icone: "estoque" },
     { id: "rateio", nome: "Rateio de próprios", icone: "pessoas" },
+    { id: "medicoes", nome: "Medição e faturamento", icone: "contabil" },
     { id: "pagamentos", nome: "Pagamentos", icone: "financeiro" },
   ],
   estoque: [
@@ -296,6 +298,7 @@ function limparDados() {
   limparPonto();
   limparAdmissao();
   limparESocial();
+  limparFaturamento();
   limparCadastro();
   Object.assign(estado, { vagas: [], candidatos: [], candidaturas: [], resumo: null, origens: [], busca: "" });
 }
@@ -359,7 +362,7 @@ async function renderizar() {
       conteudo.innerHTML = await telas[pagina.id]();
     } else if (moduloId === "financeiro" || moduloId === "estoque") {
       conteudo.innerHTML = carregando;
-      const telas = { resultado: paginaResultado, custos: paginaLancamentos, itens: paginaItens, rateio: paginaRateio, pagamentos: paginaPagamentos };
+      const telas = { resultado: paginaResultado, custos: paginaLancamentos, itens: paginaItens, rateio: paginaRateio, pagamentos: paginaPagamentos, medicoes: paginaMedicoes };
       conteudo.innerHTML = await telas[pagina.id]();
     } else if (moduloId === "administracao") {
       conteudo.innerHTML = carregando;
@@ -949,6 +952,7 @@ ligarEventosPagamento({ aoAlterar: renderizar });
 ligarEventosPonto({ aoAlterar: renderizar });
 ligarEventosAdmissao({ aoAlterar: renderizar });
 ligarEventosESocial({ aoAlterar: renderizar });
+ligarEventosFaturamento({ aoAlterar: renderizar });
 ligarEventosCadastro({ aoAlterar: renderizar });
 sessao.aoSair((motivo) => {
   limparDados();

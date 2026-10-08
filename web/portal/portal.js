@@ -397,13 +397,15 @@ const SERVICOS_TOMADOR = [
 ];
 
 /** Serviços do tomador já disponíveis no portal (os demais aparecem como "Em breve"). */
-const SERVICOS_TOMADOR_PRONTOS = new Set(["aprovarPonto"]);
+const SERVICOS_TOMADOR_PRONTOS = new Set(["aprovarPonto", "aprovarMedicao", "verMedicao"]);
+const STATUS_MEDICAO = { ENVIADA: ["Aguardando você", "e-ambar"], APROVADA: ["Aprovada", "e-azul"], CONTESTADA: ["Contestada", "e-vermelho"], FATURADA: ["Faturada", "e-verde"] };
 const STATUS_ESPELHO = { ENVIADO: ["Aguardando você", "e-ambar"], APROVADO: ["Aprovado", "e-verde"], CONTESTADO: ["Contestado", "e-vermelho"], LANCADO: ["Na folha", "e-verde"] };
 
 async function areaTomador() {
   const d = await api("/portal/tomador/inicio");
   const ponto = d.acoes.includes("verPresenca") ? await api("/portal/tomador/ponto") : null;
   const pendentes = ponto?.itens.filter((i) => i.status === "ENVIADO").length ?? 0;
+  const medicoes = ["aprovarMedicao", "verMedicao", "verFaturas"].some((a) => d.acoes.includes(a)) ? await api("/portal/tomador/medicoes") : null;
   return `
     <section class="portal-hero">
       <div><h1>${saudacao()}, ${esc(primeiroNome())}.</h1>
@@ -419,6 +421,18 @@ async function areaTomador() {
             <div class="texto"><strong>${esc(i.nome)}</strong><small>${esc(nomeCompetencia(i.competencia))} · trabalhado ${duracao(i.totais?.trabalhado)} · extras ${duracao((i.totais?.extras ?? 0) + (i.totais?.extras100 ?? 0))}${i.totais?.faltasDias ? ` · ${i.totais.faltasDias} falta(s)` : ""}</small></div>
             <span class="etiqueta ${STATUS_ESPELHO[i.status]?.[1] ?? "e-cinza"}">${esc(STATUS_ESPELHO[i.status]?.[0] ?? i.status)}</span>
           </button>`).join("") || '<p class="dica">Nenhum espelho enviado pela empresa ainda.</p>'}
+      </div>
+    </section>` : ""}
+    ${medicoes ? `
+    <section class="portal-secao">
+      <h2>Medições do contrato</h2>
+      <div class="cartao lista-holerites">
+        ${medicoes.itens.map((m) => `
+          <button type="button" class="lista-item origem-item" data-medicao="${esc(m.id)}">
+            <span class="modulo-icone">${icone("contabil")}</span>
+            <div class="texto"><strong>${esc(nomeCompetencia(m.competencia))}</strong><small>bruto ${moeda(m.valorBruto)} · líquido ${moeda(m.retencoes?.liquido ?? 0)}${m.rps ? ` · RPS ${m.rps.numero}` : ""}</small></div>
+            <span class="etiqueta ${STATUS_MEDICAO[m.status]?.[1] ?? "e-cinza"}">${esc(STATUS_MEDICAO[m.status]?.[0] ?? m.status)}</span>
+          </button>`).join("") || '<p class="dica">Nenhuma medição enviada ainda.</p>'}
       </div>
     </section>` : ""}
     <section class="portal-secao">
@@ -484,6 +498,32 @@ async function painelHolerite(chave) {
 
 const SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 
+async function painelMedicao(id) {
+  const lista = await api("/portal/tomador/medicoes");
+  const m = lista.itens.find((x) => x.id === id);
+  if (!m) return;
+  const r = m.retencoes ?? {};
+  abrirPainel(`
+    <header class="painel-cabecalho">
+      <span class="modulo-icone">${icone("contabil")}</span>
+      <div class="texto"><h2>Medição de ${esc(nomeCompetencia(m.competencia))}</h2><p>${esc(m.contratoId)}</p></div>
+      <button class="botao-icone" data-fechar aria-label="Fechar">${icone("fechar")}</button>
+    </header>
+    <div class="painel-corpo">
+      <table class="tabela tabela-compacta">
+        <thead><tr><th>Item</th><th class="num">Valor</th></tr></thead>
+        <tbody>${m.itens.map((i) => `<tr><td>${esc(i.nome ?? i.descricao)}${i.detalhe?.texto ? `<small class="dica" style="display:block">${esc(i.detalhe.texto)}</small>` : ""}</td><td class="num">${moeda(i.valor)}</td></tr>`).join("")}
+          <tr class="total destaque"><td>Valor bruto</td><td class="num">${moeda(m.valorBruto)}</td></tr></tbody>
+      </table>
+      <p class="dica" style="margin-top:12px">Retenções que vocês fazem na fonte: INSS ${moeda(r.inss)} · IRRF ${moeda(r.irrf)} · PIS/COFINS/CSLL ${moeda((r.pis ?? 0) + (r.cofins ?? 0) + (r.csll ?? 0))} · ISS ${moeda(r.iss)}. Líquido a pagar: <strong>${moeda(r.liquido)}</strong>.</p>
+    </div>
+    <footer class="painel-rodape">
+      <button class="botao botao-secundario" data-fechar type="button">Fechar</button>
+      ${m.status === "ENVIADA" && lista.podeAprovar ? `<button class="botao botao-secundario" data-medicao-acao="CONTESTAR" data-chave="${esc(m.id)}">Contestar</button>
+      <button class="botao botao-primario" data-medicao-acao="APROVAR" data-chave="${esc(m.id)}">Aprovar</button>` : ""}
+    </footer>`);
+}
+
 async function painelEspelho(chave) {
   const e = await api(`/portal/tomador/ponto/${chave}`);
   const podeAprovar = e.status === "ENVIADO" && (await api("/portal/tomador/ponto")).podeAprovar;
@@ -517,6 +557,24 @@ document.addEventListener("click", async (e) => {
     try {
       await api("/portal/colaborador/admissao/contrato", { metodo: "POST", corpo: { aceito: true, hash: aceitar.dataset.aceitarContrato } });
       aviso("Contrato aceito. Obrigado!");
+      renderizar();
+    } catch (err) { aviso(err.message, "erro"); }
+    return undefined;
+  }
+  const medicao = e.target.closest("[data-medicao]");
+  if (medicao) return painelMedicao(medicao.dataset.medicao).catch((err) => aviso(err.message, "erro"));
+  const acaoMedicao = e.target.closest("[data-medicao-acao]");
+  if (acaoMedicao) {
+    const corpo = { acao: acaoMedicao.dataset.medicaoAcao };
+    if (corpo.acao === "CONTESTAR") {
+      const motivo = prompt("O que está errado nesta medição? (pelo menos 10 caracteres)");
+      if (!motivo) return undefined;
+      corpo.motivo = motivo;
+    }
+    try {
+      await api(`/portal/tomador/medicoes/${acaoMedicao.dataset.chave.replace(":", "/")}`, { metodo: "POST", corpo });
+      aviso(corpo.acao === "APROVAR" ? "Medição aprovada. A empresa vai emitir a nota." : "Contestação enviada à empresa.");
+      fecharPainel();
       renderizar();
     } catch (err) { aviso(err.message, "erro"); }
     return undefined;

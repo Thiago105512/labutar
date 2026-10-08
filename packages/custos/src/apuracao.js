@@ -77,7 +77,7 @@ function repartir(valor, alvos, peso) {
  */
 export function apurarResultado({
   competencia, contratos = [], tomadores = [], vinculos = [], holerites = [], custosExtras = {},
-  lancamentos = [], contribuicoesPatronais = 0, empresa = {}, criterio = CRITERIO_RATEIO.COLABORADORES,
+  lancamentos = [], contribuicoesPatronais = 0, empresa = {}, criterio = CRITERIO_RATEIO.COLABORADORES, receitasFaturadas = {},
 }) {
   const tomadorPorId = new Map(tomadores.map((t) => [t.id, t]));
   const vinculoPorMatricula = new Map(vinculos.map((v) => [v.matricula, v]));
@@ -171,7 +171,9 @@ export function apurarResultado({
     const f = c.faturamento;
     const alertas = [];
     let receita = 0;
-    if (!f) alertas.push("Contrato sem preço de faturamento cadastrado: sem receita, não dá para saber a margem.");
+    const faturada = receitasFaturadas[c.contratoId];
+    if (faturada != null) receita = faturada;
+    else if (!f) alertas.push("Contrato sem preço de faturamento cadastrado: sem receita, não dá para saber a margem.");
     else if (f.modalidade === MODALIDADE_FATURAMENTO.POR_COLABORADOR) receita = c.colaboradores * (f.valor ?? 0);
     else if (f.modalidade === MODALIDADE_FATURAMENTO.TAXA_SOBRE_CUSTO) receita = r(maoDeObra * (1 + (f.taxaPercentual ?? 0) / 100));
     else if (f.modalidade === MODALIDADE_FATURAMENTO.VALOR_FIXO) receita = f.valor ?? 0;
@@ -189,7 +191,7 @@ export function apurarResultado({
     return {
       ...c,
       custos: { ...c.custos, lancadosTotal: somaLancados(c) },
-      custoDireto: custoDireto(c), custoTotal, maoDeObra, receita, tributos, resultado: res, equilibrio,
+      custoDireto: custoDireto(c), custoTotal, maoDeObra, receita, receitaFaturada: faturada != null, tributos, resultado: res, equilibrio,
       margemContribuicao: contribuicao,
       margemContribuicaoPercentual: receita ? Math.round((contribuicao / receita) * 10_000) / 100 : null,
       margem: receita ? Math.round((res / receita) * 10_000) / 100 : null,

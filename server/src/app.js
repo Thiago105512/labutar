@@ -17,6 +17,7 @@ import { registrarRotasPagamento } from "./rotas-pagamento.js";
 import { registrarRotasPonto } from "./rotas-ponto.js";
 import { registrarRotasAdmissao } from "./rotas-admissao.js";
 import { registrarRotasESocial } from "./rotas-esocial.js";
+import { registrarRotasFaturamento } from "./rotas-faturamento.js";
 import { criarServicoAcesso } from "./auth/servico.js";
 import { cabecalhosCors, lerCorpo } from "./http/corpo.js";
 import { responderErro, falha, CODIGOS } from "./http/resposta.js";
@@ -106,6 +107,7 @@ export async function criarAplicacao({ config = {}, repo, log = () => {}, limite
   registrarRotasPonto(internas, { repo });
   registrarRotasAdmissao(internas, { repo });
   registrarRotasESocial(internas, { repo });
+  registrarRotasFaturamento(internas, { repo });
   const publicas = registrarRotasPublicas({ repo, log });
 
   async function handler(req, res) {

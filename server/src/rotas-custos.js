@@ -33,6 +33,30 @@ export async function gravarLancamentos(repo, tenant, lista, { usuario = null, o
   return gravados;
 }
 
+/**
+ * Resultado por contrato da competência. Fechada, usa a fotografia (o que foi pago); com fatura
+ * emitida, a receita do contrato é a faturada (medição aprovada), não a estimada pelo preço.
+ */
+export async function resultadoDaCompetencia(repo, tenant, competencia, criterio = CRITERIO_RATEIO.COLABORADORES) {
+  const d = await dadosDaFolha(repo, tenant, competencia);
+  const f = await obterFechamento(repo, tenant, competencia);
+  const fechada = f.status === STATUS_COMPETENCIA.FECHADA && f.fotografia;
+  const folha = fechada ? f.fotografia : folhaComConvencoes(d, competencia);
+  if (fechada) d.calculo = { ...d.calculo, custosExtras: f.fotografia.custosExtras ?? {} };
+  // Lançamentos que podem ter parcela na competência (amortização de até 60 meses).
+  const { itens: lancamentos } = await repo.listar(tenant, "custosLancamentos", {}, TUDO);
+  const { itens: medicoes } = await repo.listar(tenant, "medicoes", { competencia }, TUDO);
+  const receitasFaturadas = Object.fromEntries(medicoes.filter((m) => m.status === "FATURADA").map((m) => [m.contratoId, m.valorBruto]));
+  const resultado = apurarResultado({
+    competencia, contratos: d.cadastro.contratos, tomadores: d.cadastro.tomadores, vinculos: d.cadastro.vinculos,
+    holerites: folha.holerites, custosExtras: d.calculo.custosExtras,
+    lancamentos: lancamentos.filter((l) => l.data.slice(0, 7) <= competencia),
+    contribuicoesPatronais: (folha.convencoes?.contribuicoesPatronais ?? []).reduce((s, c) => s + c.valor, 0),
+    empresa: d.empresa, criterio, receitasFaturadas,
+  });
+  return { resultado, folha, fechada: Boolean(fechada), dados: d };
+}
+
 export function registrarRotasCustos(r, { repo }) {
   r.get("/api/custos/tipos", async (req, res, ctx) => {
     exigirCustos(ctx, "ver");
@@ -96,21 +120,7 @@ export function registrarRotasCustos(r, { repo }) {
     const competencia = ctx.params.competencia;
     if (!validarCompetencia(competencia)) throw erroValidacao("competência inválida: use AAAA-MM", ["competencia"]);
     const criterio = CRITERIO_RATEIO[ctx.query.criterio] ?? CRITERIO_RATEIO.COLABORADORES;
-    const d = await dadosDaFolha(repo, tenant, competencia);
-    // Competência fechada: o resultado usa a fotografia (o que foi pago), não o cálculo de hoje.
-    const f = await obterFechamento(repo, tenant, competencia);
-    const fechada = f.status === STATUS_COMPETENCIA.FECHADA && f.fotografia;
-    const folha = fechada ? f.fotografia : folhaComConvencoes(d, competencia);
-    if (fechada) d.calculo = { ...d.calculo, custosExtras: f.fotografia.custosExtras ?? {} };
-    // Lançamentos que podem ter parcela na competência (amortização de até 60 meses).
-    const { itens: lancamentos } = await repo.listar(tenant, "custosLancamentos", {}, TUDO);
-    const resultado = apurarResultado({
-      competencia, contratos: d.cadastro.contratos, tomadores: d.cadastro.tomadores, vinculos: d.cadastro.vinculos,
-      holerites: folha.holerites, custosExtras: d.calculo.custosExtras,
-      lancamentos: lancamentos.filter((l) => l.data.slice(0, 7) <= competencia),
-      contribuicoesPatronais: (folha.convencoes?.contribuicoesPatronais ?? []).reduce((s, c) => s + c.valor, 0),
-      empresa: d.empresa, criterio,
-    });
+    const { resultado, folha, fechada } = await resultadoDaCompetencia(repo, tenant, competencia, criterio);
     sucesso(res, { ...resultado, pendenciasDaFolha: folha.pendencias.length, folhaFechada: Boolean(fechada) });
   });
 
