@@ -49,7 +49,7 @@ const conclusaoDoExame = (e) => e && ({
   resultado: e.resultado ?? null, restricoes: e.restricoes ?? null, asoEm: e.asoEm ?? null, medico: e.medico ?? null,
 });
 
-async function dadosDaAdmissao(repo, tenant, matricula, cad = null) {
+export async function dadosDaAdmissao(repo, tenant, matricula, cad = null) {
   const adm = await repo.obter(tenant, "admissoes", matricula);
   if (!adm) throw erroNaoEncontrado("admissão não encontrada");
   cad ??= await carregarCadastro(repo, tenant);
@@ -65,7 +65,7 @@ async function dadosDaAdmissao(repo, tenant, matricula, cad = null) {
   return { adm, vinculo, pessoa, exame, situacao, tomador, contrato, aceiteValido };
 }
 
-const resumoAdmissao = ({ adm, vinculo, pessoa, exame, situacao, tomador }) => ({
+export const resumoAdmissao = ({ adm, vinculo, pessoa, exame, situacao, tomador }) => ({
   matricula: adm.matricula, nome: pessoa?.nome ?? adm.matricula, cpf: pessoa?.cpf ?? null, tipo: vinculo?.tipo, cargo: vinculo?.cargo ?? null,
   admissao: vinculo?.admissao, tomador: tomador ? tomador.nomeFantasia || tomador.razaoSocial : null,
   status: situacao.status, etapas: situacao.etapas, podeConcluir: situacao.podeConcluir, exame: conclusaoDoExame(exame),

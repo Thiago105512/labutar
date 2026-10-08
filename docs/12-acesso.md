@@ -10,8 +10,12 @@
 1. **Entra** com empresa, e-mail e senha.
 2. Se a senha é provisória (usuário recém-criado ou senha redefinida), **cria uma senha
    própria** antes de qualquer outra coisa.
-3. **Escolhe o módulo.** Os liberados aparecem com o nível dela ("Operador", "Gestor"…);
-   os demais aparecem com cadeado — ela sabe que existem e a quem pedir.
+3. **Vê o que precisa dela** e **escolhe o módulo.** A página inicial começa por "O que precisa
+   de você": as pendências de todos os módulos liberados (folha a fechar, espelhos a enviar,
+   admissões prontas, medições a faturar, CA vencido…), as urgentes primeiro, com o prazo e o
+   link para a tela que resolve — só o que o nível dela pode fazer (`/api/inicio/pendencias`).
+   Depois vêm os módulos liberados, com o nível ("Operador", "Gestor"…); os sem acesso ficam
+   numa linha só, com cadeado — ela sabe que existem e a quem pedir.
 4. Dentro do módulo, **vê só as páginas e os botões que o nível permite**. "Trocar" no topo
    do menu volta para a escolha de módulo.
 
