@@ -1,0 +1,11 @@
+{
+  "name": "@labutar/pagamento",
+  "version": "0.1.0",
+  "description": "Pagamento da folha, rescisões e férias: arquivo de remessa CNAB 240 (FEBRABAN) com crédito em conta, TED e PIX, chaves PIX e leitura do retorno. JS puro.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "sideEffects": false
+}

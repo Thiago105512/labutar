@@ -44,6 +44,11 @@ export function dataNoFuso(valor, fuso = FUSO_PADRAO) {
 }
 
 /** Deslocamento do fuso em relação a UTC no instante dado, no formato ISO ("-04:00"). */
+/** Hora (HH:MM:SS) do instante no fuso da empresa — para carimbos como o do arquivo bancário. */
+export function horaNoFuso(instante = new Date(), fuso = FUSO_PADRAO) {
+  return new Intl.DateTimeFormat("en-GB", { timeZone: fuso, hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).format(instante);
+}
+
 export function deslocamentoDoFuso(fuso = FUSO_PADRAO, instante = new Date()) {
   const nome = new Intl.DateTimeFormat("en-US", { timeZone: fuso, timeZoneName: "longOffset" })
     .formatToParts(instante)

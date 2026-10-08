@@ -19,7 +19,8 @@
     "packages/esocial",
     "server",
     "packages/convencoes",
-    "packages/custos"
+    "packages/custos",
+    "packages/pagamento"
   ],
   "scripts": {
     "test": "node --test --test-reporter=spec \"packages/*/test/*.test.js\" \"server/test/*.test.js\"",

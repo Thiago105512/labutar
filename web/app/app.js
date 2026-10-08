@@ -14,6 +14,7 @@ import { paginaFolhaResumo, paginaHolerites, paginaFolhaTomadores, paginaVerbas,
 import { paginaDecimoTerceiro, paginaRescisaoFerias, ligarEventosRescisao, limparRescisao } from "./rescisao-telas.js";
 import { paginaConvencoes, ligarEventosConvencoes, limparConvencoes } from "./convencoes-telas.js";
 import { paginaResultado, paginaLancamentos, paginaItens, paginaRateio, ligarEventosCustos, limparCustos } from "./custos-telas.js";
+import { paginaPagamentos, ligarEventosPagamento, limparPagamento } from "./pagamento-telas.js";
 import { esc, moeda, dataHora, avatar, etiqueta, diasDesde, quando, aviso, abrirPainel, fecharPainel, matiz, matricula } from "./ui.js";
 import {
   ICONE_MODULO,
@@ -59,6 +60,7 @@ const PAGINAS = {
     { id: "custos", nome: "Lançamentos de custo", icone: "dinheiro" },
     { id: "itens", nome: "Itens de custo", icone: "estoque" },
     { id: "rateio", nome: "Rateio de próprios", icone: "pessoas" },
+    { id: "pagamentos", nome: "Pagamentos", icone: "financeiro" },
   ],
   estoque: [
     { id: "custos", nome: "Entregas e custos", icone: "estoque" },
@@ -280,6 +282,7 @@ function limparDados() {
   limparRescisao();
   limparConvencoes();
   limparCustos();
+  limparPagamento();
   limparCadastro();
   Object.assign(estado, { vagas: [], candidatos: [], candidaturas: [], resumo: null, origens: [], busca: "" });
 }
@@ -337,7 +340,7 @@ async function renderizar() {
       conteudo.innerHTML = await telas[pagina.id]();
     } else if (moduloId === "financeiro" || moduloId === "estoque") {
       conteudo.innerHTML = carregando;
-      const telas = { resultado: paginaResultado, custos: paginaLancamentos, itens: paginaItens, rateio: paginaRateio };
+      const telas = { resultado: paginaResultado, custos: paginaLancamentos, itens: paginaItens, rateio: paginaRateio, pagamentos: paginaPagamentos };
       conteudo.innerHTML = await telas[pagina.id]();
     } else if (moduloId === "administracao") {
       conteudo.innerHTML = carregando;
@@ -923,6 +926,7 @@ ligarEventosFolha({ aoAlterar: renderizar });
 ligarEventosRescisao({ aoAlterar: renderizar });
 ligarEventosConvencoes({ aoAlterar: renderizar });
 ligarEventosCustos({ aoAlterar: renderizar });
+ligarEventosPagamento({ aoAlterar: renderizar });
 ligarEventosCadastro({ aoAlterar: renderizar });
 sessao.aoSair((motivo) => {
   limparDados();

@@ -137,7 +137,7 @@ colaborador, por dia e por assunto.
 |---|---|---|---|---|
 | Lançamentos contábeis e provisões (férias, 13º, encargos) | E | M | 📋 | |
 | Rateio por centro de custo e projeto | E | M | 🟡 | Centro de custo por contrato com resultado, margem e ponto de equilíbrio (`custos`, docs/19); rateio de próprios e da estrutura ✅; projeto ⬜ |
-| CNAB e pagamentos bancários | E | M | ⬜ | Pagamento em lote previsto; CNAB entra aqui |
+| CNAB e pagamentos bancários | E | M | 🟡 | `pagamento`: remessa CNAB 240 (FEBRABAN) com lotes de crédito em conta, TED e PIX por chave; prévia da folha fechada (5º dia útil com feriados locais) e das rescisões e férias aprovadas (na data do prazo); pendências por CPF ou conta; não gera duas vezes a mesma folha; retorno do banco marca pago/rejeitado e paga a rescisão e as férias. ⬜ Homologação com o banco da empresa (versão do layout e convênio) |
 | Exportação para contabilidade e ERP | E | M | 📋 | |
 | Contas a pagar (guias, rescisões) | D | M | 📋 | |
 | Open Finance e Pix de salários | F | M | 📋 | |
