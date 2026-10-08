@@ -22,7 +22,8 @@
     "packages/custos",
     "packages/pagamento",
     "packages/ponto",
-    "packages/faturamento"
+    "packages/faturamento",
+    "packages/sst"
   ],
   "scripts": {
     "test": "node --test --test-reporter=spec \"packages/*/test/*.test.js\" \"server/test/*.test.js\"",

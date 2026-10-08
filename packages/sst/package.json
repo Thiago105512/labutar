@@ -1,0 +1,11 @@
+{
+  "name": "@labutar/sst",
+  "version": "0.1.0",
+  "description": "Saúde e segurança do trabalho: EPI com CA (NR-6), riscos por posto (PGR, NR-1), CAT (Lei 8.213/1991) e PPP. JS puro.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "sideEffects": false
+}

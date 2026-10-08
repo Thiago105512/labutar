@@ -170,9 +170,10 @@ const ITENS_CUSTO_DEMO = Object.freeze([
   { id: "ITC_CRACHA", nome: "Crachá PVC com foto", tipo: "CRACHA", custoUnitario: 1_200 },
   // CCT, cláusula 24ª: 2 uniformes completos a cada 6 meses — custo amortizado no semestre.
   { id: "ITC_UNIFORME", nome: "Uniforme completo (camisa, calça e sapato)", tipo: "UNIFORME", custoUnitario: 8_500, amortizarMeses: 6 },
-  { id: "ITC_BOTA", nome: "Bota de segurança (CA)", tipo: "EPI", custoUnitario: 12_000, amortizarMeses: 6 },
-  { id: "ITC_LUVA", nome: "Luva nitrílica (par)", tipo: "EPI", custoUnitario: 900 },
-  { id: "ITC_PROTETOR", nome: "Protetor auricular tipo plug", tipo: "EPI", custoUnitario: 350 },
+  // CA fictícios; o da luva venceu de propósito (o demo mostra o bloqueio da entrega).
+  { id: "ITC_BOTA", nome: "Bota de segurança (CA)", tipo: "EPI", custoUnitario: 12_000, amortizarMeses: 6, vidaUtilMeses: 6, ca: { numero: "40123", validade: "2028-03-31" } },
+  { id: "ITC_LUVA", nome: "Luva nitrílica (par)", tipo: "EPI", custoUnitario: 900, vidaUtilMeses: 1, ca: { numero: "38211", validade: "2026-09-30" } },
+  { id: "ITC_PROTETOR", nome: "Protetor auricular tipo plug", tipo: "EPI", custoUnitario: 350, vidaUtilMeses: 1, ca: { numero: "19876", validade: "2027-12-31" } },
   { id: "ITC_EXAME_ADM", nome: "Exame admissional (clínica do grupo)", tipo: "EXAME", custoUnitario: 6_000 },
   { id: "ITC_EXAME_PER", nome: "Exame periódico (clínica do grupo)", tipo: "EXAME", custoUnitario: 4_500 },
   { id: "ITC_EXAME_DEM", nome: "Exame demissional (clínica do grupo)", tipo: "EXAME", custoUnitario: 4_500 },
@@ -199,6 +200,12 @@ async function semearCustos(repo, tenantId) {
   for (const [id, f] of Object.entries(FATURAMENTO_DEMO)) if (await repo.obter(tenantId, "contratosTomador", id)) await repo.atualizar(tenantId, "contratosTomador", id, { faturamento: f });
   const { itens: vinculos } = await repo.listar(tenantId, "vinculos", {}, { limite: 1000 });
   const porCargo = (cargo) => vinculos.filter((v) => v.cargo === cargo && !v.desligamento);
+  // Riscos do PGR por posto (fictícios) e os EPIs que eles exigem.
+  const { itens: postos } = await repo.listar(tenantId, "postos", {}, { limite: 1000 });
+  for (const p of postos) {
+    if (/Montador|Operador/i.test(p.funcao)) await repo.atualizar(tenantId, "postos", p.id, { riscos: [{ tipo: "FISICO", agente: "Ruído contínuo", intensidade: "86 dB(A)", medidas: "Enclausuramento parcial e protetor auricular" }, { tipo: "ERGONOMICO", agente: "Movimentos repetitivos", intensidade: null, medidas: "Pausas e rodízio" }], episExigidos: ["ITC_PROTETOR", "ITC_BOTA"] });
+    else if (/limpeza/i.test(p.funcao)) await repo.atualizar(tenantId, "postos", p.id, { riscos: [{ tipo: "QUIMICO", agente: "Produtos de limpeza (alcalinos)", intensidade: null, medidas: "Diluição automática e luva nitrílica" }, { tipo: "BIOLOGICO", agente: "Resíduos sanitários", intensidade: null, medidas: "Luva e bota" }], episExigidos: ["ITC_LUVA", "ITC_BOTA"] });
+  }
   // A supervisora de operações é a preposta dos dois contratos de prestação de serviços.
   const preposta = vinculos.find((v) => v.cargo === "Supervisora de operações");
   if (preposta) await repo.atualizar(tenantId, "vinculos", preposta.id, { rateioContratos: [{ contratoId: "CTR_AMAZON_INFORMATICA_SERV", percentual: 50 }, { contratoId: "CTR_PLASTICOS_TARUMA_SERV", percentual: 50 }] });

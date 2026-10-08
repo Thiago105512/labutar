@@ -19,6 +19,7 @@ import { paginaEspelhos, paginaImportarAFD, ligarEventosPonto, limparPonto } fro
 import { paginaAdmissoes, paginaAgendaExames, ligarEventosAdmissao, limparAdmissao } from "./admissao-telas.js";
 import { paginaESocial, ligarEventosESocial, limparESocial } from "./esocial-telas.js";
 import { paginaMedicoes, ligarEventosFaturamento, limparFaturamento } from "./faturamento-telas.js";
+import { paginaSSTColaboradores, paginaSSTCatalogo, paginaSSTCat, ligarEventosSST, limparSST } from "./sst-telas.js";
 import { esc, moeda, dataHora, avatar, etiqueta, diasDesde, quando, aviso, abrirPainel, fecharPainel, matiz, matricula } from "./ui.js";
 import {
   ICONE_MODULO,
@@ -62,6 +63,11 @@ const PAGINAS = {
   ],
   admissao: [{ id: "admissoes", nome: "Admissões", icone: "admissao" }],
   clinica: [{ id: "agenda", nome: "Agenda de exames", icone: "clinica" }],
+  sst: [
+    { id: "colaboradores", nome: "EPI e PPP", icone: "sst" },
+    { id: "pgr", nome: "EPI (CA) e riscos do PGR", icone: "cadeado" },
+    { id: "cat", nome: "CAT", icone: "relogio" },
+  ],
   ponto: [
     { id: "espelhos", nome: "Espelhos de ponto", icone: "ponto" },
     { id: "afd", nome: "Importar AFD", icone: "relogio" },
@@ -299,6 +305,7 @@ function limparDados() {
   limparAdmissao();
   limparESocial();
   limparFaturamento();
+  limparSST();
   limparCadastro();
   Object.assign(estado, { vagas: [], candidatos: [], candidaturas: [], resumo: null, origens: [], busca: "" });
 }
@@ -344,6 +351,10 @@ async function renderizar() {
       else if (pagina.id === "pipeline") conteudo.innerHTML = telaPipeline(param);
       else if (pagina.id === "candidatos") conteudo.innerHTML = telaCandidatos();
       else conteudo.innerHTML = telaInicio();
+    } else if (moduloId === "sst") {
+      conteudo.innerHTML = carregando;
+      const telas = { colaboradores: paginaSSTColaboradores, pgr: paginaSSTCatalogo, cat: paginaSSTCat };
+      conteudo.innerHTML = await telas[pagina.id]();
     } else if (moduloId === "admissao" || moduloId === "clinica") {
       conteudo.innerHTML = carregando;
       conteudo.innerHTML = moduloId === "admissao" ? await paginaAdmissoes() : await paginaAgendaExames();
@@ -953,6 +964,7 @@ ligarEventosPonto({ aoAlterar: renderizar });
 ligarEventosAdmissao({ aoAlterar: renderizar });
 ligarEventosESocial({ aoAlterar: renderizar });
 ligarEventosFaturamento({ aoAlterar: renderizar });
+ligarEventosSST({ aoAlterar: renderizar });
 ligarEventosCadastro({ aoAlterar: renderizar });
 sessao.aoSair((motivo) => {
   limparDados();
