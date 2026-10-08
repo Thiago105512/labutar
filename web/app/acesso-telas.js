@@ -4,7 +4,7 @@
  */
 import { icone } from "./icones.js";
 import { api, entrar, recarregarSessao, sair, sessao } from "./sessao.js";
-import { esc, avatar, aviso, abrirPainel, fecharPainel, dataHora } from "./ui.js";
+import { esc, avatar, aviso, abrirPainel, fecharPainel, dataHora, data } from "./ui.js";
 import { MODULOS, NIVEIS, NIVEL, PAPEIS_TOMADOR, validarSenha } from "/packages/acesso/src/index.js";
 
 export const ICONE_MODULO = Object.freeze({
@@ -200,7 +200,8 @@ export function telaModulos() {
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
   const grupos = [...new Set(MODULOS.map((m) => m.grupo))];
-  const liberados = sessao.modulos.filter((m) => m.liberado).length;
+  const liberados = sessao.modulos.filter((m) => m.liberado);
+  const bloqueados = sessao.modulos.filter((m) => !m.liberado);
 
   mostrarTelaCheia(`
     <div class="seletor-modulos">
@@ -216,27 +217,60 @@ export function telaModulos() {
       </header>
       <section class="seletor-hero">
         <h1>${saudacao}, ${esc(String(u?.nome ?? "").split(" ")[0])}.</h1>
-        <p>Escolha o módulo que você quer acessar. ${sessao.perfil?.acessoTotal
+        <p>${sessao.perfil?.acessoTotal
           ? "Seu perfil tem <b>acesso total e irrestrito</b> a todos os módulos."
-          : `Seu perfil, <b>${esc(sessao.perfil?.nome ?? "")}</b>, libera ${liberados} de ${MODULOS.length} módulos.`}</p>
+          : `Seu perfil, <b>${esc(sessao.perfil?.nome ?? "")}</b>, libera ${liberados.length} de ${MODULOS.length} módulos.`}</p>
       </section>
-      ${grupos.map((g) => `
+      <section class="seletor-grupo" id="inicio-pendencias">
+        <h2>O que precisa de você</h2>
+        <div class="cartao pendencias"><div class="carregando"><span class="spinner"></span>Conferindo os módulos…</div></div>
+      </section>
+      ${grupos.map((g) => {
+        const doGrupo = liberados.filter((m) => m.grupo === g);
+        return doGrupo.length ? `
         <section class="seletor-grupo">
           <h2>${esc(g)}</h2>
           <div class="grade-modulos">
-            ${sessao.modulos.filter((m) => m.grupo === g).map((m) => m.liberado ? `
+            ${doGrupo.map((m) => `
               <a class="cartao modulo-cartao" href="#/${m.id}">
                 <span class="modulo-icone">${icone(ICONE_MODULO[m.id] ?? "vagas")}</span>
                 <span class="modulo-texto"><strong>${esc(m.nome)}</strong><small>${esc(m.descricao)}</small></span>
                 ${chipNivel(m.nivel)}
-              </a>` : `
-              <div class="cartao modulo-cartao bloqueado" title="Sem acesso. Solicite ao administrador da sua empresa.">
-                <span class="modulo-icone">${icone("cadeado")}</span>
-                <span class="modulo-texto"><strong>${esc(m.nome)}</strong><small>Sem acesso — solicite ao administrador</small></span>
-              </div>`).join("")}
+              </a>`).join("")}
           </div>
-        </section>`).join("")}
+        </section>` : "";
+      }).join("")}
+      ${bloqueados.length ? `
+        <section class="seletor-grupo">
+          <p class="dica sem-acesso">${icone("cadeado")}Sem acesso: ${bloqueados.map((m) => esc(m.nome)).join(", ")}. Para liberar, fale com o administrador da sua empresa.</p>
+        </section>` : ""}
     </div>`);
+  carregarPendencias();
+}
+
+const PRIORIDADE = { ALTA: "e-vermelho", MEDIA: "e-ambar", INFO: "e-cinza" };
+
+/** Pendências de todos os módulos liberados, mais urgentes primeiro, cada uma com o link que resolve. */
+async function carregarPendencias() {
+  const alvo = document.querySelector("#inicio-pendencias .pendencias");
+  if (!alvo) return;
+  try {
+    const r = await api("/inicio/pendencias");
+    const hoje = r.data;
+    alvo.innerHTML = r.itens.length ? r.itens.map((i) => {
+      const prazo = !i.prazo ? "" : i.prazo < hoje ? `atrasado desde ${data(i.prazo)}` : i.prazo === hoje ? "vence hoje" : `até ${data(i.prazo)}`;
+      const urgente = i.prazo && i.prazo <= hoje;
+      return `
+        <a class="pendencia" href="${esc(i.link)}">
+          <span class="modulo-icone">${icone(ICONE_MODULO[i.modulo] ?? "vagas")}</span>
+          <span class="pendencia-texto"><strong>${esc(i.titulo)}</strong><small>${esc(i.detalhe)}</small></span>
+          ${prazo ? `<span class="etiqueta ${urgente ? "e-vermelho" : "e-cinza"}">${prazo}</span>` : ""}
+          ${i.quantidade != null ? `<span class="etiqueta ${PRIORIDADE[i.prioridade]} pendencia-numero">${i.quantidade}</span>` : `<span class="etiqueta ${PRIORIDADE[i.prioridade]}">${i.prioridade === "INFO" ? "acompanhar" : "fazer"}</span>`}
+        </a>`;
+    }).join("") : `<p class="vazio">${icone("ok")} Tudo em dia nos seus módulos.</p>`;
+  } catch (erro) {
+    alvo.innerHTML = `<p class="dica" style="padding:14px 18px">Não foi possível conferir as pendências: ${esc(erro.message)}</p>`;
+  }
 }
 
 // ------------------------------------------------------------------ administração
