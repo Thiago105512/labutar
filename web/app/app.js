@@ -17,6 +17,7 @@ import { paginaResultado, paginaLancamentos, paginaItens, paginaRateio, ligarEve
 import { paginaPagamentos, ligarEventosPagamento, limparPagamento } from "./pagamento-telas.js";
 import { paginaEspelhos, paginaImportarAFD, ligarEventosPonto, limparPonto } from "./ponto-telas.js";
 import { paginaAdmissoes, paginaAgendaExames, ligarEventosAdmissao, limparAdmissao } from "./admissao-telas.js";
+import { paginaESocial, ligarEventosESocial, limparESocial } from "./esocial-telas.js";
 import { esc, moeda, dataHora, avatar, etiqueta, diasDesde, quando, aviso, abrirPainel, fecharPainel, matiz, matricula } from "./ui.js";
 import {
   ICONE_MODULO,
@@ -54,6 +55,7 @@ const PAGINAS = {
     { id: "tomadores", nome: "Custo por tomador", icone: "tomadores" },
     { id: "decimo", nome: "13º salário", icone: "dinheiro" },
     { id: "rescisao", nome: "Rescisão e férias", icone: "relogio" },
+    { id: "esocial", nome: "eSocial e guias", icone: "contabil" },
     { id: "convencoes", nome: "Convenções e acordos", icone: "juridico" },
     { id: "verbas", nome: "Catálogo de verbas", icone: "dinheiro" },
   ],
@@ -293,6 +295,7 @@ function limparDados() {
   limparPagamento();
   limparPonto();
   limparAdmissao();
+  limparESocial();
   limparCadastro();
   Object.assign(estado, { vagas: [], candidatos: [], candidaturas: [], resumo: null, origens: [], busca: "" });
 }
@@ -352,7 +355,7 @@ async function renderizar() {
       conteudo.innerHTML = await paginaTomadores();
     } else if (moduloId === "folha") {
       conteudo.innerHTML = carregando;
-      const telas = { resumo: paginaFolhaResumo, holerites: paginaHolerites, tomadores: paginaFolhaTomadores, decimo: paginaDecimoTerceiro, rescisao: paginaRescisaoFerias, convencoes: paginaConvencoes, verbas: paginaVerbas };
+      const telas = { resumo: paginaFolhaResumo, holerites: paginaHolerites, tomadores: paginaFolhaTomadores, decimo: paginaDecimoTerceiro, rescisao: paginaRescisaoFerias, esocial: paginaESocial, convencoes: paginaConvencoes, verbas: paginaVerbas };
       conteudo.innerHTML = await telas[pagina.id]();
     } else if (moduloId === "financeiro" || moduloId === "estoque") {
       conteudo.innerHTML = carregando;
@@ -945,6 +948,7 @@ ligarEventosCustos({ aoAlterar: renderizar });
 ligarEventosPagamento({ aoAlterar: renderizar });
 ligarEventosPonto({ aoAlterar: renderizar });
 ligarEventosAdmissao({ aoAlterar: renderizar });
+ligarEventosESocial({ aoAlterar: renderizar });
 ligarEventosCadastro({ aoAlterar: renderizar });
 sessao.aoSair((motivo) => {
   limparDados();

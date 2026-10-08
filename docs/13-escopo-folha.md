@@ -62,12 +62,12 @@ ou especialista em DP antes de implementar (ver seção 16).
 | Item | Prio | Compl. | Status | Onde / observação |
 |---|---|---|---|---|
 | eSocial: tabelas (S-1000 e correlatos) | E | A | 📋 | Lotação por tomador (S-1020) descrita em docs/11 |
-| eSocial: não periódicos (S-2200, S-2205, S-2206, S-2230, S-2299, S-2300, S-2399) | E | A | 🟡 | Contrato reservado para S-2200; S-2206/2230/2299 previstos; S-2205, S-2300/2399 ⬜ |
-| eSocial: periódicos (S-1200, S-1210, S-1260, S-1299) | E | A | 📋 | S-1200 segregado por lotação usa o rateio pronto; S-1260 ⬜ |
-| eSocial: SST (S-2210, S-2220, S-2240) | E | A | 📋 | Código herdado do S-2220 com defeitos inventariados (docs/05) |
+| eSocial: não periódicos (S-2200, S-2205, S-2206, S-2230, S-2299, S-2300, S-2399) | E | A | 🟡 | **S-2299** gerado da rescisão salva, assinado e válido pelo XSD ✅; S-2200 pendente de dados do cadastro; demais ⬜; transmissão ⬜ (certificado A1) |
+| eSocial: periódicos (S-1200, S-1210, S-1260, S-1299) | E | A | 🟡 | **S-1200** por trabalhador da folha fechada, assinado (XMLDSig RSA-SHA256) e válido pelo XSD ✅; S-1010 (falta Tabela 21), S-1210, S-1299 e transmissão ⬜ |
+| eSocial: SST (S-2210, S-2220, S-2240) | E | A | 🟡 | **S-2220** do ASO emitido pela clínica ✅ (decidir quem assina: e-CNPJ ou e-CPF do médico); S-2210 e S-2240 ⬜ |
 | Tratamento de rejeições, retificações, exclusões | E | A | 📋 | Campos de retificação no modelo do evento |
-| DCTFWeb e EFD-Reinf | E | A | 📋 | Reinf para cessão de mão de obra por tomador |
-| FGTS Digital | E | A | 📋 | |
+| DCTFWeb e EFD-Reinf | E | A | 🟡 | Conferência da DCTFWeb da competência fechada (INSS dos colaboradores, patronal, RAT×FAP, terceiros, IRRF, vencimento) ✅; Reinf ⬜ |
+| FGTS Digital | E | A | 🟡 | Conferência do FGTS mensal e rescisório (com multa) e vencimento no dia 20 ✅; a guia é emitida no FGTS Digital a partir do eSocial |
 | CAGED | E | M | ⬜ | **verificar** situação atual (substituído pelo eSocial para a maioria dos empregadores) |
 | PPP digital | E | M | ⬜ | |
 | Guias de recolhimento e conciliação | E | M | ⬜ | |
