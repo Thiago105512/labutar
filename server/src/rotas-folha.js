@@ -9,7 +9,7 @@ import { carregarConvencoes, aplicarConvencoes } from "./convencoes.js";
 /** Campos de lançamento aceitos e seus limites: horas no mês, dias, valores em centavos. */
 const CAMPOS = Object.freeze({
   horasExtras50: [0, 200], horasExtras100: [0, 200], horasNoturnas: [0, 250],
-  faltasDias: [0, 30], dsrPerdidos: [0, 6],
+  faltasDias: [0, 30], dsrPerdidos: [0, 6], atrasosHoras: [0, 220], intervaloSuprimidoHoras: [0, 100],
   adiantamento: [0, 100_000_000], custoValeTransporte: [0, 10_000_000], pensao: [0, 100_000_000],
   outrosDescontos: [0, 100_000_000], eConsignado: [0, 100_000_000], outrosRendimentosIRNoMes: [0, 1_000_000_000], irrfRetidoNoMes: [0, 100_000_000],
 });
@@ -28,7 +28,7 @@ function lerLancamentos(corpo) {
     if (corpo?.[campo] === undefined || corpo[campo] === null || corpo[campo] === "") continue;
     const n = Number(corpo[campo]);
     if (!Number.isFinite(n) || n < min || n > max) erros.push(campo);
-    else saida[campo] = campo.startsWith("horas") ? Math.round(n * 100) / 100 : Math.round(n);
+    else saida[campo] = campo.endsWith("Horas") || campo.startsWith("horas") ? Math.round(n * 100) / 100 : Math.round(n);
   }
   if (erros.length) throw erroValidacao(`valores fora do permitido: ${erros.join(", ")}`, erros);
   return saida;

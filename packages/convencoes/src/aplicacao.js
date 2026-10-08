@@ -126,7 +126,7 @@ export function insalubridadeMinima(instrumento, { funcao, hospital = false }) {
 
 /** Divisor do valor-hora e desconto de vale-transporte conforme a escala. */
 export function parametrosDaEscala(instrumento, escala) {
-  const e12 = escala === "12X36" && instrumento.escala12x36;
+  const e12 = String(escala ?? "").startsWith("12X36") && instrumento.escala12x36;
   return {
     divisor: e12 ? instrumento.escala12x36.divisor : null,
     descontoVT: e12 ? instrumento.valeTransporte?.descontoPercentual12x36 ?? 6 : instrumento.valeTransporte?.descontoPercentual ?? 6,

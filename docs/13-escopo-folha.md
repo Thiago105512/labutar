@@ -98,12 +98,12 @@ colaborador, por dia e por assunto.
 | Item | Prio | Compl. | Status | Onde / observação |
 |---|---|---|---|---|
 | Conformidade com a Portaria MTP 671/2021 (REP-C, REP-P, REP-A) | E | A | 🟡 | **Relógio no tomador (REP-C) é o caso principal**; REP-P previsto; REP-A ⬜ (exige acordo coletivo) |
-| Importação do AFD dos relógios dos tomadores e geração do AEJ (programa de tratamento, PTRP) | E | A | ⬜ | Envio pelo portal do tomador, importação ou integração com fabricante |
+| Importação do AFD dos relógios dos tomadores e geração do AEJ (programa de tratamento, PTRP) | E | A | 🟡 | `ponto`: AFD da Portaria MTP 671/2021 (tipos 3 e 7, por CPF) e do leiaute anterior (por PIS), sem duplicar marcação; tratamento pelo DP com motivo e marcação original guardada ✅. ⬜ AEJ (Anexo VI), envio do AFD pelo portal do tomador, marcações por PIS (precisa do PIS no cadastro) |
 | Marcação por relógio, app, web, biometria/facial | E | M | 🟡 | Relógio via AFD (linha acima); app previsto; biometria no próprio relógio |
-| Escalas (12x36, revezamento, turnos) | E | M | 📋 | Escala no cadastro do posto |
-| Banco de horas e compensação | E | A | 📋 | |
-| Faltas, atrasos, abonos, justificativas | E | M | 📋 | |
-| Fechamento integrado à folha | E | M | 📋 | Ponto aprovado pelo tomador = base da folha e da fatura |
+| Escalas (12x36, revezamento, turnos) | E | M | 🟡 | 44 h seg–sex, 44 h seg–sáb, 40 h, 12x36 diurno e noturno (saída do dia seguinte na jornada anterior), no vínculo ou no posto ✅; revezamento ⬜ |
+| Banco de horas e compensação | E | A | ✅ | Cláusula 19ª da CCT AM000038/2026: só com adesão; 20 h pagas com 50% no mês, excedente no banco por 90 dias, compensação hora a hora, vencido pago com 50% |
+| Faltas, atrasos, abonos, justificativas | E | M | ✅ | Tolerância de 10 min (art. 58), falta e DSR perdido, atraso (verba 9207.02), intervalo suprimido (art. 71, § 4º), abono com motivo |
+| Fechamento integrado à folha | E | M | ✅ | Espelho enviado ao tomador, aprovado ou contestado no portal (ou aprovado pelo gestor interno com motivo) e lançado na folha aberta: extras 50%/100%, noturno, faltas, DSR, atrasos, intervalo. Fatura ⬜ |
 | Geolocalização, jornada externa e teletrabalho | D | M | 📋 | |
 | Detecção de fraude em marcação | F | A | ⬜ | |
 

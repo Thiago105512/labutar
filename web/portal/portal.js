@@ -7,7 +7,7 @@
  */
 import { icone } from "../app/icones.js";
 import { api, adotarSessao, entrar, sessao } from "../app/sessao.js";
-import { esc, moeda, avatar, aviso, abrirPainel, fecharPainel, dataHora } from "../app/ui.js";
+import { esc, moeda, avatar, aviso, abrirPainel, fecharPainel, dataHora, duracao, matricula } from "../app/ui.js";
 import { esconderTelaCheia, ligarEventosAcesso, telaTrocarSenhaObrigatoria } from "../app/acesso-telas.js";
 import { validarSenha } from "/packages/acesso/src/index.js";
 
@@ -353,15 +353,33 @@ const SERVICOS_TOMADOR = [
   ["solicitarPosto", "Solicitar posto ou reposição", "mais", "Peça novos postos ou reposição de faltas."],
 ];
 
+/** Serviços do tomador já disponíveis no portal (os demais aparecem como "Em breve"). */
+const SERVICOS_TOMADOR_PRONTOS = new Set(["aprovarPonto"]);
+const STATUS_ESPELHO = { ENVIADO: ["Aguardando você", "e-ambar"], APROVADO: ["Aprovado", "e-verde"], CONTESTADO: ["Contestado", "e-vermelho"], LANCADO: ["Na folha", "e-verde"] };
+
 async function areaTomador() {
   const d = await api("/portal/tomador/inicio");
+  const ponto = d.acoes.includes("verPresenca") ? await api("/portal/tomador/ponto") : null;
+  const pendentes = ponto?.itens.filter((i) => i.status === "ENVIADO").length ?? 0;
   return `
     <section class="portal-hero">
       <div><h1>${saudacao()}, ${esc(primeiroNome())}.</h1>
         <p>${esc(d.tomador?.nome ?? "")} · ${d.papel ? `seu papel: <b>${esc(d.papel.nome)}</b>` : ""}</p></div>
     </section>
+    ${ponto ? `
     <section class="portal-secao">
-      <div class="grade-servicos">${SERVICOS_TOMADOR.filter(([id]) => d.acoes.includes(id)).map(([id, nome, ic, desc]) => `
+      <h2>Espelhos de ponto${pendentes ? ` <span class="etiqueta e-ambar sem-ponto">${pendentes} para aprovar</span>` : ""}</h2>
+      <div class="cartao lista-holerites">
+        ${ponto.itens.map((i) => `
+          <button type="button" class="lista-item origem-item" data-espelho="${esc(i.competencia)}/${esc(i.matricula)}">
+            ${avatar(i.nome, "avatar-sm")}
+            <div class="texto"><strong>${esc(i.nome)}</strong><small>${esc(nomeCompetencia(i.competencia))} · trabalhado ${duracao(i.totais?.trabalhado)} · extras ${duracao((i.totais?.extras ?? 0) + (i.totais?.extras100 ?? 0))}${i.totais?.faltasDias ? ` · ${i.totais.faltasDias} falta(s)` : ""}</small></div>
+            <span class="etiqueta ${STATUS_ESPELHO[i.status]?.[1] ?? "e-cinza"}">${esc(STATUS_ESPELHO[i.status]?.[0] ?? i.status)}</span>
+          </button>`).join("") || '<p class="dica">Nenhum espelho enviado pela empresa ainda.</p>'}
+      </div>
+    </section>` : ""}
+    <section class="portal-secao">
+      <div class="grade-servicos">${SERVICOS_TOMADOR.filter(([id]) => d.acoes.includes(id) && !SERVICOS_TOMADOR_PRONTOS.has(id)).map(([id, nome, ic, desc]) => `
         <article class="cartao servico">
           <span class="modulo-icone">${icone(ic)}</span>
           <div><h3>${esc(nome)}</h3><p>${esc(desc)}</p></div>
@@ -421,8 +439,54 @@ async function painelHolerite(chave) {
     <footer class="painel-rodape"><button class="botao botao-secundario" data-fechar type="button">Fechar</button></footer>`);
 }
 
+const SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+
+async function painelEspelho(chave) {
+  const e = await api(`/portal/tomador/ponto/${chave}`);
+  const podeAprovar = e.status === "ENVIADO" && (await api("/portal/tomador/ponto")).podeAprovar;
+  const obs = (d) => [d.foraDoContrato ? "férias ou fora do contrato" : "", d.falta ? "falta" : "", d.abonado ? "abonado" : "", d.ajustado ? `ajustado pela empresa: ${d.motivoAjuste}` : ""].filter(Boolean).join(" · ");
+  abrirPainel(`
+    <header class="painel-cabecalho">
+      ${avatar(e.nome, "avatar-lg")}
+      <div class="texto"><h2>${esc(e.nome)}</h2>
+        <p>${esc(matricula(e.matricula))} · ${esc(e.escala)} · ${esc(nomeCompetencia(e.competencia))}</p></div>
+      <button class="botao-icone" data-fechar aria-label="Fechar">${icone("fechar")}</button>
+    </header>
+    <div class="painel-corpo">
+      <p class="dica">Trabalhado ${duracao(e.totais.trabalhado)} de ${duracao(e.totais.previsto)} previstas · extras ${duracao(e.totais.extras + e.totais.extras100)} · faltas ${e.totais.faltasDias || "nenhuma"}</p>
+      <table class="tabela tabela-compacta">
+        <thead><tr><th>Dia</th><th>Marcações</th><th class="num">Trab.</th><th>Observação</th></tr></thead>
+        <tbody>${e.dias.map((d) => `<tr><td>${d.data.slice(8)} <small class="dica">${SEMANA[new Date(`${d.data}T12:00:00Z`).getUTCDay()]}</small></td><td><code>${esc(d.marcacoes.join(" ")) || "—"}</code></td><td class="num">${duracao(d.trabalhado)}</td><td class="dica">${esc(obs(d))}</td></tr>`).join("")}</tbody>
+      </table>
+    </div>
+    <footer class="painel-rodape">
+      <button class="botao botao-secundario" data-fechar type="button">Fechar</button>
+      ${podeAprovar ? `<button class="botao botao-secundario" data-espelho-acao="CONTESTAR" data-chave="${esc(chave)}">Contestar</button>
+      <button class="botao botao-primario" data-espelho-acao="APROVAR" data-chave="${esc(chave)}">Aprovar</button>` : ""}
+    </footer>`);
+}
+
 document.addEventListener("click", async (e) => {
   if (e.target.closest("[data-fechar]")) return fecharPainel();
+  const espelho = e.target.closest("[data-espelho]");
+  if (espelho) return painelEspelho(espelho.dataset.espelho).catch((err) => aviso(err.message, "erro"));
+  const acaoEspelho = e.target.closest("[data-espelho-acao]");
+  if (acaoEspelho) {
+    const acao = acaoEspelho.dataset.espelhoAcao;
+    const corpo = { acao };
+    if (acao === "CONTESTAR") {
+      const motivo = prompt("O que está errado neste espelho? (pelo menos 10 caracteres)");
+      if (!motivo) return undefined;
+      corpo.motivo = motivo;
+    }
+    try {
+      await api(`/portal/tomador/ponto/${acaoEspelho.dataset.chave}`, { metodo: "POST", corpo });
+      aviso(acao === "APROVAR" ? "Espelho aprovado. Obrigado!" : "Contestação enviada à empresa.");
+      fecharPainel();
+      renderizar();
+    } catch (err) { aviso(err.message, "erro"); }
+    return undefined;
+  }
   const holerite = e.target.closest("[data-holerite]");
   if (holerite) return painelHolerite(holerite.dataset.holerite).catch((err) => aviso(err.message, "erro"));
   if (e.target.closest("[data-curriculo]")) return painelCurriculo();

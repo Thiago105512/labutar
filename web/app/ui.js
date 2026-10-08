@@ -57,6 +57,14 @@ export const cpf = (valor) => (valor ? formatarCPF(valor) : "—");
 export const matricula = (valor) => formatarMatricula(valor);
 /** Data civil AAAA-MM-DD → "30/09/2026". */
 export const data = (iso) => (iso ? formatarDataBR(iso) : "—");
+
+/** Minutos como duração de jornada: 528 → "8h48", 60 → "1h", -30 → "-0h30", 0 → "—". */
+export const duracao = (min) => {
+  if (!min) return "—";
+  const a = Math.abs(Math.round(min));
+  const m = a % 60;
+  return `${min < 0 ? "-" : ""}${Math.floor(a / 60)}h${m ? String(m).padStart(2, "0") : ""}`;
+};
 /** Instante → "30/09/2026 14:05", no fuso da empresa (não no do navegador). */
 export const dataHora = (iso) =>
   iso ? new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: FUSO_PADRAO }) : "—";

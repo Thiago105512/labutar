@@ -20,7 +20,8 @@
     "server",
     "packages/convencoes",
     "packages/custos",
-    "packages/pagamento"
+    "packages/pagamento",
+    "packages/ponto"
   ],
   "scripts": {
     "test": "node --test --test-reporter=spec \"packages/*/test/*.test.js\" \"server/test/*.test.js\"",

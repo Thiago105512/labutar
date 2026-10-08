@@ -15,6 +15,7 @@ import { paginaDecimoTerceiro, paginaRescisaoFerias, ligarEventosRescisao, limpa
 import { paginaConvencoes, ligarEventosConvencoes, limparConvencoes } from "./convencoes-telas.js";
 import { paginaResultado, paginaLancamentos, paginaItens, paginaRateio, ligarEventosCustos, limparCustos } from "./custos-telas.js";
 import { paginaPagamentos, ligarEventosPagamento, limparPagamento } from "./pagamento-telas.js";
+import { paginaEspelhos, paginaImportarAFD, ligarEventosPonto, limparPonto } from "./ponto-telas.js";
 import { esc, moeda, dataHora, avatar, etiqueta, diasDesde, quando, aviso, abrirPainel, fecharPainel, matiz, matricula } from "./ui.js";
 import {
   ICONE_MODULO,
@@ -54,6 +55,10 @@ const PAGINAS = {
     { id: "rescisao", nome: "Rescisão e férias", icone: "relogio" },
     { id: "convencoes", nome: "Convenções e acordos", icone: "juridico" },
     { id: "verbas", nome: "Catálogo de verbas", icone: "dinheiro" },
+  ],
+  ponto: [
+    { id: "espelhos", nome: "Espelhos de ponto", icone: "ponto" },
+    { id: "afd", nome: "Importar AFD", icone: "relogio" },
   ],
   financeiro: [
     { id: "resultado", nome: "Resultado por contrato", icone: "alvo" },
@@ -283,6 +288,7 @@ function limparDados() {
   limparConvencoes();
   limparCustos();
   limparPagamento();
+  limparPonto();
   limparCadastro();
   Object.assign(estado, { vagas: [], candidatos: [], candidaturas: [], resumo: null, origens: [], busca: "" });
 }
@@ -328,6 +334,9 @@ async function renderizar() {
       else if (pagina.id === "pipeline") conteudo.innerHTML = telaPipeline(param);
       else if (pagina.id === "candidatos") conteudo.innerHTML = telaCandidatos();
       else conteudo.innerHTML = telaInicio();
+    } else if (moduloId === "ponto") {
+      conteudo.innerHTML = carregando;
+      conteudo.innerHTML = pagina.id === "afd" ? await paginaImportarAFD() : await paginaEspelhos();
     } else if (moduloId === "colaboradores") {
       conteudo.innerHTML = carregando;
       conteudo.innerHTML = pagina.id === "importar" ? await paginaImportacao() : await paginaColaboradores();
@@ -927,6 +936,7 @@ ligarEventosRescisao({ aoAlterar: renderizar });
 ligarEventosConvencoes({ aoAlterar: renderizar });
 ligarEventosCustos({ aoAlterar: renderizar });
 ligarEventosPagamento({ aoAlterar: renderizar });
+ligarEventosPonto({ aoAlterar: renderizar });
 ligarEventosCadastro({ aoAlterar: renderizar });
 sessao.aoSair((motivo) => {
   limparDados();
