@@ -6,6 +6,9 @@ import { TIPO_VINCULO, gerarMatricula } from "../../../packages/mao-de-obra/src/
 import { somarDias } from "../../../packages/core/src/datas.js";
 import * as ats from "../../../packages/ats/src/index.js";
 import { INSTRUMENTOS } from "../../../packages/convencoes/src/index.js";
+import { verificarFechamento } from "../../../packages/folha/src/index.js";
+import { dadosDaFolha, folhaComConvencoes } from "../rotas-folha.js";
+import { hashDaFotografia } from "../fechamento.js";
 
 export const COMPETENCIA_DEMO = "2026-09";
 
@@ -201,6 +204,27 @@ async function semearCustos(repo, tenantId) {
   await outro("2026-09-12", "EQUIPAMENTO", "Carrinho funcional de limpeza", 45_000, { tipo: "CONTRATO", contratoId: "CTR_AMAZON_INFORMATICA_SERV" });
 }
 
+/**
+ * Agosto/2026 fechado no demo (conferido e fechado), para o holerite aparecer no portal do
+ * colaborador e o fechamento poder ser visto; setembro fica aberto para lançar.
+ */
+async function fecharCompetenciaDemo(repo, tenantId, competencia) {
+  const d = await dadosDaFolha(repo, tenantId, competencia);
+  const folha = { ...folhaComConvencoes(d, competencia), empresa: d.empresa, lotacoes: d.lotacoes, lancamentos: d.lancamentos, custosExtras: d.calculo.custosExtras };
+  if (!verificarFechamento(folha).podeFechar) return;
+  // Fechada no 4º dia do mês seguinte, como na rotina do DP.
+  const [ano, mes] = competencia.split("-").map(Number);
+  const em = `${mes === 12 ? ano + 1 : ano}-${String((mes % 12) + 1).padStart(2, "0")}-04T15:00:00.000Z`;
+  const hash = hashDaFotografia(folha.holerites);
+  await repo.inserir(tenantId, "folhaFechamentos", {
+    id: competencia, status: "FECHADA", fotografia: folha, hash, fechadaEm: em,
+    historico: [
+      { acao: "ENVIAR_CONFERENCIA", de: "ABERTA", para: "EM_CONFERENCIA", motivo: null, por: "dp@demo.com.br", em },
+      { acao: "FECHAR", de: "EM_CONFERENCIA", para: "FECHADA", motivo: null, por: "rh@demo.com.br", em, hash },
+    ],
+  });
+}
+
 /** Candidatos do recrutamento demo prontos para admitir: a admissão puxa os dados deles. */
 const PRONTOS_PARA_ADMITIR = { "João Batista Silva": "aprovado", "Carlos Eduardo Ramos": "proposta" };
 
@@ -278,5 +302,6 @@ export async function semearFolha(repo, tenantId) {
   for (const p of postos.values()) await repo.inserir(tenantId, "postos", p);
   await adiantarProcessoSeletivo(repo, tenantId);
   await semearCustos(repo, tenantId);
+  await fecharCompetenciaDemo(repo, tenantId, "2026-08");
   return { semeado: true, colaboradores: dados.length };
 }

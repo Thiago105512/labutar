@@ -5,7 +5,7 @@
  */
 import { icone } from "./icones.js";
 import { api, sessao } from "./sessao.js";
-import { esc, moeda, cnpj, cpf, matricula, avatar, etiqueta, aviso, abrirPainel, fecharPainel } from "./ui.js";
+import { esc, moeda, cnpj, cpf, matricula, dataHora, avatar, etiqueta, aviso, abrirPainel, fecharPainel } from "./ui.js";
 
 export const COMPETENCIA_PADRAO = "2026-09";
 const cache = { competencia: COMPETENCIA_PADRAO, folha: null, parametros: null, busca: "" };
@@ -32,10 +32,16 @@ function nomeLotacao(id) {
   return cache.folha?.lotacoes?.find((l) => l.id === id)?.nome ?? id ?? "Sem lotação";
 }
 
+const COMPETENCIAS = ["2026-08", "2026-09", "2026-10"];
+const NOME_STATUS = { ABERTA: ["Aberta", "e-azul"], EM_CONFERENCIA: ["Em conferência", "e-ambar"], FECHADA: ["Fechada", "e-verde"] };
+
 function cabecalhoCompetencia(f, extra = "") {
   return `
     <div class="barra-filtros">
-      <span class="etiqueta sem-ponto e-marca">${icone("relogio")}Competência ${competenciaTela(f.competencia)}</span>
+      <select class="filtro-texto" style="max-width:190px" data-folha-competencia aria-label="Competência">
+        ${COMPETENCIAS.map((c) => `<option value="${c}" ${c === f.competencia ? "selected" : ""}>Competência ${competenciaTela(c)}</option>`).join("")}
+      </select>
+      ${f.fechamento ? etiqueta(NOME_STATUS, f.fechamento.status) : ""}
       <span class="dica">${f.empresa?.razaoSocial ? `${esc(f.empresa.razaoSocial)} · CNPJ ${esc(cnpj(f.empresa.cnpj))} · ` : ""}Tabelas legais vigentes desde ${competenciaTela(f.tabela.de)}</span>
       ${extra}
     </div>`;
@@ -69,6 +75,8 @@ export async function paginaFolhaResumo() {
         </div>
       </div>
     </section>
+
+    ${await cartaoFechamento(f)}
 
     <section class="indicadores">
       ${indicadores.map((i) => `
@@ -124,6 +132,38 @@ export async function paginaFolhaResumo() {
     </section>`;
 }
 
+/** Situação do fechamento, o que bloqueia e as ações que o perfil pode fazer. */
+async function cartaoFechamento(f) {
+  const status = f.fechamento?.status ?? "ABERTA";
+  const v = status === "FECHADA" ? null : await api(`/folha/${f.competencia}/fechamento`).then((x) => x.verificacao).catch(() => null);
+  const editar = sessao.pode("folha", "editar");
+  const aprovar = sessao.pode("folha", "aprovar");
+  const botao = (acao, nome, classe = "botao-secundario", motivo = false) => `<button class="botao ${classe} botao-sm" data-folha-fechamento="${acao}" ${motivo ? "data-motivo" : ""}>${nome}</button>`;
+  const acoes = [
+    status === "ABERTA" && editar ? botao("ENVIAR_CONFERENCIA", "Enviar para conferência", "botao-primario") : "",
+    status === "EM_CONFERENCIA" && aprovar ? botao("FECHAR", "Fechar competência", "botao-primario") : "",
+    status === "EM_CONFERENCIA" && aprovar ? botao("DEVOLVER", "Devolver para ajustes", "botao-secundario", true) : "",
+    status === "FECHADA" && aprovar ? botao("REABRIR", "Reabrir", "botao-secundario", true) : "",
+  ].join("");
+  const ultimo = f.fechamento?.historico?.at(-1);
+  const texto = {
+    ABERTA: "Lançamentos liberados. Quando terminar, envie para conferência.",
+    EM_CONFERENCIA: "Lançamentos travados para a conferência. O gestor fecha ou devolve para ajustes.",
+    FECHADA: `Fechada${f.fechamento?.fechadaEm ? ` em ${dataHora(f.fechamento.fechadaEm)}` : ""}. Holerites publicados no portal do colaborador; a folha mostrada é a fotografia do fechamento.`,
+  }[status];
+  return `
+    <div class="cartao" style="margin:18px 0">
+      <div class="cartao-cabecalho"><div><h3>Fechamento ${etiqueta(NOME_STATUS, status)}</h3>
+        <p class="dica">${esc(texto)}${ultimo?.motivo ? ` Último motivo: "${esc(ultimo.motivo)}".` : ""}</p></div>
+        <div class="acoes-linha">${acoes}</div></div>
+      ${v && (v.bloqueios.length || v.avisos.length) ? `<div class="cartao-corpo">
+        ${v.bloqueios.length ? `<p><strong>${v.bloqueios.length} bloqueio(s) para fechar:</strong></p>${v.bloqueios.map((b) => `<p class="dica">${esc(b.nome)} (${esc(matricula(b.matricula))}): ${esc(b.motivo)}</p>`).join("")}` : ""}
+        ${v.avisos.length ? `<details><summary class="dica">${v.avisos.length} aviso(s), não impedem o fechamento</summary>${v.avisos.map((a) => `<p class="dica">${esc(a.nome)}: ${esc(a.motivo)}</p>`).join("")}</details>` : ""}
+      </div>` : ""}
+      ${f.fechamento?.hash ? `<div class="cartao-corpo"><p class="dica">Código de integridade (SHA-256 dos holerites): <code>${esc(f.fechamento.hash.slice(0, 16))}…</code></p></div>` : ""}
+    </div>`;
+}
+
 // ---------------------------------------------------------------- holerites
 
 export async function paginaHolerites() {
@@ -166,7 +206,8 @@ function painelHolerite(mat) {
   const h = cache.folha.holerites.find((x) => x.colaborador.matricula === mat);
   if (!h) return;
   const lanc = cache.folha.lancamentos?.[mat] ?? {};
-  const podeLancar = sessao.pode("folha", "editar");
+  // Só com a competência aberta; em conferência ou fechada, o holerite é só leitura.
+  const podeLancar = sessao.pode("folha", "editar") && (cache.folha.fechamento?.status ?? "ABERTA") === "ABERTA";
   const linhas = (tipo) => h.itens.filter((i) => i.tipo === tipo).map((i) => `
     <tr><td><code>${esc(i.codigo)}</code></td><td>${esc(i.nome)}</td><td class="dica">${esc(i.referencia ?? "")}</td><td class="num">${moeda(i.valor)}</td></tr>`).join("");
   const ir = h.detalhe.irrf;
@@ -343,6 +384,27 @@ export function ligarEventosFolha({ aoAlterar }) {
   document.addEventListener("click", (evento) => {
     const alvo = evento.target.closest("[data-folha-holerite]");
     if (alvo) painelHolerite(alvo.dataset.folhaHolerite);
+  });
+  document.addEventListener("click", async (evento) => {
+    const b = evento.target.closest("[data-folha-fechamento]");
+    if (!b) return;
+    let motivo = "";
+    if (b.hasAttribute("data-motivo")) {
+      motivo = prompt("Motivo (fica no histórico da competência):") ?? "";
+      if (!motivo.trim()) return;
+    }
+    try {
+      const r = await api(`/folha/${cache.competencia}/fechamento`, { metodo: "POST", corpo: { acao: b.dataset.folhaFechamento, motivo } });
+      aviso({ EM_CONFERENCIA: "Enviada para conferência.", FECHADA: "Competência fechada: holerites publicados no portal.", ABERTA: "Competência aberta para ajustes." }[r.status]);
+      cache.folha = null;
+      aoAlterar?.();
+    } catch (erro) { aviso(erro.message, "erro"); }
+  });
+  document.addEventListener("change", (evento) => {
+    if (!evento.target.matches("[data-folha-competencia]")) return;
+    cache.competencia = evento.target.value;
+    cache.folha = null;
+    aoAlterar?.();
   });
   document.addEventListener("input", (evento) => {
     if (!evento.target.matches("[data-folha-busca]")) return;

@@ -169,14 +169,66 @@ export function registrarRotasPortal(r, { repo, acesso }) {
 
   // ------------------------------------------------------------ colaborador
 
+  /**
+   * A pessoa do colaborador no cadastro: a conta aponta para a pessoa (pessoaId) ou, se veio do
+   * recrutamento, para o candidato que virou pessoa (candidatoId na pessoa).
+   */
+  async function pessoaDoColaborador(tenant, escopo) {
+    const direta = escopo.pessoaId ? await repo.obter(tenant, "pessoas", escopo.pessoaId) : null;
+    if (direta) return direta;
+    const { itens } = await repo.listar(tenant, "pessoas", { candidatoId: escopo.pessoaId }, { limite: 1 });
+    return itens[0] ?? null;
+  }
+
+  async function matriculasDaPessoa(tenant, pessoa) {
+    if (!pessoa) return new Set();
+    const { itens } = await repo.listar(tenant, "vinculos", { pessoaId: pessoa.id }, { limite: 100 });
+    return new Set(itens.map((v) => v.matricula));
+  }
+
   r.get("/api/portal/colaborador/inicio", async (req, res, ctx) => {
     const { tenant, escopo, usuario } = exigirConta(ctx, TIPO_CONTA.COLABORADOR);
-    const pessoa = await repo.obter(tenant, "candidatos", escopo.pessoaId);
+    const pessoa = await pessoaDoColaborador(tenant, escopo);
+    const candidato = pessoa ? null : await repo.obter(tenant, "candidatos", escopo.pessoaId);
     sucesso(res, {
       nome: usuario.nome,
-      pessoa: pessoa ? { nome: pessoa.dados?.nome, cidade: pessoa.contato?.cidade, uf: pessoa.contato?.uf } : null,
-      // Os serviços abaixo dependem dos módulos de ponto, folha e colaboradores.
-      servicos: ["holerites", "ponto", "ferias", "documentos", "informe", "treinamentos"],
+      pessoa: pessoa ? { nome: pessoa.nome, cidade: pessoa.municipio ?? null, uf: pessoa.uf ?? null }
+        : candidato ? { nome: candidato.dados?.nome, cidade: candidato.contato?.cidade, uf: candidato.contato?.uf } : null,
+      colaborador: Boolean(pessoa),
+      // Disponíveis hoje; os demais dependem dos módulos de ponto, férias e documentos.
+      servicos: pessoa ? ["holerites"] : [],
+    });
+  });
+
+  /** Holerites das competências fechadas, dos vínculos da pessoa. */
+  r.get("/api/portal/colaborador/holerites", async (req, res, ctx) => {
+    const { tenant, escopo } = exigirConta(ctx, TIPO_CONTA.COLABORADOR);
+    const matriculas = await matriculasDaPessoa(tenant, await pessoaDoColaborador(tenant, escopo));
+    const { itens } = await repo.listar(tenant, "folhaFechamentos", { status: "FECHADA" }, { limite: 120 });
+    const lista = [];
+    for (const f of itens) {
+      for (const h of f.fotografia?.holerites ?? []) {
+        if (!matriculas.has(h.colaborador.matricula)) continue;
+        lista.push({ competencia: f.id, matricula: h.colaborador.matricula, cargo: h.colaborador.cargo, proventos: h.proventos, descontos: h.descontos, liquido: h.liquido, fechadaEm: f.fechadaEm ?? null });
+      }
+    }
+    sucesso(res, lista.sort((a, b) => b.competencia.localeCompare(a.competencia)));
+  });
+
+  r.get("/api/portal/colaborador/holerites/:competencia/:matricula", async (req, res, ctx) => {
+    const { tenant, escopo } = exigirConta(ctx, TIPO_CONTA.COLABORADOR);
+    const matriculas = await matriculasDaPessoa(tenant, await pessoaDoColaborador(tenant, escopo));
+    // Só o próprio holerite: matrícula de outra pessoa responde como inexistente.
+    if (!matriculas.has(ctx.params.matricula)) throw erroNaoEncontrado("holerite não encontrado");
+    const f = await repo.obter(tenant, "folhaFechamentos", ctx.params.competencia);
+    const h = f?.status === "FECHADA" ? f.fotografia?.holerites?.find((x) => x.colaborador.matricula === ctx.params.matricula) : null;
+    if (!h) throw erroNaoEncontrado("holerite não encontrado");
+    const empresa = f.fotografia.empresa ?? {};
+    sucesso(res, {
+      competencia: f.id, fechadaEm: f.fechadaEm, hash: f.hash,
+      empresa: { razaoSocial: empresa.razaoSocial ?? null, cnpj: empresa.cnpj ?? null },
+      colaborador: h.colaborador, itens: h.itens, proventos: h.proventos, descontos: h.descontos, liquido: h.liquido,
+      bases: h.bases, fgts: h.fgts,
     });
   });
 

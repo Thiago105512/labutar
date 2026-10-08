@@ -34,7 +34,7 @@ ou especialista em DP antes de implementar (ver seção 16).
 | Consignado, vale-transporte, plano de saúde, coparticipação | E | M | 🟡 | VT ✅ no holerite; **Crédito do Trabalhador (eConsignado)** ✅ verba 9253.01, importação do arquivo mensal ⬜; plano e coparticipação ⬜ |
 | Salário-paternidade e estabilidade (Lei 15.371/2026) | E | M | ⬜ | Vigência 01/01/2027 (10 dias; 15 em 2028; 20 em 2029), pago pelo INSS; estabilidade até 30 dias após o retorno |
 | Aritmética decimal com regras de arredondamento explícitas | E | B | ✅ | `core/dinheiro` (centavos inteiros, faixas progressivas, arredondamento) e `mao-de-obra/rateio` (maior resto, fecha no centavo) |
-| Simulação de folha e de rescisão antes do fechamento | D | M | 🟡 | Simulação de rescisão e de férias por colaborador na tela da folha ✅; folha antes do fechamento ⬜ |
+| Simulação de folha e de rescisão antes do fechamento | D | M | 🟡 | Simulação de rescisão e de férias por colaborador na tela da folha ✅; **fechamento da competência** ✅ (aberta → em conferência pelo DP → fechada pelo gestor; reabrir com motivo e histórico; fotografia com SHA-256; lançamentos travados) |
 | Críticas automáticas e comparação com a folha anterior | D | M | ⬜ | |
 | Cálculo de PLR e bonificações com tributação própria | D | M | ⬜ | |
 | Motor de regras configurável por usuário de RH, sem código | F | A | ⬜ | |
@@ -146,7 +146,7 @@ colaborador, por dia e por assunto.
 
 | Item | Prio | Compl. | Status | Onde / observação |
 |---|---|---|---|---|
-| Holerite, informe de rendimentos, espelho de ponto | E | B | 🟡 | Portal, login e isolamento prontos; conteúdo depende de folha e ponto |
+| Holerite, informe de rendimentos, espelho de ponto | E | B | 🟡 | **Holerite** ✅ (só competências fechadas, só as matrículas da própria pessoa, com código de integridade); informe e espelho de ponto ⬜ |
 | Solicitação de férias, abonos, declarações, alteração de dados | E | M | 🟡 | Idem |
 | Assinatura digital com validade jurídica | D | M | 📋 | Contrato eletrônico na admissão |
 | Comunicação e notificações | D | B | 🟡 | Templates, avisos e lembretes prontos em `comunica`; entrega real ⬜ |

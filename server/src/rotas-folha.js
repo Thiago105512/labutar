@@ -1,4 +1,5 @@
-import { CATALOGO_VERBAS, calcularFolha, calcularHolerite, tabelaDaCompetencia, validarCompetencia } from "../../packages/folha/src/index.js";
+import { CATALOGO_VERBAS, calcularFolha, calcularHolerite, tabelaDaCompetencia, validarCompetencia, STATUS_COMPETENCIA, ACAO_FECHAMENTO, verificarFechamento, aplicarAcaoFechamento } from "../../packages/folha/src/index.js";
+import { obterFechamento, exigirCompetenciaAberta, gravarFechamento, hashDaFotografia } from "./fechamento.js";
 import { sucesso, erroValidacao, erroNaoEncontrado, erroConflito } from "./http/resposta.js";
 import { validarCPF } from "../../packages/core/src/validacao.js";
 import { exigirPermissao } from "./middleware/contexto.js";
@@ -109,16 +110,60 @@ export function registrarRotasFolha(r, { repo }) {
     sucesso(res, { empresa, lotacoes, verbas: CATALOGO_VERBAS });
   });
 
+  /** Folha da competência: calculada na hora se aberta; a fotografia gravada se fechada. */
   r.get("/api/folha/:competencia", async (req, res, ctx) => {
     const tenant = exigirPermissao(ctx, "folha", "ver");
     const competencia = competenciaValida(ctx);
+    const f = await obterFechamento(repo, tenant, competencia);
+    const fechamento = { status: f.status, historico: f.historico ?? [], hash: f.hash ?? null, fechadaEm: f.fechadaEm ?? null };
+    if (f.status === STATUS_COMPETENCIA.FECHADA && f.fotografia) return sucesso(res, { ...f.fotografia, fechamento });
     const d = await dadosDaFolha(repo, tenant, competencia);
-    sucesso(res, { ...folhaComConvencoes(d, competencia), empresa: d.empresa, lotacoes: d.lotacoes, lancamentos: d.lancamentos });
+    sucesso(res, { ...folhaComConvencoes(d, competencia), empresa: d.empresa, lotacoes: d.lotacoes, lancamentos: d.lancamentos, fechamento });
+  });
+
+  r.get("/api/folha/:competencia/fechamento", async (req, res, ctx) => {
+    const tenant = exigirPermissao(ctx, "folha", "ver");
+    const competencia = competenciaValida(ctx);
+    const f = await obterFechamento(repo, tenant, competencia);
+    const verificacao = f.status === STATUS_COMPETENCIA.FECHADA ? null : verificarFechamento(folhaComConvencoes(await dadosDaFolha(repo, tenant, competencia), competencia));
+    sucesso(res, { competencia, status: f.status, historico: f.historico ?? [], hash: f.hash ?? null, fechadaEm: f.fechadaEm ?? null, verificacao });
+  });
+
+  /**
+   * Ações do fechamento: ENVIAR_CONFERENCIA (DP, editar), DEVOLVER, FECHAR e REABRIR (gestor,
+   * aprovar). Fechar grava a fotografia da folha e o hash dos holerites.
+   */
+  r.post("/api/folha/:competencia/fechamento", async (req, res, ctx, corpo) => {
+    const regra = ACAO_FECHAMENTO[corpo?.acao];
+    if (!regra) throw erroValidacao("ação de fechamento inválida", ["acao"]);
+    const tenant = exigirPermissao(ctx, "folha", regra.permissao);
+    const competencia = competenciaValida(ctx);
+    const atual = await obterFechamento(repo, tenant, competencia);
+    let folha = null;
+    let verificacao = null;
+    if (corpo.acao === "FECHAR") {
+      const d = await dadosDaFolha(repo, tenant, competencia);
+      folha = { ...folhaComConvencoes(d, competencia), empresa: d.empresa, lotacoes: d.lotacoes, lancamentos: d.lancamentos, custosExtras: d.calculo.custosExtras };
+      verificacao = verificarFechamento(folha);
+    }
+    const r2 = aplicarAcaoFechamento(atual, { acao: corpo.acao, motivo: corpo.motivo ?? "", usuario: ctx.usuario ?? null, em: new Date().toISOString(), verificacao });
+    if (!r2.ok) throw erroConflito(r2.erro);
+    const dados = { status: r2.estado.status, historico: r2.estado.historico };
+    if (corpo.acao === "FECHAR") {
+      dados.fotografia = folha;
+      dados.hash = hashDaFotografia(folha.holerites);
+      dados.fechadaEm = r2.estado.historico.at(-1).em;
+      dados.historico.at(-1).hash = dados.hash;
+    }
+    if (corpo.acao === "REABRIR") Object.assign(dados, { fotografia: null, hash: null, fechadaEm: null });
+    const gravado = await gravarFechamento(repo, tenant, competencia, dados);
+    sucesso(res, { competencia, status: gravado.status, historico: gravado.historico, hash: gravado.hash ?? null, avisos: verificacao?.avisos ?? [] });
   });
 
   r.put("/api/folha/:competencia/lancamentos/:matricula", async (req, res, ctx, corpo) => {
     const tenant = exigirPermissao(ctx, "folha", "editar");
     const competencia = competenciaValida(ctx);
+    await exigirCompetenciaAberta(repo, tenant, competencia);
     const d0 = await dadosDaFolha(repo, tenant, competencia);
     const colaborador = d0.colaboradores.find((c) => c.matricula === ctx.params.matricula);
     if (!colaborador) throw erroNaoEncontrado("colaborador não encontrado na folha desta competência");
