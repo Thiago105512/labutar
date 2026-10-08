@@ -69,7 +69,7 @@ ou especialista em DP antes de implementar (ver seção 16).
 | DCTFWeb e EFD-Reinf | E | A | 🟡 | Conferência da DCTFWeb da competência fechada (INSS dos colaboradores, patronal, RAT×FAP, terceiros, IRRF, vencimento) ✅; Reinf ⬜ |
 | FGTS Digital | E | A | 🟡 | Conferência do FGTS mensal e rescisório (com multa) e vencimento no dia 20 ✅; a guia é emitida no FGTS Digital a partir do eSocial |
 | CAGED | E | M | ⬜ | **verificar** situação atual (substituído pelo eSocial para a maioria dos empregadores) |
-| PPP digital | E | M | ⬜ | |
+| PPP digital | E | M | 🟡 | PPP de conferência por colaborador (vínculo, posto, riscos do PGR, EPI com CA, ASO, CAT), para imprimir ✅; o oficial sai do eSocial (S-2240) ⬜ |
 | Guias de recolhimento e conciliação | E | M | ⬜ | |
 | Conciliação com o registrado no governo (CNIS, FGTS, eSocial) | D | A | ⬜ | |
 | Informe de rendimentos | D | M | 🟡 | Espaço no portal do colaborador; geração ⬜ |
@@ -111,10 +111,10 @@ colaborador, por dia e por assunto.
 
 | Item | Prio | Compl. | Status | Onde / observação |
 |---|---|---|---|---|
-| PGR e PCMSO | E | M | 📋 | |
+| PGR e PCMSO | E | M | 🟡 | Inventário de riscos por posto do tomador (tipo, agente, intensidade, medidas) e EPIs exigidos ✅; PCMSO (exames por risco) a partir dos riscos ⬜ |
 | ASO e calendário de exames, com alertas | E | M | 🟡 | Agenda da clínica (admissional criado na admissão, periódico, retorno, mudança de risco, demissional com código do eSocial), ASO só pelo médico, RH vê só a conclusão, custo do exame no contrato ✅; alertas de vencimento ⬜ |
-| CAT e gestão de acidentes | E | M | 📋 | |
-| Controle de EPI (entrega, validade, assinatura) | E | M | 📋 | Também no módulo de estoque |
+| CAT e gestão de acidentes | E | M | 🟡 | CAT com prazo legal (1º dia útil seguinte; óbito, no dia), afastamento e retorno com ASO acima de 30 dias ✅; S-2210 ⬜ |
+| Controle de EPI (entrega, validade, assinatura) | E | M | ✅ | Entrega só com CA válido (NR-6), ficha de EPI, confirmação do colaborador no portal, troca pela vida útil, pendência pelo PGR do posto e custo no contrato |
 | LTCAT, PPP e eventos de SST no eSocial | E | A | 🟡 | Eventos previstos; LTCAT e PPP ⬜ |
 | CIPA e treinamentos obrigatórios (NRs) | D | M | 🟡 | Cursos e certificados prontos em `avaliacoes`; CIPA ⬜ |
 | Gestão de riscos psicossociais | D | A | ⬜ | NR-1 atualizada — **verificar** |

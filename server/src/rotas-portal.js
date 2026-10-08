@@ -176,6 +176,10 @@ export function registrarRotasPortal(r, { repo, acesso }) {
    */
   const pessoaDoColaborador = (tenant, escopo) => pessoaDoColaboradorNoRepo(repo, tenant, escopo);
   const matriculasDaPessoa = (tenant, pessoa) => matriculasDaPessoaNoRepo(repo, tenant, pessoa);
+  const temEPI = async (tenant, pessoa) => {
+    for (const m of await matriculasDaPessoa(tenant, pessoa)) if ((await repo.listar(tenant, "episEntregues", { matricula: m }, { limite: 1 })).itens.length) return true;
+    return false;
+  };
   const admissaoPendente = async (tenant, pessoa) => {
     for (const m of await matriculasDaPessoa(tenant, pessoa)) {
       const a = await repo.obter(tenant, "admissoes", m);
@@ -194,7 +198,7 @@ export function registrarRotasPortal(r, { repo, acesso }) {
         : candidato ? { nome: candidato.dados?.nome, cidade: candidato.contato?.cidade, uf: candidato.contato?.uf } : null,
       colaborador: Boolean(pessoa),
       // Disponíveis hoje; os demais dependem dos módulos de ponto, férias e documentos.
-      servicos: pessoa ? [...(await admissaoPendente(tenant, pessoa) ? ["admissao"] : []), "holerites"] : [],
+      servicos: pessoa ? [...(await admissaoPendente(tenant, pessoa) ? ["admissao"] : []), "holerites", ...(await temEPI(tenant, pessoa) ? ["epis"] : [])] : [],
     });
   });
 

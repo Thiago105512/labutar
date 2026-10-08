@@ -347,11 +347,25 @@ async function areaColaborador() {
   const d = await api("/portal/colaborador/inicio");
   const holerites = d.servicos.includes("holerites") ? await api("/portal/colaborador/holerites") : [];
   const admissao = d.servicos.includes("admissao") ? await api("/portal/colaborador/admissao") : null;
+  const epis = d.servicos.includes("epis") ? await api("/portal/colaborador/epis") : [];
   return `
     <section class="portal-hero">
       <div><h1>${saudacao()}, ${esc(primeiroNome())}.</h1><p>${esc(TIPOS.COLABORADOR.chamada)}</p></div>
     </section>
     ${admissao ? secaoAdmissao(admissao) : ""}
+    ${epis.length ? `
+    <section class="portal-secao">
+      <h2>Meus EPIs</h2>
+      <div class="cartao lista-holerites">
+        ${epis.map((e) => `
+          <div class="lista-item">
+            <span class="modulo-icone">${icone("sst")}</span>
+            <div class="texto"><strong>${esc(e.nome)} × ${e.quantidade}</strong><small>entregue em ${data(e.data)} · CA ${esc(e.ca?.numero ?? "")}</small></div>
+            ${e.confirmadaEm ? '<span class="etiqueta e-verde">recebido</span>' : `<button class="botao botao-primario botao-sm" data-confirmar-epi="${esc(e.id)}">Confirmar recebimento</button>`}
+          </div>`).join("")}
+      </div>
+      <p class="dica" style="margin-top:8px">Ao confirmar, você declara que recebeu o EPI e foi orientado sobre o uso e a guarda (NR-6).</p>
+    </section>` : ""}
     ${d.servicos.includes("holerites") ? `
     <section class="portal-secao">
       <h2>Meus holerites</h2>
@@ -551,6 +565,15 @@ async function painelEspelho(chave) {
 
 document.addEventListener("click", async (e) => {
   if (e.target.closest("[data-fechar]")) return fecharPainel();
+  const confirmarEPI = e.target.closest("[data-confirmar-epi]");
+  if (confirmarEPI) {
+    try {
+      await api(`/portal/colaborador/epis/${confirmarEPI.dataset.confirmarEpi}/confirmar`, { metodo: "POST" });
+      aviso("Recebimento confirmado.");
+      renderizar();
+    } catch (err) { aviso(err.message, "erro"); }
+    return undefined;
+  }
   const aceitar = e.target.closest("[data-aceitar-contrato]");
   if (aceitar) {
     if (!document.getElementById("aceite-contrato")?.checked) return aviso("Marque que leu e aceita o contrato.", "erro");
