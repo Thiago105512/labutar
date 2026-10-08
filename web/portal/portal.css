@@ -67,3 +67,6 @@ body { background: var(--fundo); }
   .trilha li.atual { flex: 3; }
   .candidatura-portal header { flex-direction: column; }
 }
+
+/* Lista de holerites do colaborador. */
+.lista-holerites { padding: 6px 18px; }

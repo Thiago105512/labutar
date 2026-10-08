@@ -11,3 +11,4 @@ export * from "./avos.js";
 export * from "./decimo-terceiro.js";
 export * from "./ferias.js";
 export * from "./rescisao.js";
+export * from "./fechamento.js";

@@ -237,6 +237,8 @@ export const USUARIOS_DEMO = Object.freeze([
 export const CONTAS_EXTERNAS_DEMO = Object.freeze([
   { tipo: "CANDIDATO", email: "ana.lima@exemplo.com", nomeCandidato: "Ana Souza Lima" },
   { tipo: "COLABORADOR", email: "joao.batista@exemplo.com", nomeCandidato: "João Batista Silva" },
+  // Colaboradora fictícia já na folha (holerite de agosto/2026 fechado no portal).
+  { tipo: "COLABORADOR", email: "marcia.santos@exemplo.com", nomePessoa: "Márcia Oliveira Santos" },
   { tipo: "TOMADOR", email: "gestor@eletronica-amazonia.com.br", nome: "Otávio Gestor do Tomador",
     escopo: { tomadorId: "TOM_ELETRONICA_AMAZONIA", tomadorNome: "Eletrônica Amazônia S.A.", papel: "GESTOR_CONTRATO" } },
 ]);
@@ -256,9 +258,11 @@ export async function semearUsuarios(acesso, { tenantId = TENANT_DEMO, repo = nu
     const { itens: candidatos } = await repo.listar(tenantId, "candidatos");
     for (const c of CONTAS_EXTERNAS_DEMO) {
       const pessoa = c.nomeCandidato ? candidatos.find((x) => x.dados?.nome === c.nomeCandidato) : null;
-      const escopo = c.escopo ?? (c.tipo === "CANDIDATO" ? { candidatoId: pessoa?.id } : { pessoaId: pessoa?.id });
+      const doCadastro = c.nomePessoa ? (await repo.listar(tenantId, "pessoas", { nome: c.nomePessoa }, { limite: 1 })).itens[0] : null;
+      if (c.nomePessoa && !doCadastro) continue;
+      const escopo = c.escopo ?? (c.tipo === "CANDIDATO" ? { candidatoId: pessoa?.id } : { pessoaId: (doCadastro ?? pessoa)?.id });
       const conta = await acesso.criarContaExterna(tenantId,
-        { tipo: c.tipo, nome: c.nome ?? c.nomeCandidato, email: c.email, senha: SENHA_DEMO, escopo, trocarSenha: false },
+        { tipo: c.tipo, nome: c.nome ?? c.nomeCandidato ?? c.nomePessoa, email: c.email, senha: SENHA_DEMO, escopo, trocarSenha: false },
         { atorAcesso: ATOR_SISTEMA, atorId: "SEED" });
       if (c.tipo === "CANDIDATO" && pessoa) await repo.atualizar(tenantId, "candidatos", pessoa.id, { contaUid: conta.id });
     }

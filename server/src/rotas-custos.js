@@ -6,7 +6,8 @@
 import {
   validarItemDeCusto, validarLancamentoDeCusto, apurarResultado, TIPO_CUSTO, DESTINO_CUSTO, MODALIDADE_FATURAMENTO, CRITERIO_RATEIO,
 } from "../../packages/custos/src/index.js";
-import { validarCompetencia } from "../../packages/folha/src/index.js";
+import { validarCompetencia, STATUS_COMPETENCIA } from "../../packages/folha/src/index.js";
+import { obterFechamento } from "./fechamento.js";
 import { novoId } from "../../packages/core/src/ids.js";
 import { sucesso, erroValidacao, erroNaoEncontrado, erroSemPermissao } from "./http/resposta.js";
 import { exigirPermissao } from "./middleware/contexto.js";
@@ -96,7 +97,11 @@ export function registrarRotasCustos(r, { repo }) {
     if (!validarCompetencia(competencia)) throw erroValidacao("competência inválida: use AAAA-MM", ["competencia"]);
     const criterio = CRITERIO_RATEIO[ctx.query.criterio] ?? CRITERIO_RATEIO.COLABORADORES;
     const d = await dadosDaFolha(repo, tenant, competencia);
-    const folha = folhaComConvencoes(d, competencia);
+    // Competência fechada: o resultado usa a fotografia (o que foi pago), não o cálculo de hoje.
+    const f = await obterFechamento(repo, tenant, competencia);
+    const fechada = f.status === STATUS_COMPETENCIA.FECHADA && f.fotografia;
+    const folha = fechada ? f.fotografia : folhaComConvencoes(d, competencia);
+    if (fechada) d.calculo = { ...d.calculo, custosExtras: f.fotografia.custosExtras ?? {} };
     // Lançamentos que podem ter parcela na competência (amortização de até 60 meses).
     const { itens: lancamentos } = await repo.listar(tenant, "custosLancamentos", {}, TUDO);
     const resultado = apurarResultado({
@@ -106,7 +111,7 @@ export function registrarRotasCustos(r, { repo }) {
       contribuicoesPatronais: (folha.convencoes?.contribuicoesPatronais ?? []).reduce((s, c) => s + c.valor, 0),
       empresa: d.empresa, criterio,
     });
-    sucesso(res, { ...resultado, pendenciasDaFolha: folha.pendencias.length });
+    sucesso(res, { ...resultado, pendenciasDaFolha: folha.pendencias.length, folhaFechada: Boolean(fechada) });
   });
 
   /** Preço de faturamento do contrato (base da receita no resultado). */

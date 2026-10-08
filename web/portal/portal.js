@@ -299,14 +299,30 @@ const SERVICOS_COLABORADOR = [
   ["treinamentos", "Treinamentos", "treinamentos", "Cursos obrigatórios e certificados com validade."],
 ];
 
+const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const nomeCompetencia = (c) => `${MESES[Number(c.slice(5, 7)) - 1]} de ${c.slice(0, 4)}`;
+
 async function areaColaborador() {
   const d = await api("/portal/colaborador/inicio");
+  const holerites = d.servicos.includes("holerites") ? await api("/portal/colaborador/holerites") : [];
   return `
     <section class="portal-hero">
       <div><h1>${saudacao()}, ${esc(primeiroNome())}.</h1><p>${esc(TIPOS.COLABORADOR.chamada)}</p></div>
     </section>
+    ${d.servicos.includes("holerites") ? `
     <section class="portal-secao">
-      <div class="grade-servicos">${SERVICOS_COLABORADOR.map(([id, nome, ic, desc]) => `
+      <h2>Meus holerites</h2>
+      <div class="cartao lista-holerites">
+        ${holerites.map((h) => `
+          <button type="button" class="lista-item origem-item" data-holerite="${esc(h.competencia)}/${esc(h.matricula)}">
+            <span class="modulo-icone">${icone("folha")}</span>
+            <div class="texto"><strong>${esc(nomeCompetencia(h.competencia))}</strong><small>${esc(h.cargo ?? "")} · líquido ${moeda(h.liquido)}</small></div>
+            <span class="dica">Ver ${icone("seta")}</span>
+          </button>`).join("") || '<p class="dica">Nenhum holerite publicado ainda. Ele aparece aqui quando o RH fecha a folha do mês.</p>'}
+      </div>
+    </section>` : ""}
+    <section class="portal-secao">
+      <div class="grade-servicos">${SERVICOS_COLABORADOR.filter(([id]) => !d.servicos.includes(id)).map(([id, nome, ic, desc]) => `
         <article class="cartao servico">
           <span class="modulo-icone">${icone(ic)}</span>
           <div><h3>${esc(nome)}</h3><p>${esc(desc)}</p></div>
@@ -382,8 +398,33 @@ async function renderizar() {
 
 // ------------------------------------------------------------------ eventos
 
+/** Contracheque do mês, como o RH fechou (com o código de integridade do fechamento). */
+async function painelHolerite(chave) {
+  const h = await api(`/portal/colaborador/holerites/${chave}`);
+  const linhas = (tipo) => h.itens.filter((i) => i.tipo === tipo).map((i) => `<tr><td>${esc(i.nome)}${i.referencia ? `<small class="dica"> · ${esc(i.referencia)}</small>` : ""}</td><td class="num">${moeda(i.valor)}</td></tr>`).join("");
+  abrirPainel(`
+    <header class="painel-cabecalho">
+      <span class="modulo-icone">${icone("folha")}</span>
+      <div class="texto"><h2>Holerite de ${esc(nomeCompetencia(h.competencia))}</h2>
+        <p>${esc(h.empresa.razaoSocial ?? "")} · ${esc(h.colaborador.cargo ?? "")}</p></div>
+      <button class="botao-icone" data-fechar aria-label="Fechar">${icone("fechar")}</button>
+    </header>
+    <div class="painel-corpo">
+      <table class="tabela tabela-compacta">
+        <thead><tr><th>Você recebeu</th><th class="num">Valor</th></tr></thead><tbody>${linhas("PROVENTO")}</tbody>
+        <thead><tr><th>Descontos</th><th class="num">Valor</th></tr></thead><tbody>${linhas("DESCONTO")}</tbody>
+        <tbody><tr class="total destaque"><td>Líquido</td><td class="num">${moeda(h.liquido)}</td></tr></tbody>
+      </table>
+      <p class="dica" style="margin-top:12px">FGTS depositado no mês: ${moeda(h.fgts)} · base do INSS ${moeda(h.bases.inss)}</p>
+      <p class="dica">Folha fechada em ${dataHora(h.fechadaEm)} · código de integridade ${esc(h.hash.slice(0, 16))}</p>
+    </div>
+    <footer class="painel-rodape"><button class="botao botao-secundario" data-fechar type="button">Fechar</button></footer>`);
+}
+
 document.addEventListener("click", async (e) => {
   if (e.target.closest("[data-fechar]")) return fecharPainel();
+  const holerite = e.target.closest("[data-holerite]");
+  if (holerite) return painelHolerite(holerite.dataset.holerite).catch((err) => aviso(err.message, "erro"));
   if (e.target.closest("[data-curriculo]")) return painelCurriculo();
   const candidatar = e.target.closest("[data-candidatar]");
   if (candidatar) return painelCandidatar(candidatar.dataset.candidatar);
