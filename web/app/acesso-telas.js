@@ -32,7 +32,7 @@ export function esconderTelaCheia() {
 }
 
 const MARCA = `
-  <span class="marca-logo" aria-hidden="true"><svg viewBox="0 0 32 32"><defs><linearGradient id="lgx" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a3d"/><stop offset="1" stop-color="#ffb547"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#lgx)"/><path d="M10 8v16h12" fill="none" stroke="#1b1446" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="21" cy="11" r="3" fill="#1b1446"/></svg></span>`;
+  <span class="marca-logo" aria-hidden="true"><svg viewBox="0 0 32 32"><defs><linearGradient id="lgx" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a3d"/><stop offset="1" stop-color="#ffb547"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#lgx)"/><path d="M9 9h14M16 9v15" fill="none" stroke="#1b1446" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`;
 
 const PALAVRAS = ["Sol", "Rio", "Mar", "Luz", "Pedra", "Folha", "Vento", "Serra", "Lago", "Ponte", "Campo", "Trigo", "Cedro", "Ilha", "Brisa", "Aurora", "Farol", "Jardim"];
 export function gerarSenha() {
@@ -49,7 +49,7 @@ export function telaLogin({ motivo = null, aoEntrar } = {}) {
   mostrarTelaCheia(`
     <div class="login">
       <section class="login-marca">
-        <div class="login-marca-topo">${MARCA}<span><strong>Labutar</strong><small>Pessoas &amp; Mão de Obra</small></span></div>
+        <div class="login-marca-topo">${MARCA}<span><strong>Tipiti</strong><small>Pessoas &amp; Mão de Obra</small></span></div>
         <div class="login-marca-texto">
           <h1>Toda a sua operação de mão de obra em um só lugar.</h1>
           <p>Recrutamento, admissão, ponto, folha, tomadores e faturamento — com cada pessoa vendo só o que precisa.</p>
@@ -206,7 +206,7 @@ export function telaModulos() {
   mostrarTelaCheia(`
     <div class="seletor-modulos">
       <header class="seletor-topo">
-        <div class="seletor-marca">${MARCA}<span><strong>Labutar</strong><small>${esc(sessao.empresa ?? "")}</small></span></div>
+        <div class="seletor-marca">${MARCA}<span><strong>Tipiti</strong><small>${esc(sessao.empresa ?? "")}</small></span></div>
         <div class="seletor-usuario">
           <button class="usuario usuario-botao" type="button" data-minha-conta>
             ${avatar(u?.nome, "avatar-sm")}

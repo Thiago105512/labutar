@@ -226,7 +226,7 @@ function painelHolerite(mat) {
       <div class="secao alerta-folha">
         ${icone("cracha")}
         <div><strong>${h.pendencias.map(esc).join(" ")}</strong>
-          <p>O CPF é o código da pessoa no Labutar e no eSocial; a matrícula identifica o vínculo.</p>
+          <p>O CPF é o código da pessoa no Tipiti e no eSocial; a matrícula identifica o vínculo.</p>
           ${podeLancar ? `<form class="formulario linha-cpf" id="form-cpf"><input name="cpf" inputmode="numeric" placeholder="000.000.000-00" required aria-label="CPF"><button class="botao botao-primario botao-sm" type="submit">Salvar CPF</button></form>` : ""}
         </div>
       </div>` : ""}

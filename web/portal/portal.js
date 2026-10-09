@@ -20,7 +20,7 @@ const TIPOS = {
     chamada: "Acompanhe os colaboradores do seu contrato, aprove ponto e veja faturas." },
 };
 
-const MARCA = `<span class="marca-logo" aria-hidden="true"><svg viewBox="0 0 32 32"><defs><linearGradient id="lgp" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a3d"/><stop offset="1" stop-color="#ffb547"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#lgp)"/><path d="M10 8v16h12" fill="none" stroke="#1b1446" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="21" cy="11" r="3" fill="#1b1446"/></svg></span>`;
+const MARCA = `<span class="marca-logo" aria-hidden="true"><svg viewBox="0 0 32 32"><defs><linearGradient id="lgp" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a3d"/><stop offset="1" stop-color="#ffb547"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#lgp)"/><path d="M9 9h14M16 9v15" fill="none" stroke="#1b1446" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`;
 
 const parametros = new URLSearchParams(location.search);
 const local = ["localhost", "127.0.0.1"].includes(location.hostname);
@@ -49,7 +49,7 @@ function telaEntrada({ modo = "entrar", motivo = null } = {}) {
   mostrarTelaCheia(`
     <div class="login">
       <section class="login-marca">
-        <div class="login-marca-topo">${MARCA}<span><strong>Labutar</strong><small>${esc(t.titulo)}</small></span></div>
+        <div class="login-marca-topo">${MARCA}<span><strong>Tipiti</strong><small>${esc(t.titulo)}</small></span></div>
         <div class="login-marca-texto">
           <h1>${esc(t.titulo)}</h1>
           <p>${esc(t.chamada)}</p>
@@ -159,7 +159,7 @@ function moldura(conteudo) {
   portal.hidden = false;
   portal.innerHTML = `
     <header class="portal-topo">
-      <div class="seletor-marca">${MARCA}<span><strong>Labutar</strong><small>${esc(sessao.empresa ?? "")}</small></span></div>
+      <div class="seletor-marca">${MARCA}<span><strong>Tipiti</strong><small>${esc(sessao.empresa ?? "")}</small></span></div>
       <span class="etiqueta sem-ponto e-marca portal-tipo">${icone(t.icone)}${esc(t.titulo)}</span>
       <div class="seletor-usuario">
         <button class="usuario usuario-botao" type="button" data-minha-conta>${avatar(u?.nome, "avatar-sm")}<span class="usuario-texto"><strong>${esc(u?.nome)}</strong><small>${esc(u?.email)}</small></span></button>

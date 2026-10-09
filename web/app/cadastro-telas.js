@@ -81,7 +81,7 @@ async function painelColaborador(mat) {
     <div class="painel-corpo">
       ${!p.cpf ? `
       <div class="secao alerta-folha">${icone("cracha")}<div><strong>CPF não informado</strong>
-        <p>O CPF é o código da pessoa no Labutar e no eSocial. Sem ele, nada desta pessoa vai ao eSocial.</p>
+        <p>O CPF é o código da pessoa no Tipiti e no eSocial. Sem ele, nada desta pessoa vai ao eSocial.</p>
         ${podeEditar ? `<form class="formulario linha-cpf" id="form-cad-cpf"><input name="cpf" inputmode="numeric" placeholder="000.000.000-00" required aria-label="CPF"><button class="botao botao-primario botao-sm" type="submit">Salvar CPF</button></form>` : ""}
       </div></div>` : ""}
       <div class="secao"><h4>Vínculo</h4>

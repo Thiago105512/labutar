@@ -1,5 +1,5 @@
 /**
- * Painel da empresa no Labutar.
+ * Painel da empresa no Tipiti.
  *
  * Fluxo: login → escolha do módulo → páginas do módulo. Rotas:
  *   #/                         escolha de módulo
